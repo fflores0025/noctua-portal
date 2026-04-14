@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>NOCTUA · Portal del Empleado</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, query, where, orderBy }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey:"TU_API_KEY", authDomain:"TU_PROJECT.firebaseapp.com",
+      projectId:"TU_PROJECT_ID", storageBucket:"TU_PROJECT.appspot.com",
+      messagingSenderId:"TU_SENDER_ID", appId:"TU_APP_ID"
+    };
+    const app = initializeApp(firebaseConfig);
+    window._firebase = {
+      auth: getAuth(app), db: getFirestore(app),
+      signInWithEmailAndPassword, signOut, onAuthStateChanged,
+      createUserWithEmailAndPassword, doc, getDoc, setDoc,
+      collection, getDocs, addDoc, updateDoc, query, where, orderBy
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg:#07070f; --surf:#0d0d1a; --card:#111120; --border:#1c1c2e;
+      --a1:#c8ff00; --a2:#ff3cac; --a3:#00d4ff;
+      --txt:#e6e6f0; --muted:#60607a; --r:13px; --sidebar:240px;
+    }
+    html,body { height:100%; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--txt); background:var(--bg); overflow-x:hidden; }
+    ::-webkit-scrollbar { width:4px; height:4px; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+    #app { display:flex; min-height:100vh; }
+    .sidebar { width:var(--sidebar); min-height:100vh; background:var(--surf); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; z-index:200; transition:transform .25s cubic-bezier(.4,0,.2,1); }
+    .main-area { margin-left:var(--sidebar); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+    .topbar { height:56px; background:var(--surf); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 20px; gap:12px; position:sticky; top:0; z-index:100; }
+    .main-content { flex:1; padding:28px 24px; max-width:1100px; width:100%; }
+    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:150; }
+    .overlay.show { display:block; }
+    .s-logo { padding:22px 20px 18px; border-bottom:1px solid var(--border); font-family:'Syne',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.5px; }
+    .logo-dot { color:var(--a1); }
+    .s-user { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; cursor:pointer; transition:background .15s; }
+    .s-user:hover { background:rgba(255,255,255,.04); }
+    .s-user-arrow { margin-left:auto; color:var(--muted); font-size:14px; transition:all .2s; }
+    .s-user:hover .s-user-arrow { color:var(--a1); transform:translateX(2px); }
+    .avatar { width:36px; height:36px; border-radius:50%; background:var(--a1); color:#000; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; flex-shrink:0; }
+    .av-pink{background:var(--a2);color:#fff;} .av-blue{background:var(--a3);color:#000;} .av-gray{background:var(--muted);color:#fff;}
+    .u-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .u-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .nav { flex:1; padding:8px 0; overflow-y:auto; }
+    .nav-sec { padding:10px 20px 4px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 20px; cursor:pointer; color:var(--muted); transition:all .15s; font-size:13px; border-left:2px solid transparent; user-select:none; }
+    .nav-item:hover { color:var(--txt); background:rgba(255,255,255,.03); }
+    .nav-item.active { color:var(--a1); border-left-color:var(--a1); background:rgba(200,255,0,.05); }
+    .nav-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+    .s-bottom { padding:14px 20px; border-top:1px solid var(--border); }
+    .btn-logout { width:100%; padding:9px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; transition:all .15s; }
+    .btn-logout:hover { border-color:var(--a2); color:var(--a2); }
+    .burger { background:none; border:none; color:var(--txt); font-size:20px; cursor:pointer; padding:4px; display:none; }
+    .topbar-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; }
+    .topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+    .notif-btn { width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; transition:border-color .15s; }
+    .notif-btn:hover { border-color:var(--a1); }
+    .page-hd { margin-bottom:24px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:700; letter-spacing:-.5px; }
+    .page-sub { color:var(--muted); font-size:13px; margin-top:3px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; }
+    .card-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:14px; }
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;} .g-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+    .mb16{margin-bottom:16px;} .mb24{margin-bottom:24px;} .flex{display:flex;} .items-c{align-items:center;} .j-between{justify-content:space-between;}
+    .stat { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:18px 20px; }
+    .stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+    .stat-val { font-family:'Syne',sans-serif; font-size:26px; font-weight:700; letter-spacing:-1px; }
+    .stat-note { font-size:12px; color:var(--muted); margin-top:4px; }
+    .c-a1{color:var(--a1);} .c-a2{color:var(--a2);} .c-a3{color:var(--a3);}
+    .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
+    .b-green{background:rgba(200,255,0,.12);color:var(--a1);} .b-pink{background:rgba(255,60,172,.12);color:var(--a2);} .b-blue{background:rgba(0,212,255,.12);color:var(--a3);} .b-gray{background:rgba(107,107,136,.15);color:var(--muted);} .b-orange{background:rgba(255,165,0,.12);color:#ffa500;}
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table{width:100%;border-collapse:collapse;}
+    thead th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+    tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
+    tbody tr:last-child td{border-bottom:none;}
+    tbody tr:hover td{background:rgba(255,255,255,.02);}
+    .prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:2px;background:var(--a1);}
+    .prog-fill.blue{background:var(--a3);}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap;}
+    .btn-p{background:var(--a1);color:#000;} .btn-p:hover{background:#d4ff20;}
+    .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);} .btn-g:hover{color:var(--txt);border-color:var(--muted);}
+    .btn-danger{background:rgba(255,60,172,.1);color:var(--a2);border:1px solid rgba(255,60,172,.2);}
+    .btn-full{width:100%;justify-content:center;}
+    .t-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+    .t-row:last-child{border-bottom:none;}
+    .t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .d-evento{background:var(--a2);} .d-oficina{background:var(--a3);} .d-rodaje{background:var(--a1);} .d-libre{background:var(--muted);}
+    .t-dia{width:85px;font-size:13px;font-weight:500;flex-shrink:0;}
+    .t-hrs{font-size:12px;color:var(--muted);width:115px;flex-shrink:0;}
+    .t-lug{font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nom-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;}
+    .nom-row:last-child{border-bottom:none;}
+    .nom-total{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--a1);}
+    .irpf-big{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;color:var(--a1);text-align:center;line-height:1;}
+    input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer;height:4px;}
+
+    /* Calendario interactivo */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+    .cal-hd{text-align:center;padding:6px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;font-size:13px;cursor:pointer;transition:all .15s;background:var(--bg);border:1px solid var(--border);user-select:none;position:relative;}
+    .cal-day:hover{border-color:var(--a3);background:rgba(0,212,255,.05);}
+    .cal-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
+    .cal-day.today{border-color:var(--a1);color:var(--a1);font-weight:700;}
+    .cal-day.selected{background:rgba(200,255,0,.14);border-color:var(--a1);color:var(--a1);}
+    .cal-day.has-event::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a2);}
+    .cal-day.has-turno::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a3);}
+    .cal-dot{width:5px;height:5px;border-radius:50%;margin-top:2px;}
+    .day-detail{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:16px;animation:fadeIn .2s ease;}
+    .day-detail-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;color:var(--a1);}
+    .day-event-item{padding:12px;background:var(--card);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;}
+    .day-event-item:last-child{margin-bottom:0;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Perfil */
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-lbl{color:var(--muted);font-size:13px;}
+
+    /* Evento card */
+    .ev-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:border-color .2s,transform .2s;cursor:pointer;}
+    .ev-card:hover{border-color:rgba(200,255,0,.25);transform:translateY(-2px);}
+    .ev-nombre{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin:8px 0 6px;}
+    .ev-meta{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px;}
+    .proy-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+    .proy-nom{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:3px;}
+    .proy-cli{font-size:12px;color:var(--muted);margin-bottom:14px;}
+
+    /* Form */
+    .form-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
+    .form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;margin-bottom:14px;}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--a1);}
+    .form-textarea{resize:vertical;min-height:80px;}
+
+    /* Modal */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;padding:16px;}
+    .modal-bg.show{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px;}
+    .modal-close{float:right;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;margin-top:-4px;}
+    .modal-close:hover{color:var(--a2);}
+
+    /* Login */
+    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 50% -5%,rgba(200,255,0,.09) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 85% 85%,rgba(255,60,172,.07) 0%,transparent 55%);}
+    .login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;}
+    .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;}
+    .login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:1000;transition:transform .3s;white-space:nowrap;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:768px){
+      :root{--sidebar:245px;}
+      .sidebar{transform:translateX(-100%);}
+      .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.6);}
+      .main-area{margin-left:0;}
+      .burger{display:flex!important;}
+      .main-content{padding:20px 16px;}
+      .g4{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr;} .g2{grid-template-columns:1fr;}
+      .page-title{font-size:20px;} .irpf-big{font-size:44px;} .nom-total{font-size:22px;}
+    }
+    @media(max-width:480px){
+      .g4{grid-template-columns:1fr;} .g3{grid-template-columns:1fr;}
+      .topbar-title{display:none;}
+    }
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">NOCTUA<span class="logo-dot">.</span></div>
+    <div class="login-sub">Portal del empleado · Ocio · Eventos · Producción AV</div>
+    <label class="form-lbl">Acceder como (demo)</label>
+    <select class="form-select" id="demo-select">
+      <option value="admin">Carlos Mendez — Admin</option>
+      <option value="rrhh">Sofía Ruiz — RRHH</option>
+      <option value="empleado">Javier López — Empleado</option>
+      <option value="freelance">Ana Torres — Freelance</option>
+    </select>
+    <label class="form-lbl">Email</label>
+    <input class="form-input" id="login-email" type="email" placeholder="tu@noctua.es"/>
+    <label class="form-lbl">Contraseña</label>
+    <input class="form-input" id="login-pass" type="password" placeholder="••••••••"/>
+    <button class="btn btn-p btn-full" onclick="doLogin()" style="font-size:15px;padding:12px">Entrar al portal</button>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">Modo demo: selecciona un rol y pulsa entrar</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="s-logo">NOCTUA<span class="logo-dot">.</span></div>
+    <div class="s-user" onclick="navigate('perfil')" title="Ver mi perfil">
+      <div class="avatar" id="s-avatar">--</div>
+      <div style="flex:1;min-width:0">
+        <div class="u-name" id="s-name">—</div>
+        <div class="u-role" id="s-role">—</div>
+      </div>
+      <span class="s-user-arrow">›</span>
+    </div>
+    <nav class="nav" id="nav-items"></nav>
+    <div class="s-bottom">
+      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </aside>
+  <div class="main-area">
+    <div class="topbar">
+      <button class="burger" id="burger-btn" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbar-title">Portal</span>
+      <div class="topbar-right">
+        <div class="notif-btn" onclick="toast('Sin notificaciones nuevas')">🔔</div>
+        <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="navigate('perfil')">--</div>
+      </div>
+    </div>
+    <div class="main-content" id="page-content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────────────────
+const DEMO_MODE = true;
+let currentUser=null, userProfile=null, currentPage="dashboard";
+
+// ── DATOS DEMO ───────────────────────────────────────────────────────────
+const DEMO_PROFILES = {
+  admin:    {nombre:"Carlos Mendez",role:"admin",    dept:"Dirección",    email:"carlos@noctua.es",irpf:20,salarioBase:3200},
+  rrhh:     {nombre:"Sofía Ruiz",   role:"rrhh",     dept:"RRHH",         email:"sofia@noctua.es", irpf:15,salarioBase:2600},
+  empleado: {nombre:"Javier López", role:"empleado", dept:"Producción AV",email:"javier@noctua.es",irpf:15,salarioBase:2400},
+  freelance:{nombre:"Ana Torres",   role:"freelance",dept:"Eventos",      email:"ana@noctua.es",   irpf:15,salarioBase:0},
+};
+
+const DEMO_NOMINAS=[
+  {id:"n4",mes:"Abril 2025",   bruto:2400,neto:1820,irpf:15,ss:160,estado:"pendiente"},
+  {id:"n3",mes:"Marzo 2025",   bruto:2400,neto:1820,irpf:15,ss:160,estado:"pagada"},
+  {id:"n2",mes:"Febrero 2025", bruto:2400,neto:1820,irpf:15,ss:160,estado:"pagada"},
+  {id:"n1",mes:"Enero 2025",   bruto:2200,neto:1670,irpf:14,ss:155,estado:"pagada"},
+];
+
+let DEMO_EVENTOS=[
+  {id:"e1",nombre:"Festival NightWave",   fecha:"2025-04-20",lugar:"Sala Zeus, Madrid",    tipo:"Festival",   equipo:12,estado:"confirmado",  notas:"Headliner confirmado. Rider técnico enviado."},
+  {id:"e2",nombre:"Rodaje Spot Heineken", fecha:"2025-04-25",lugar:"Estudio 3, Vallecas",  tipo:"Audiovisual",equipo:6, estado:"produccion",   notas:"Director: Mario Sanz. Equipo: cámara A+B."},
+  {id:"e3",nombre:"Gala Premios AMAS",    fecha:"2025-05-03",lugar:"T. Fernán Gómez",      tipo:"Gala",       equipo:18,estado:"confirmado",  notas:"Dress code: formal. Llegada 2h antes."},
+  {id:"e4",nombre:"Video Clip — Luna",    fecha:"2025-04-17",lugar:"Exteriores Retiro",    tipo:"Audiovisual",equipo:8, estado:"preproduccion",notas:"Permisos pendientes Parque del Retiro."},
+  {id:"e5",nombre:"Club Noche — After",   fecha:"2025-05-17",lugar:"Club Mond, Barcelona", tipo:"Club",       equipo:5, estado:"negociacion", notas:"Contrato en revisión legal."},
+];
+
+let DEMO_EMPLEADOS=[
+  {id:"u1",nombre:"Carlos Mendez",tipo:"fijo",     dept:"Dirección",    role:"admin",    irpf:20,salario:3200,estado:"activo",email:"carlos@noctua.es",tlf:"600 111 222",fechaAlta:"2022-01-10"},
+  {id:"u2",nombre:"Sofía Ruiz",   tipo:"fijo",     dept:"RRHH",         role:"rrhh",     irpf:15,salario:2600,estado:"activo",email:"sofia@noctua.es", tlf:"600 333 444",fechaAlta:"2022-03-15"},
+  {id:"u3",nombre:"Javier López", tipo:"fijo",     dept:"Producción AV",role:"empleado", irpf:15,salario:2400,estado:"activo",email:"javier@noctua.es",tlf:"600 555 666",fechaAlta:"2023-06-01"},
+  {id:"u4",nombre:"Ana Torres",   tipo:"freelance",dept:"Eventos",      role:"freelance",irpf:15,salario:0,   estado:"activo",email:"ana@noctua.es",   tlf:"600 777 888",fechaAlta:"2023-09-20"},
+  {id:"u5",nombre:"Marcos Gil",   tipo:"freelance",dept:"Audiovisual",  role:"freelance",irpf:15,salario:0,   estado:"activo",email:"marcos@noctua.es",tlf:"600 999 000",fechaAlta:"2024-01-05"},
+  {id:"u6",nombre:"Elena Vega",   tipo:"fijo",     dept:"Comunicación", role:"empleado", irpf:12,salario:2100,estado:"baja",  email:"elena@noctua.es", tlf:"600 121 212",fechaAlta:"2022-07-01"},
+];
+
+const DEMO_TURNOS=[
+  {dia:"Lun 14 Abr",entrada:"10:00",salida:"18:00",lugar:"Oficina Central",tipo:"oficina",diaN:14},
+  {dia:"Mar 15 Abr",entrada:"20:00",salida:"04:00",lugar:"Sala Zeus",      tipo:"evento", diaN:15},
+  {dia:"Mié 16 Abr",entrada:"—",    salida:"—",    lugar:"Libre",          tipo:"libre",  diaN:16},
+  {dia:"Jue 17 Abr",entrada:"09:00",salida:"17:00",lugar:"Estudio 3",      tipo:"rodaje", diaN:17},
+  {dia:"Vie 18 Abr",entrada:"11:00",salida:"19:00",lugar:"Oficina Central",tipo:"oficina",diaN:18},
+  {dia:"Sáb 19 Abr",entrada:"22:00",salida:"06:00",lugar:"Club Mond",      tipo:"evento", diaN:19},
+  {dia:"Dom 20 Abr",entrada:"—",    salida:"—",    lugar:"Libre",          tipo:"libre",  diaN:20},
+];
+
+const DEMO_PROYECTOS=[
+  {id:"p1",nombre:"Spot Heineken Q2",    cliente:"Heineken España", inicio:"2025-04-01",fin:"2025-04-30",estado:"activo",       presupuesto:28000,progreso:60},
+  {id:"p2",nombre:"Video Clip Luna",     cliente:"Warner Music ES", inicio:"2025-04-15",fin:"2025-05-15",estado:"activo",       presupuesto:15000,progreso:20},
+  {id:"p3",nombre:"Doc. Sala Razzmatazz",cliente:"Privado",         inicio:"2025-03-01",fin:"2025-03-31",estado:"cerrado",      presupuesto:8000, progreso:100},
+  {id:"p4",nombre:"Teaser Festival NW",  cliente:"NightWave S.L.",  inicio:"2025-05-01",fin:"2025-05-25",estado:"preproduccion",presupuesto:5500, progreso:5},
+];
+
+// ── NAV CONFIG ───────────────────────────────────────────────────────────
+const NAV_CONFIG={
+  admin:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},
+    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  ],
+  rrhh:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},
+    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  ],
+  empleado:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},
+  ],
+  freelance:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},
+  ],
+};
+
+const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
+
+// ── UTILS ────────────────────────────────────────────────────────────────
+function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
+function canAdmin(){return["admin","rrhh"].includes(userProfile?.role);}
+function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
+function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":"";}
+
+function badge(e){
+  const m={pagada:["b-green","Pagada"],pendiente:["b-orange","Pendiente"],confirmado:["b-green","Confirmado"],produccion:["b-blue","En producción"],preproduccion:["b-gray","Preproducción"],negociacion:["b-orange","Negociación"],activo:["b-green","Activo"],cerrado:["b-gray","Cerrado"],baja:["b-pink","Baja"]};
+  const[c,l]=m[e]||["b-gray",e];return`<span class="badge ${c}">${l}</span>`;
+}
+function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
+function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
+
+function showModal(h){document.getElementById("modal-body").innerHTML=h;document.getElementById("modal-bg").classList.add("show");}
+function closeModal(){document.getElementById("modal-bg").classList.remove("show");}
+document.getElementById("modal-bg").addEventListener("click",e=>{if(e.target===document.getElementById("modal-bg"))closeModal();});
+
+// ── AUTH ─────────────────────────────────────────────────────────────────
+function doLogin(){
+  const role=document.getElementById("demo-select").value;
+  userProfile={...DEMO_PROFILES[role]};
+  currentUser={email:userProfile.email};
+  enterApp();
+}
+document.getElementById("login-pass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+function doLogout(){currentUser=null;userProfile=null;document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";closeSidebar();}
+
+function enterApp(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").style.display="flex";
+  const ini=initials(userProfile.nombre),avc=avatarColor(userProfile.role);
+  ["s-avatar","tb-avatar"].forEach(id=>{const el=document.getElementById(id);el.textContent=ini;el.className=`avatar ${avc}`;});
+  document.getElementById("s-name").textContent=userProfile.nombre;
+  document.getElementById("s-role").textContent=userProfile.role;
+  buildNav(userProfile.role);navigate("dashboard");
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────
+function buildNav(role){
+  const items=NAV_CONFIG[role]||NAV_CONFIG.empleado;
+  document.getElementById("nav-items").innerHTML=items.map(i=>i.sec?`<div class="nav-sec">${i.sec}</div>`:`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></div>`).join("");
+}
+
+function navigate(page){
+  currentPage=page;
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  document.getElementById(`nav-${page}`)?.classList.add("active");
+  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
+  closeSidebar();
+  const pc=document.getElementById("page-content");pc.scrollTop=0;
+  ({dashboard,perfil:renderPerfil,nominas:renderNominas,retribuciones:renderRetribuciones,calendario:renderCalendario,eventos:renderEventos,produccion:renderProduccion,admin:renderAdmin,"admin-irpf":renderAdminIRPF,"admin-nominas":renderAdminNominas,"admin-turnos":renderAdminTurnos}[page]||dashboard)(pc);
+}
+function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
+function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────
+function dashboard(pc){
+  const p=userProfile,prox=DEMO_TURNOS.find(t=>t.tipo!=="libre")||DEMO_TURNOS[0];
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Hola, ${p.nombre.split(" ")[0]} 👋</div><div class="page-sub">Resumen de actividad · Abril 2025</div></div></div>
+    <div class="g4 mb24">
+      <div class="stat"><div class="stat-lbl">Próximo turno</div><div class="stat-val c-a1" style="font-size:18px">${prox.dia}</div><div class="stat-note">${prox.lugar} · ${prox.entrada}–${prox.salida}</div></div>
+      <div class="stat"><div class="stat-lbl">Nómina este mes</div><div class="stat-val" style="font-size:18px">${DEMO_NOMINAS[0].neto.toLocaleString()}€</div><div class="stat-note">${badge(DEMO_NOMINAS[0].estado)}</div></div>
+      <div class="stat"><div class="stat-lbl">Eventos próximos</div><div class="stat-val c-a3">${DEMO_EVENTOS.filter(e=>["confirmado","produccion"].includes(e.estado)).length}</div><div class="stat-note">Confirmados o en producción</div></div>
+      <div class="stat"><div class="stat-lbl">IRPF aplicado</div><div class="stat-val c-a2">${p.irpf}%</div><div class="stat-note" style="cursor:pointer;color:var(--a3);text-decoration:underline" onclick="navigate('retribuciones')">Modificar</div></div>
+    </div>
+    <div class="g2 mb16">
+      <div class="card">
+        <div class="card-title">Turnos esta semana</div>
+        ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span></div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Próximos eventos</div>
+        ${DEMO_EVENTOS.slice(0,3).map(ev=>`<div style="padding:11px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="verEvento('${ev.id}')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${ev.nombre}</span>${badge(ev.estado)}</div><div style="font-size:12px;color:var(--muted)">📅 ${ev.fecha} &nbsp;·&nbsp; 📍 ${ev.lugar}</div></div>`).join("")}
+        <div style="text-align:center;margin-top:4px"><span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="navigate('eventos')">Ver todos →</span></div>
+      </div>
+    </div>`;
+}
+
+// ── PERFIL ───────────────────────────────────────────────────────────────
+function renderPerfil(pc){
+  const p=userProfile,ini=initials(p.nombre),avc=avatarColor(p.role);
+  const ret=Math.round((p.salarioBase||0)*p.irpf/100),ss=p.salarioBase>0?160:0,neto=(p.salarioBase||0)-ret-ss;
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Mi Perfil</div><button class="btn btn-p" onclick="editarPerfil()">✏️ Editar</button></div>
+    <div class="g2">
+      <div>
+        <div class="card mb16">
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap">
+            <div class="avatar ${avc}" style="width:64px;height:64px;font-size:20px">${ini}</div>
+            <div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;margin-bottom:5px">${p.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(p.role)}&nbsp;${tipoBadge(p.role==="freelance"?"freelance":"fijo")}</div></div>
+          </div>
+          <div class="info-row"><span class="info-lbl">📧 Email</span><span>${p.email}</span></div>
+          <div class="info-row"><span class="info-lbl">🏢 Departamento</span><span>${p.dept}</span></div>
+          <div class="info-row"><span class="info-lbl">📊 IRPF</span><span style="color:var(--a1);font-weight:600">${p.irpf}%</span></div>
+          ${p.salarioBase>0?`<div class="info-row"><span class="info-lbl">💶 Salario base</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€/mes</span></div>`:""}
+        </div>
+        <div class="card">
+          <div class="card-title">Acciones rápidas</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-g btn-full" onclick="navigate('nominas')">💶 Ver mis nóminas</button>
+            <button class="btn btn-g btn-full" onclick="navigate('retribuciones')">📊 Cambiar IRPF</button>
+            <button class="btn btn-g btn-full" onclick="navigate('calendario')">📅 Ver calendario</button>
+            <button class="btn btn-g btn-full" onclick="cambiarPassword()">🔑 Cambiar contraseña</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card mb16">
+          <div class="card-title">Resumen económico</div>
+          ${p.salarioBase>0?`
+            <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€</span></div>
+            <div class="nom-row"><span>IRPF (${p.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+            <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+            <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--muted)">Neto mensual</span>
+              <span class="nom-total">${neto.toLocaleString()}€</span>
+            </div>
+            <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:9px;text-align:center">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Neto anual estimado</div>
+              <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:700;color:var(--a1)">${(neto*12).toLocaleString()}€</div>
+            </div>
+          `:`<div style="color:var(--muted);font-size:13px">Retribución por caché / proyecto</div>`}
+        </div>
+        <div class="card">
+          <div class="card-title">Últimas nóminas</div>
+          ${DEMO_NOMINAS.slice(0,3).map(n=>`<div class="info-row" style="cursor:pointer" onclick="navigate('nominas')"><span>${n.mes}</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:var(--a1)">${n.neto.toLocaleString()}€</span>${badge(n.estado)}</div></div>`).join("")}
+          <div style="margin-top:10px;text-align:right"><span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="navigate('nominas')">Ver historial →</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editarPerfil(){
+  const p=userProfile;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar mi perfil</div>
+    <label class="form-lbl">Nombre completo</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
+    <label class="form-lbl">Email</label><input class="form-input" id="ep-email" type="email" value="${p.email}"/>
+    <label class="form-lbl">Teléfono</label><input class="form-input" id="ep-tlf" type="tel" placeholder="600 000 000"/>
+    <div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:16px;font-size:12px;color:var(--muted)">Para cambiar departamento o salario, contacta con RRHH.</div>
+    <button class="btn btn-p btn-full" onclick="guardarPerfil()">Guardar cambios</button>`);
+}
+
+function guardarPerfil(){
+  userProfile.nombre=document.getElementById("ep-nombre").value.trim()||userProfile.nombre;
+  userProfile.email=document.getElementById("ep-email").value.trim()||userProfile.email;
+  const ini=initials(userProfile.nombre);
+  ["s-avatar","tb-avatar"].forEach(id=>document.getElementById(id).textContent=ini);
+  document.getElementById("s-name").textContent=userProfile.nombre;
+  toast("Perfil actualizado ✓");closeModal();
+  renderPerfil(document.getElementById("page-content"));
+}
+
+function cambiarPassword(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Cambiar contraseña</div>
+    <label class="form-lbl">Contraseña actual</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <label class="form-lbl">Nueva contraseña</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <label class="form-lbl">Confirmar nueva contraseña</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <button class="btn btn-p btn-full" onclick="toast('Contraseña actualizada ✓');closeModal()">Actualizar</button>`);
+}
+
+// ── NÓMINAS ──────────────────────────────────────────────────────────────
+function renderNominas(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">${userProfile.role==="freelance"?"Mis Cachés":"Mis Nóminas"}</div><div class="page-sub">Historial de retribuciones</div></div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Historial</div>
+        <div class="tbl-wrap"><table><thead><tr><th>Mes</th><th>Bruto</th><th>Neto</th><th>Estado</th><th></th></tr></thead><tbody>
+          ${DEMO_NOMINAS.map(n=>`<tr style="cursor:pointer" onclick="verNomina('${n.id}')"><td style="font-weight:500">${n.mes}</td><td>${n.bruto.toLocaleString()}€</td><td style="color:var(--a1);font-weight:600">${n.neto.toLocaleString()}€</td><td>${badge(n.estado)}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button></td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+      <div class="card" id="nomina-detail"><div class="card-title">Detalle</div><div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona una nómina para ver el detalle.</div></div>
+    </div>`;
+}
+
+function verNomina(id){
+  const n=DEMO_NOMINAS.find(x=>x.id===id);if(!n)return;
+  const ret=Math.round(n.bruto*n.irpf/100);
+  document.getElementById("nomina-detail").innerHTML=`
+    <div class="card-title">${n.mes}</div>
+    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${n.bruto.toLocaleString()}€</span></div>
+    <div class="nom-row"><span>IRPF (${n.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${n.ss}€</span></div>
+    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
+      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto</span>
+      <span class="nom-total">${n.neto.toLocaleString()}€</span>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="toast('PDF generado ✓')">⬇ Descargar PDF</button>
+      <button class="btn btn-g" onclick="toast('Enviado por email ✓')">Enviar email</button>
+    </div>`;
+}
+
+// ── RETRIBUCIONES ─────────────────────────────────────────────────────────
+function renderRetribuciones(pc){
+  const bruto=userProfile.salarioBase||2400;
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Retribuciones & IRPF</div><div class="page-sub">Simula y solicita cambios de retención</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Modificar IRPF</div>
+        <div style="text-align:center;padding:20px 0 24px">
+          <div class="irpf-big" id="irpf-display">${userProfile.irpf}%</div>
+          <div style="color:var(--muted);font-size:12px;margin:6px 0 20px">Tu retención actual</div>
+          <input type="range" min="2" max="45" value="${userProfile.irpf}" id="irpf-slider" oninput="updateIRPF(this.value)"/>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2% mín.</span><span>45% máx.</span></div>
+        </div>
+        <div style="padding:14px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">⚠️ El cambio requiere aprobación de RRHH y se aplica en la siguiente nómina.</div>
+          <button class="btn btn-p btn-full" onclick="solicitarIRPF()">Solicitar cambio de IRPF</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">Simulación mensual</div><div id="sim-content"></div>
+        <div style="margin-top:20px"><div class="card-title">Proyección anual</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px" id="anual-content"></div></div>
+      </div>
+    </div>`;
+  updateIRPF(userProfile.irpf);
+}
+
+function updateIRPF(val){
+  const v=parseInt(val);
+  document.getElementById("irpf-display").textContent=v+"%";
+  const bruto=userProfile.salarioBase||2400,ss=160,ret=Math.round(bruto*v/100),neto=bruto-ret-ss;
+  document.getElementById("sim-content").innerHTML=`
+    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
+    <div class="nom-row"><span>IRPF (${v}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto mensual</span>
+      <span class="nom-total" style="font-size:24px">${neto.toLocaleString()}€</span>
+    </div>`;
+  document.getElementById("anual-content").innerHTML=`
+    <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Bruto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px">${(bruto*12).toLocaleString()}€</div></div>
+    <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Neto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a1)">${(neto*12).toLocaleString()}€</div></div>`;
+}
+
+function solicitarIRPF(){
+  const v=document.getElementById("irpf-slider").value;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Solicitud enviada ✅</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6">Tu solicitud de cambio de IRPF al <strong style="color:var(--a1)">${v}%</strong> ha sido enviada a RRHH.<br><br>Se procesará antes de la próxima nómina. Recibirás confirmación por email.</p>
+    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Entendido</button></div>`);
+}
+
+// ── CALENDARIO INTERACTIVO ────────────────────────────────────────────────
+function renderCalendario(pc){
+  const dias=["L","M","X","J","V","S","D"];
+  const total=30,offset=1;
+  const all=[];for(let i=0;i<offset;i++)all.push(null);for(let d=1;d<=total;d++)all.push(d);while(all.length%7!==0)all.push(null);
+  const tiposDia={1:"oficina",2:"evento",4:"rodaje",6:"evento",8:"oficina",10:"libre",11:"oficina",12:"evento",14:"evento",15:"libre",16:"rodaje",17:"evento",18:"oficina",19:"evento",20:"libre",22:"oficina",23:"rodaje",25:"evento",26:"libre",29:"oficina"};
+  const eventDays=new Set(DEMO_EVENTOS.map(e=>{const m=e.fecha.match(/\d{4}-04-(\d{2})/);return m?parseInt(m[1]):null;}).filter(Boolean));
+  const dotColor={evento:"var(--a2)",rodaje:"var(--a1)",oficina:"var(--a3)",libre:"var(--muted)"};
+
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div class="flex items-c j-between" style="width:100%;flex-wrap:wrap;gap:8px">
+        <div><div class="page-title">Calendario Laboral</div><div class="page-sub">Abril 2025 · Pulsa un día para ver su detalle</div></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+          ${Object.entries(dotColor).map(([k,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${v};display:inline-block"></span>${k}</span>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="card mb16">
+      <div class="cal-grid">
+        ${dias.map(d=>`<div class="cal-hd">${d}</div>`).join("")}
+        ${all.map(n=>{
+          if(!n)return`<div class="cal-day empty"></div>`;
+          const tipo=tiposDia[n],hasEv=eventDays.has(n),isToday=n===14;
+          return`<div class="cal-day ${isToday?"today":""} ${hasEv?"has-event":tipo?"has-turno":""}" id="cal-day-${n}" onclick="selectDay(${n})">${n}${tipo?`<div class="cal-dot" style="background:${dotColor[tipo]}"></div>`:""}</div>`;
+        }).join("")}
+      </div>
+    </div>
+    <div id="day-detail-area"></div>
+    <div class="card">
+      <div class="card-title">Turnos de la semana</div>
+      ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span></div>`).join("")}
+    </div>`;
+}
+
+function selectDay(n){
+  document.querySelectorAll(".cal-day.selected").forEach(el=>el.classList.remove("selected"));
+  document.getElementById(`cal-day-${n}`)?.classList.add("selected");
+  const dayStr=String(n).padStart(2,"0");
+  const evs=DEMO_EVENTOS.filter(e=>e.fecha===`2025-04-${dayStr}`);
+  const turno=DEMO_TURNOS.find(t=>t.diaN===n);
+  const area=document.getElementById("day-detail-area");
+  let html=`<div class="day-detail"><div class="day-detail-title">📅 ${n} de Abril de 2025</div>`;
+  if(turno){
+    html+=`<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tu turno</div>
+      <div class="day-event-item" style="display:flex;align-items:center;gap:10px">
+        <span class="t-dot d-${turno.tipo}" style="width:9px;height:9px"></span>
+        <div><div style="font-weight:500">${turno.tipo==="libre"?"Día libre":turno.lugar}</div><div style="font-size:12px;color:var(--muted)">${turno.entrada==="—"?"Sin horario asignado":`${turno.entrada} – ${turno.salida}`}</div></div>
+      </div></div>`;
+  }
+  if(evs.length>0){
+    html+=`<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Eventos del día</div>
+      ${evs.map(ev=>`<div class="day-event-item" style="cursor:pointer" onclick="verEvento('${ev.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-family:Syne,sans-serif;font-weight:600;font-size:14px">${ev.nombre}</span>${badge(ev.estado)}
+        </div>
+        <div style="font-size:12px;color:var(--muted)">📍 ${ev.lugar} · 👥 ${ev.equipo} personas</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${ev.notas}</div>
+      </div>`).join("")}</div>`;
+  }
+  if(!turno&&evs.length===0){
+    html+=`<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px 0">Sin actividad registrada${canAdmin()?`<br><button class="btn btn-p" style="margin-top:10px" onclick="nuevoEvento()">+ Añadir evento</button>`:""}</div>`;
+  }else if(canAdmin()){
+    html+=`<div style="margin-top:12px"><button class="btn btn-g" style="font-size:12px" onclick="nuevoEvento()">+ Añadir evento en este día</button></div>`;
+  }
+  html+=`</div>`;
+  area.innerHTML=html;
+  area.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+// ── EVENTOS ──────────────────────────────────────────────────────────────
+function renderEventos(pc){
+  const tc={Festival:"b-pink",Audiovisual:"b-green",Gala:"b-blue",Club:"b-orange"};
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Gestión de Eventos</div><div class="page-sub">${DEMO_EVENTOS.length} eventos registrados</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoEvento()">+ Nuevo evento</button>`:""}</div>
+    <div class="g-auto">
+      ${DEMO_EVENTOS.map(ev=>`<div class="ev-card" onclick="verEvento('${ev.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span class="badge ${tc[ev.tipo]||"b-gray"}">${ev.tipo}</span>${badge(ev.estado)}</div>
+        <div class="ev-nombre">${ev.nombre}</div>
+        <div class="ev-meta"><span>📅 ${ev.fecha}</span><span>📍 ${ev.lugar}</span><span>👥 ${ev.equipo} personas</span></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();verEvento('${ev.id}')">Ver detalle</button>
+          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();editEvento('${ev.id}')">Editar</button>`:""}
+        </div></div>`).join("")}
+    </div>`;
+}
+
+function verEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${ev.nombre}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap"><span class="badge b-gray">${ev.tipo}</span>${badge(ev.estado)}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div><span style="color:var(--muted)">📅 Fecha:</span> ${ev.fecha}</div>
+      <div><span style="color:var(--muted)">📍 Lugar:</span> ${ev.lugar}</div>
+      <div><span style="color:var(--muted)">👥 Equipo:</span> ${ev.equipo} personas</div>
+      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Notas</div><div style="font-size:13px;line-height:1.6">${ev.notas}</div></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal()">Cerrar</button>
+      ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();editEvento('${ev.id}')">Editar</button>`:""}
+    </div>`);
+}
+
+function nuevoEvento(){
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Nuevo evento</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ev-nombre" placeholder="Ej: Festival BeachClub"/>
+    <label class="form-lbl">Fecha</label><input class="form-input" id="ev-fecha" type="date"/>
+    <label class="form-lbl">Lugar</label><input class="form-input" id="ev-lugar" placeholder="Sala / Estudio / Localización"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="form-lbl">Tipo</label><select class="form-select" id="ev-tipo"><option>Festival</option><option>Audiovisual</option><option>Gala</option><option>Club</option></select></div>
+      <div><label class="form-lbl">Estado</label><select class="form-select" id="ev-estado"><option value="preproduccion">Preproducción</option><option value="confirmado">Confirmado</option><option value="produccion">En producción</option><option value="negociacion">Negociación</option></select></div>
+    </div>
+    <label class="form-lbl">Personas en equipo</label><input class="form-input" id="ev-equipo" type="number" value="4" min="1"/>
+    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ev-notas" placeholder="Detalles del evento…"></textarea>
+    <button class="btn btn-p btn-full" onclick="guardarEvento()">Guardar evento</button>`),100);
+}
+
+function guardarEvento(){
+  const nombre=document.getElementById("ev-nombre").value.trim();
+  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  DEMO_EVENTOS.unshift({id:"e"+Date.now(),nombre,fecha:document.getElementById("ev-fecha").value||"2025-04-30",lugar:document.getElementById("ev-lugar").value||"Por confirmar",tipo:document.getElementById("ev-tipo").value,estado:document.getElementById("ev-estado").value,equipo:parseInt(document.getElementById("ev-equipo").value)||1,notas:document.getElementById("ev-notas").value||"—"});
+  toast(`Evento "${nombre}" creado ✓`);closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
+}
+
+function editEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar evento</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
+    <label class="form-lbl">Fecha</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/>
+    <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
+    <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["preproduccion","confirmado","produccion","negociacion","cerrado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
+    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas}</textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarEvento('${ev.id}')">Guardar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEvento('${ev.id}')">Eliminar</button>
+    </div>`),100);
+}
+
+function actualizarEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  ev.nombre=document.getElementById("ee-nombre").value.trim()||ev.nombre;
+  ev.fecha=document.getElementById("ee-fecha").value||ev.fecha;
+  ev.lugar=document.getElementById("ee-lugar").value||ev.lugar;
+  ev.estado=document.getElementById("ee-estado").value;
+  ev.notas=document.getElementById("ee-notas").value;
+  toast("Evento actualizado ✓");closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
+}
+
+function eliminarEvento(id){
+  DEMO_EVENTOS=DEMO_EVENTOS.filter(e=>e.id!==id);
+  toast("Evento eliminado");closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+}
+
+// ── PRODUCCIÓN ───────────────────────────────────────────────────────────
+function renderProduccion(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Producción Audiovisual</div><div class="page-sub">Proyectos activos y archivo</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoProyecto()">+ Nuevo proyecto</button>`:""}</div>
+    <div class="g2">
+      ${DEMO_PROYECTOS.map(p=>`<div class="proy-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="proy-nom">${p.nombre}</div>${badge(p.estado)}</div>
+        <div class="proy-cli">${p.cliente}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+          <div><div style="font-size:11px;color:var(--muted)">Inicio</div><div style="font-size:12px;margin-top:2px">${p.inicio}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">Fin</div><div style="font-size:12px;margin-top:2px">${p.fin}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">Presupuesto</div><div style="font-size:12px;margin-top:2px;font-weight:600">${p.presupuesto.toLocaleString()}€</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Progreso</span><span style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</span></div>
+        <div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="verProyecto('${p.id}')">Detalle</button>
+          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="toast('Gestión de equipo')">Equipo</button>`:""}
+        </div></div>`).join("")}
+    </div>`;
+}
+
+function verProyecto(id){
+  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${p.nombre}</div>${badge(p.estado)}
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div><span style="color:var(--muted)">Cliente:</span> ${p.cliente}</div>
+      <div><span style="color:var(--muted)">Periodo:</span> ${p.inicio} → ${p.fin}</div>
+      <div><span style="color:var(--muted)">Presupuesto:</span> <strong>${p.presupuesto.toLocaleString()}€</strong></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:var(--muted)">Progreso</span><strong style="color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</strong></div><div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div></div>
+    </div>
+    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+function nuevoProyecto(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Nuevo proyecto AV</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="proy-nombre" placeholder="Ej: Spot Mahou Verano"/>
+    <label class="form-lbl">Cliente</label><input class="form-input" id="proy-cliente" placeholder="Empresa o nombre"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="form-lbl">Inicio</label><input class="form-input" id="proy-inicio" type="date"/></div>
+      <div><label class="form-lbl">Fin</label><input class="form-input" id="proy-fin" type="date"/></div>
+    </div>
+    <label class="form-lbl">Presupuesto (€)</label><input class="form-input" id="proy-pres" type="number" placeholder="15000"/>
+    <button class="btn btn-p btn-full" onclick="guardarProyecto()">Guardar proyecto</button>`);
+}
+
+function guardarProyecto(){
+  const nombre=document.getElementById("proy-nombre").value.trim();
+  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  toast(`Proyecto "${nombre}" creado ✓`);closeModal();
+}
+
+// ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────
+function renderAdmin(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Gestión de Empleados</div><div class="page-sub">Panel de administración</div></div><button class="btn btn-p" onclick="nuevoEmpleado()">+ Añadir</button></div>
+    <div class="g4 mb24">
+      <div class="stat"><div class="stat-lbl">Total</div><div class="stat-val c-a1">${DEMO_EMPLEADOS.length}</div></div>
+      <div class="stat"><div class="stat-lbl">Fijos</div><div class="stat-val c-a3">${DEMO_EMPLEADOS.filter(e=>e.tipo==="fijo").length}</div></div>
+      <div class="stat"><div class="stat-lbl">Freelances</div><div class="stat-val">${DEMO_EMPLEADOS.filter(e=>e.tipo==="freelance").length}</div></div>
+      <div class="stat"><div class="stat-lbl">Bajas</div><div class="stat-val c-a2">${DEMO_EMPLEADOS.filter(e=>e.estado==="baja").length}</div></div>
+    </div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>IRPF</th><th>Salario</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${DEMO_EMPLEADOS.map(e=>`<tr>
+          <td style="font-weight:500;cursor:pointer" onclick="verFichaEmpleado('${e.id}')">${e.nombre}</td>
+          <td>${tipoBadge(e.tipo)}</td>
+          <td style="color:var(--muted)">${e.dept}</td>
+          <td><span style="cursor:pointer;color:var(--a1);text-decoration:underline" onclick="editarIRPFEmpleado('${e.id}')">${e.irpf}%</span></td>
+          <td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td>
+          <td>${badge(e.estado)}</td>
+          <td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="verFichaEmpleado('${e.id}')">Ficha</button></div></td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div></div>`;
+}
+
+function verFichaEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div class="avatar ${avatarColor(e.role)}" style="width:50px;height:50px;font-size:16px">${initials(e.nombre)}</div>
+      <div><div class="modal-title" style="margin-bottom:4px">${e.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(e.role)}&nbsp;${tipoBadge(e.tipo)}</div></div>
+    </div>
+    ${[["📧 Email",e.email],["📞 Teléfono",e.tlf||"—"],["🏢 Departamento",e.dept],["📊 IRPF",e.irpf+"%"],["💶 Salario",e.salario>0?e.salario.toLocaleString()+"€/mes":"Por caché"],["📅 Alta",e.fechaAlta||"—"],["⚡ Estado",""]].map(([l,v],i)=>`<div class="info-row"><span class="info-lbl">${l}</span><span>${i===6?badge(e.estado):v}</span></div>`).join("")}
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal();editarIRPFEmpleado('${e.id}')">Cambiar IRPF</button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();editEmpleado('${e.id}')">Editar datos</button>
+    </div>`);
+}
+
+function editarIRPFEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">IRPF de ${e.nombre}</div>
+    <div style="text-align:center;padding:16px 0 20px">
+      <div class="irpf-big" id="modal-irpf-display">${e.irpf}%</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:6px;margin-bottom:20px">Retención actual</div>
+      <input type="range" min="2" max="45" value="${e.irpf}" id="modal-irpf-slider" oninput="document.getElementById('modal-irpf-display').textContent=this.value+'%'"/>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2% mín.</span><span>45% máx.</span></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="confirmarIRPFEmpleado('${e.id}')">Aplicar cambio</button>`),100);
+}
+
+function confirmarIRPFEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  const nv=parseInt(document.getElementById("modal-irpf-slider").value),old=e.irpf;
+  e.irpf=nv;toast(`IRPF de ${e.nombre}: ${old}% → ${nv}% ✓`);closeModal();
+  if(currentPage==="admin")renderAdmin(document.getElementById("page-content"));
+  if(currentPage==="admin-irpf")renderAdminIRPF(document.getElementById("page-content"));
+}
+
+function editEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar: ${e.nombre}</div>
+    <label class="form-lbl">Departamento</label><select class="form-select" id="ee-dept">${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}</select>
+    <label class="form-lbl">Rol</label><select class="form-select" id="ee-role">${["empleado","freelance","rrhh","admin"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r}</option>`).join("")}</select>
+    <label class="form-lbl">Estado</label><select class="form-select" id="ee-status"><option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option><option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option></select>
+    <label class="form-lbl">Salario base (€)</label><input class="form-input" id="ee-salario" type="number" value="${e.salario}"/>
+    <button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar cambios</button>`),100);
+}
+
+function actualizarEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  e.dept=document.getElementById("ee-dept").value;e.role=document.getElementById("ee-role").value;
+  e.estado=document.getElementById("ee-status").value;e.salario=parseInt(document.getElementById("ee-salario").value)||0;
+  toast(`${e.nombre} actualizado ✓`);closeModal();renderAdmin(document.getElementById("page-content"));
+}
+
+function nuevoEmpleado(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir empleado</div>
+    <label class="form-lbl">Nombre completo</label><input class="form-input" id="emp-nombre" placeholder="Nombre Apellidos"/>
+    <label class="form-lbl">Email</label><input class="form-input" id="emp-email" type="email" placeholder="email@noctua.es"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="form-lbl">Tipo</label><select class="form-select" id="emp-tipo"><option value="fijo">Fijo</option><option value="freelance">Freelance</option></select></div>
+      <div><label class="form-lbl">Rol</label><select class="form-select" id="emp-role"><option value="empleado">Empleado</option><option value="freelance">Freelance</option><option value="rrhh">RRHH</option><option value="admin">Admin</option></select></div>
+    </div>
+    <label class="form-lbl">Departamento</label><select class="form-select" id="emp-dept"><option>Dirección</option><option>RRHH</option><option>Producción AV</option><option>Eventos</option><option>Comunicación</option><option>Audiovisual</option></select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="form-lbl">Salario (€)</label><input class="form-input" id="emp-salario" type="number" placeholder="0"/></div>
+      <div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="emp-irpf" type="number" value="15" min="2" max="45"/></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="guardarEmpleado()">Crear empleado</button>`);
+}
+
+function guardarEmpleado(){
+  const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();
+  if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}
+  DEMO_EMPLEADOS.push({id:"u"+Date.now(),nombre,email,tipo:document.getElementById("emp-tipo").value,role:document.getElementById("emp-role").value,dept:document.getElementById("emp-dept").value,salario:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15,estado:"activo",tlf:"—",fechaAlta:new Date().toISOString().slice(0,10)});
+  toast(`Empleado "${nombre}" creado ✓`);closeModal();renderAdmin(document.getElementById("page-content"));
+}
+
+// ── ADMIN: CAMBIAR IRPF ───────────────────────────────────────────────────
+function renderAdminIRPF(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Cambiar IRPF del equipo</div><div class="page-sub">Modifica la retención fiscal de cualquier empleado</div></div>
+    <div class="card">
+      <div class="card-title">Empleados activos</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Empleado</th><th>Departamento</th><th>Tipo</th><th>IRPF actual</th><th>Nuevo IRPF</th><th></th></tr></thead>
+        <tbody>
+          ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<tr>
+            <td style="font-weight:500">${e.nombre}</td>
+            <td style="color:var(--muted)">${e.dept}</td>
+            <td>${tipoBadge(e.tipo)}</td>
+            <td><span style="color:var(--a1);font-weight:600">${e.irpf}%</span></td>
+            <td><div style="display:flex;align-items:center;gap:8px"><input type="range" min="2" max="45" value="${e.irpf}" id="irpf-r-${e.id}" oninput="document.getElementById('irpf-v-${e.id}').textContent=this.value+'%'" style="width:100px;height:3px"/><span id="irpf-v-${e.id}" style="font-size:13px;font-weight:600;width:36px;color:var(--a1)">${e.irpf}%</span></div></td>
+            <td><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aplicarIRPF('${e.id}')">Aplicar</button></td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+    </div>
+    <div style="margin-top:16px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--muted);line-height:1.6">
+      💡 <strong style="color:var(--txt)">Nota:</strong> Los cambios de IRPF se aplican en la siguiente nómina. El empleado recibirá notificación por email.
+    </div>`;
+}
+
+function aplicarIRPF(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  const nv=parseInt(document.getElementById(`irpf-r-${id}`).value),old=e.irpf;
+  e.irpf=nv;toast(`IRPF de ${e.nombre}: ${old}% → ${nv}% ✓`);
+  renderAdminIRPF(document.getElementById("page-content"));
+}
+
+// ── ADMIN: NÓMINAS EQUIPO ─────────────────────────────────────────────────
+function renderAdminNominas(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Nóminas del equipo</div><div class="page-sub">Gestión y generación de nóminas</div></div>
+    <div class="card mb16">
+      <div class="card-title">Resumen Abril 2025</div>
+      <div class="g3" style="margin-top:4px">
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total bruto mensual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px">${DEMO_EMPLEADOS.filter(e=>e.salario>0).reduce((a,e)=>a+e.salario,0).toLocaleString()}€</div></div>
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Empleados fijos activos</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a3)">${DEMO_EMPLEADOS.filter(e=>e.tipo==="fijo"&&e.estado==="activo").length}</div></div>
+        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nóminas pendientes</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a2)">1</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Empleado</th><th>Tipo</th><th>Bruto</th><th>IRPF</th><th>Neto est.</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>{
+          const ret=Math.round(e.salario*e.irpf/100),neto=e.salario-ret-(e.salario>0?160:0);
+          return`<tr><td style="font-weight:500">${e.nombre}</td><td>${tipoBadge(e.tipo)}</td><td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td><td>${e.irpf}%</td><td style="color:var(--a1);font-weight:600">${e.salario>0?neto.toLocaleString()+"€":"—"}</td><td>${e.salario>0?badge("pendiente"):badge("cerrado")}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="toast('Nómina generada ✓')">Generar</button></td></tr>`;
+        }).join("")}
+      </tbody>
+    </table></div></div>`;
+}
+
+// ── ADMIN: TURNOS ─────────────────────────────────────────────────────────
+function renderAdminTurnos(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Gestión de Turnos</div><div class="page-sub">Asignación de turnos del equipo</div></div>
+    <div class="g2 mb16">
+      <div class="card">
+        <div class="card-title">Equipo esta semana</div>
+        ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").slice(0,5).map(e=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="avatar ${avatarColor(e.role)}" style="width:30px;height:30px;font-size:10px;flex-shrink:0">${initials(e.nombre)}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${e.nombre}</div><div style="font-size:11px;color:var(--muted)">${e.dept}</div></div><span class="badge b-blue" style="font-size:10px">40h/sem</span></div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Añadir turno</div>
+        <label class="form-lbl">Empleado</label><select class="form-select">${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<option>${e.nombre}</option>`).join("")}</select>
+        <label class="form-lbl">Día</label><input class="form-input" type="date"/>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="form-lbl">Entrada</label><input class="form-input" type="time" value="09:00"/></div><div><label class="form-lbl">Salida</label><input class="form-input" type="time" value="17:00"/></div></div>
+        <label class="form-lbl">Tipo</label><select class="form-select"><option value="oficina">Oficina</option><option value="evento">Evento</option><option value="rodaje">Rodaje</option><option value="libre">Libre</option></select>
+        <label class="form-lbl">Lugar</label><input class="form-input" placeholder="Oficina / Sala / Estudio…"/>
+        <button class="btn btn-p btn-full" onclick="toast('Turno asignado ✓')">Asignar turno</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Turnos semana actual</div>
+      ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span><button class="btn btn-g" style="padding:3px 8px;font-size:11px;margin-left:8px" onclick="toast('Turno eliminado')">✕</button></div>`).join("")}
+    </div>`;
+}
+</script>
+</body>
+</html>

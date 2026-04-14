@@ -246,26 +246,14 @@ const DEMO_PROFILES = {
   freelance:{nombre:"Ana Torres",   role:"freelance",dept:"Eventos",      email:"ana@noctua.es",   irpf:15,salarioBase:0},
 };
 
-const DEMO_NOMINAS=[
-  {id:"n4",mes:"Abril 2025",   bruto:2400,neto:1820,irpf:15,ss:160,estado:"pendiente"},
-  {id:"n3",mes:"Marzo 2025",   bruto:2400,neto:1820,irpf:15,ss:160,estado:"pagada"},
-  {id:"n2",mes:"Febrero 2025", bruto:2400,neto:1820,irpf:15,ss:160,estado:"pagada"},
-  {id:"n1",mes:"Enero 2025",   bruto:2200,neto:1670,irpf:14,ss:155,estado:"pagada"},
-];
+let DEMO_NOMINAS=[];  // Se carga desde Firestore por usuario
 
 let DEMO_EVENTOS=[];  // Se carga desde Firestore
 
 let DEMO_EMPLEADOS=[];  // Se carga desde Firestore al entrar
 
-const DEMO_TURNOS=[
-  {dia:"Lun 14 Abr",entrada:"10:00",salida:"18:00",lugar:"Oficina Central",tipo:"oficina",diaN:14},
-  {dia:"Mar 15 Abr",entrada:"20:00",salida:"04:00",lugar:"Sala Zeus",      tipo:"evento", diaN:15},
-  {dia:"Mié 16 Abr",entrada:"—",    salida:"—",    lugar:"Libre",          tipo:"libre",  diaN:16},
-  {dia:"Jue 17 Abr",entrada:"09:00",salida:"17:00",lugar:"Estudio 3",      tipo:"rodaje", diaN:17},
-  {dia:"Vie 18 Abr",entrada:"11:00",salida:"19:00",lugar:"Oficina Central",tipo:"oficina",diaN:18},
-  {dia:"Sáb 19 Abr",entrada:"22:00",salida:"06:00",lugar:"Club Mond",      tipo:"evento", diaN:19},
-  {dia:"Dom 20 Abr",entrada:"—",    salida:"—",    lugar:"Libre",          tipo:"libre",  diaN:20},
-];
+let DEMO_TURNOS=[];  // Se carga desde Firestore por empleado/semana
+let TURNOS_EQUIPO=[];  // Todos los turnos del equipo (solo admin/rrhh)
 
 let DEMO_PROYECTOS=[];  // Se carga desde Firestore
 
@@ -387,13 +375,45 @@ async function enterApp(){
   // Cargar datos desde Firestore
   await cargarEventos();
   await cargarProyectos();
+  await cargarMisNominas();
+  await cargarMisTurnos();
   if(canAdminRole(userProfile.role)){
     await cargarEmpleados();
+    await cargarTodosLosTurnos();
   }
   navigate("dashboard");
 }
 
 function canAdminRole(r){return["admin","rrhh"].includes(r);}
+
+async function cargarMisNominas(){
+  try{
+    const{db,collection,query,where,getDocs,orderBy}=window._firebase;
+    const q=query(collection(db,"nominas"),where("empleadoId","==",currentUser.uid));
+    const snap=await getDocs(q);
+    DEMO_NOMINAS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    DEMO_NOMINAS.sort((a,b)=>(b.fechaCreacion||"").localeCompare(a.fechaCreacion||""));
+  }catch(e){console.warn("Error cargando nóminas:",e);DEMO_NOMINAS=[];}
+}
+
+async function cargarMisTurnos(){
+  try{
+    const{db,collection,query,where,getDocs}=window._firebase;
+    const q=query(collection(db,"turnos"),where("empleadoId","==",currentUser.uid));
+    const snap=await getDocs(q);
+    DEMO_TURNOS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    DEMO_TURNOS.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }catch(e){console.warn("Error cargando turnos:",e);DEMO_TURNOS=[];}
+}
+
+async function cargarTodosLosTurnos(){
+  try{
+    const{db,collection,getDocs}=window._firebase;
+    const snap=await getDocs(collection(db,"turnos"));
+    TURNOS_EQUIPO=snap.docs.map(d=>({id:d.id,...d.data()}));
+    TURNOS_EQUIPO.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }catch(e){console.warn("Error cargando turnos equipo:",e);TURNOS_EQUIPO=[];}
+}
 
 async function cargarEventos(){
   try{
@@ -455,7 +475,9 @@ function closeSidebar(){document.getElementById("sidebar").classList.remove("ope
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 function dashboard(pc){
-  const p=userProfile,prox=DEMO_TURNOS.find(t=>t.tipo!=="libre")||DEMO_TURNOS[0];
+  const p=userProfile;
+  const hoy=new Date().toISOString().slice(0,10);
+  const prox=DEMO_TURNOS.find(t=>t.fecha>=hoy&&t.tipo!=="libre")||DEMO_TURNOS[0];
   pc.innerHTML=`
     <div class="page-hd"><div><div class="page-title">Hola, ${p.nombre.split(" ")[0]} 👋</div><div class="page-sub">Resumen de actividad · Abril 2025</div></div></div>
     <div class="g4 mb24">
@@ -466,8 +488,16 @@ function dashboard(pc){
     </div>
     <div class="g2 mb16">
       <div class="card">
-        <div class="card-title">Turnos esta semana</div>
-        ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span></div>`).join("")}
+        <div class="card-title">Tus próximos turnos</div>
+        ${DEMO_TURNOS.length===0
+          ?`<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`
+          :DEMO_TURNOS.slice(0,5).map(t=>{
+            const d=new Date((t.fecha||"2025-01-01")+"T12:00:00");
+            const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+            const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+            return`<div class="t-row"><span class="t-dia">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}</span><span class="t-lug">${t.lugar||"—"}</span></div>`;
+          }).join("")
+        }
       </div>
       <div class="card">
         <div class="card-title">Próximos eventos</div>
@@ -560,15 +590,17 @@ function cambiarPassword(){
 }
 
 // ── NÓMINAS ──────────────────────────────────────────────────────────────
-function renderNominas(pc){
+async function renderNominas(pc){
+  await cargarMisNominas();
   pc.innerHTML=`
     <div class="page-hd"><div><div class="page-title">${userProfile.role==="freelance"?"Mis Cachés":"Mis Nóminas"}</div><div class="page-sub">Historial de retribuciones</div></div></div>
     <div class="g2">
       <div class="card">
         <div class="card-title">Historial</div>
+        ${DEMO_NOMINAS.length===0?`<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">No hay nóminas generadas aún.<br>Contacta con RRHH para más información.</div>`:`
         <div class="tbl-wrap"><table><thead><tr><th>Mes</th><th>Bruto</th><th>Neto</th><th>Estado</th><th></th></tr></thead><tbody>
-          ${DEMO_NOMINAS.map(n=>`<tr style="cursor:pointer" onclick="verNomina('${n.id}')"><td style="font-weight:500">${n.mes}</td><td>${n.bruto.toLocaleString()}€</td><td style="color:var(--a1);font-weight:600">${n.neto.toLocaleString()}€</td><td>${badge(n.estado)}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button></td></tr>`).join("")}
-        </tbody></table></div>
+          ${DEMO_NOMINAS.map(n=>`<tr style="cursor:pointer" onclick="verNomina('${n.id}')"><td style="font-weight:500">${n.mes}</td><td>${(n.bruto||0).toLocaleString()}€</td><td style="color:var(--a1);font-weight:600">${(n.neto||0).toLocaleString()}€</td><td>${badge(n.estado||"pendiente")}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button></td></tr>`).join("")}
+        </tbody></table></div>`}
       </div>
       <div class="card" id="nomina-detail"><div class="card-title">Detalle</div><div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona una nómina para ver el detalle.</div></div>
     </div>`;
@@ -579,16 +611,15 @@ function verNomina(id){
   const ret=Math.round(n.bruto*n.irpf/100);
   document.getElementById("nomina-detail").innerHTML=`
     <div class="card-title">${n.mes}</div>
-    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${n.bruto.toLocaleString()}€</span></div>
-    <div class="nom-row"><span>IRPF (${n.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
-    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${n.ss}€</span></div>
+    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${(n.bruto||0).toLocaleString()}€</span></div>
+    <div class="nom-row"><span>IRPF (${n.irpf||15}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${n.ss||160}€</span></div>
     <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
       <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto</span>
-      <span class="nom-total">${n.neto.toLocaleString()}€</span>
+      <span class="nom-total">${(n.neto||0).toLocaleString()}€</span>
     </div>
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-p" onclick="toast('PDF generado ✓')">⬇ Descargar PDF</button>
-      <button class="btn btn-g" onclick="toast('Enviado por email ✓')">Enviar email</button>
+      <button class="btn btn-p" onclick="generarPDFNomina(${JSON.stringify(n).replace(/"/g,"'")})">⬇ Descargar PDF</button>
     </div>`;
 }
 
@@ -672,17 +703,28 @@ function renderCalendario(pc){
     </div>
     <div id="day-detail-area"></div>
     <div class="card">
-      <div class="card-title">Turnos de la semana</div>
-      ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span></div>`).join("")}
+      <div class="card-title">Tus turnos próximos</div>
+      ${DEMO_TURNOS.length===0
+        ?`<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">No tienes turnos asignados aún</div>`
+        :DEMO_TURNOS.slice(0,7).map(t=>{
+          const d=new Date(t.fecha+"T12:00:00");
+          const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+          const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+          const label=`${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+          return`<div class="t-row"><span class="t-dia">${label}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar||"—"}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span></div>`;
+        }).join("")
+      }
     </div>`;
 }
 
 function selectDay(n){
   document.querySelectorAll(".cal-day.selected").forEach(el=>el.classList.remove("selected"));
   document.getElementById(`cal-day-${n}`)?.classList.add("selected");
-  const dayStr=String(n).padStart(2,"0");
-  const evs=DEMO_EVENTOS.filter(e=>e.fecha===`2025-04-${dayStr}`);
-  const turno=DEMO_TURNOS.find(t=>t.diaN===n);
+  // Calcular fecha real del día seleccionado (usando el mes/año del calendario)
+  const calYear=2025,calMonth=4; // Abril 2025 — se puede hacer dinámico
+  const fechaDia=`${calYear}-${String(calMonth).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
+  const evs=DEMO_EVENTOS.filter(e=>e.fecha===fechaDia);
+  const turno=DEMO_TURNOS.find(t=>t.fecha===fechaDia);
   const area=document.getElementById("day-detail-area");
   let html=`<div class="day-detail"><div class="day-detail-title">📅 ${n} de Abril de 2025</div>`;
   if(turno){
@@ -1174,52 +1216,334 @@ function aplicarIRPF(id){
 }
 
 // ── ADMIN: NÓMINAS EQUIPO ─────────────────────────────────────────────────
-function renderAdminNominas(pc){
+async function renderAdminNominas(pc){
+  await cargarEmpleados();
+  const ahora=new Date();
+  const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const mesActual=`${meses[ahora.getMonth()]} ${ahora.getFullYear()}`;
+  const empleadosFijos=DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.salario>0);
+  const totalBruto=empleadosFijos.reduce((a,e)=>a+e.salario,0);
+  let nominasGeneradas=[];
+  try{
+    const{db,collection,query,where,getDocs}=window._firebase;
+    const q=query(collection(db,"nominas"),where("mes","==",mesActual));
+    const snap=await getDocs(q);
+    nominasGeneradas=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){}
+  const yaGenerado=(empId)=>nominasGeneradas.find(n=>n.empleadoId===empId);
   pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Nóminas del equipo</div><div class="page-sub">Gestión y generación de nóminas</div></div>
-    <div class="card mb16">
-      <div class="card-title">Resumen Abril 2025</div>
-      <div class="g3" style="margin-top:4px">
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total bruto mensual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px">${DEMO_EMPLEADOS.filter(e=>e.salario>0).reduce((a,e)=>a+e.salario,0).toLocaleString()}€</div></div>
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Empleados fijos activos</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a3)">${DEMO_EMPLEADOS.filter(e=>e.tipo==="fijo"&&e.estado==="activo").length}</div></div>
-        <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nóminas pendientes</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a2)">1</div></div>
+    <div class="page-hd">
+      <div><div class="page-title">Nóminas del equipo</div><div class="page-sub">Gestión y generación · ${mesActual}</div></div>
+      <button class="btn btn-p" onclick="generarTodasNominas('${mesActual}')">⚡ Generar todas</button>
+    </div>
+    <div class="g3 mb16">
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total bruto mensual</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px">${totalBruto.toLocaleString()}€</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Empleados fijos activos</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a3)">${empleadosFijos.length}</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nóminas generadas este mes</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a2)">${nominasGeneradas.length}/${empleadosFijos.length}</div>
       </div>
     </div>
     <div class="card"><div class="tbl-wrap"><table>
-      <thead><tr><th>Empleado</th><th>Tipo</th><th>Bruto</th><th>IRPF</th><th>Neto est.</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>Empleado</th><th>Tipo</th><th>Bruto</th><th>IRPF</th><th>SS</th><th>Neto est.</th><th>Estado</th><th></th></tr></thead>
       <tbody>
         ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>{
-          const ret=Math.round(e.salario*e.irpf/100),neto=e.salario-ret-(e.salario>0?160:0);
-          return`<tr><td style="font-weight:500">${e.nombre}</td><td>${tipoBadge(e.tipo)}</td><td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td><td>${e.irpf}%</td><td style="color:var(--a1);font-weight:600">${e.salario>0?neto.toLocaleString()+"€":"—"}</td><td>${e.salario>0?badge("pendiente"):badge("cerrado")}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="toast('Nómina generada ✓')">Generar</button></td></tr>`;
+          const ss=e.salario>0?160:0;
+          const ret=Math.round(e.salario*(e.irpf||15)/100);
+          const neto=e.salario-ret-ss;
+          const gen=yaGenerado(e.id);
+          return`<tr>
+            <td style="font-weight:500">${e.nombre}</td>
+            <td>${tipoBadge(e.tipo)}</td>
+            <td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td>
+            <td>${e.irpf||15}%</td>
+            <td>${ss>0?ss+"€":"—"}</td>
+            <td style="color:var(--a1);font-weight:600">${e.salario>0?neto.toLocaleString()+"€":"—"}</td>
+            <td>${gen?badge("pagada"):e.salario>0?badge("pendiente"):badge("cerrado")}</td>
+            <td>${e.salario>0?`<div style="display:flex;gap:6px">
+              <button class="btn btn-p" style="padding:4px 10px;font-size:11px" onclick="generarNominaEmp('${e.id}','${mesActual}')">${gen?"Regenerar":"Generar"}</button>
+              ${gen?`<button class="btn btn-g" style="padding:4px 10px;font-size:11px" onclick="descargarNominaPDF('${gen.id}')">PDF</button>`:""}
+            </div>`:"—"}</td>
+          </tr>`;
         }).join("")}
       </tbody>
     </table></div></div>`;
 }
 
-// ── ADMIN: TURNOS ─────────────────────────────────────────────────────────
-function renderAdminTurnos(pc){
+async function generarNominaEmp(empleadoId,mes){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===empleadoId);if(!e||e.salario<=0)return;
+  const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;
+  try{
+    const{db,collection,addDoc}=window._firebase;
+    await addDoc(collection(db,"nominas"),{
+      empleadoId,empleadoNombre:e.nombre,mes,
+      bruto:e.salario,irpf:e.irpf||15,retencion:ret,ss,neto,
+      estado:"pendiente",fechaCreacion:new Date().toISOString(),
+      generadoPor:userProfile.nombre,
+    });
+    toast(`Nómina de ${e.nombre} generada ✓`);
+  }catch(err){toast("Error al generar nómina");}
+  renderAdminNominas(document.getElementById("page-content"));
+}
+
+async function generarTodasNominas(mes){
+  let count=0;
+  for(const e of DEMO_EMPLEADOS.filter(x=>x.estado==="activo"&&x.salario>0)){
+    const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;
+    try{
+      const{db,collection,addDoc}=window._firebase;
+      await addDoc(collection(db,"nominas"),{
+        empleadoId:e.id,empleadoNombre:e.nombre,mes,
+        bruto:e.salario,irpf:e.irpf||15,retencion:ret,ss,neto,
+        estado:"pendiente",fechaCreacion:new Date().toISOString(),
+        generadoPor:userProfile.nombre,
+      });
+      count++;
+    }catch(err){}
+  }
+  toast(`${count} nóminas generadas ✓`);
+  renderAdminNominas(document.getElementById("page-content"));
+}
+
+function descargarNominaPDF(id){
+  const n=DEMO_NOMINAS.find(x=>x.id===id)||{};
+  generarPDFNomina(n);
+}
+
+
+// ── ADMIN: GESTIÓN DE TURNOS REAL ────────────────────────────────────────
+async function renderAdminTurnos(pc){
+  await cargarTodosLosTurnos();
+  const hoy=new Date();
+  const lunes=new Date(hoy);lunes.setDate(hoy.getDate()-((hoy.getDay()+6)%7));
+  const semana=[];
+  for(let i=0;i<7;i++){const d=new Date(lunes);d.setDate(lunes.getDate()+i);semana.push(d);}
+  const fmt=d=>d.toISOString().slice(0,10);
+  const diasSemana=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  const turnosPorEmpleadoDia={};
+  TURNOS_EQUIPO.forEach(t=>{
+    const key=t.empleadoId+"_"+t.fecha;
+    turnosPorEmpleadoDia[key]=t;
+  });
+
   pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Gestión de Turnos</div><div class="page-sub">Asignación de turnos del equipo</div></div>
-    <div class="g2 mb16">
-      <div class="card">
-        <div class="card-title">Equipo esta semana</div>
-        ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").slice(0,5).map(e=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="avatar ${avatarColor(e.role)}" style="width:30px;height:30px;font-size:10px;flex-shrink:0">${initials(e.nombre)}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${e.nombre}</div><div style="font-size:11px;color:var(--muted)">${e.dept}</div></div><span class="badge b-blue" style="font-size:10px">40h/sem</span></div>`).join("")}
-      </div>
-      <div class="card">
-        <div class="card-title">Añadir turno</div>
-        <label class="form-lbl">Empleado</label><select class="form-select">${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<option>${e.nombre}</option>`).join("")}</select>
-        <label class="form-lbl">Día</label><input class="form-input" type="date"/>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="form-lbl">Entrada</label><input class="form-input" type="time" value="09:00"/></div><div><label class="form-lbl">Salida</label><input class="form-input" type="time" value="17:00"/></div></div>
-        <label class="form-lbl">Tipo</label><select class="form-select"><option value="oficina">Oficina</option><option value="evento">Evento</option><option value="rodaje">Rodaje</option><option value="libre">Libre</option></select>
-        <label class="form-lbl">Lugar</label><input class="form-input" placeholder="Oficina / Sala / Estudio…"/>
-        <button class="btn btn-p btn-full" onclick="toast('Turno asignado ✓')">Asignar turno</button>
+    <div class="page-hd">
+      <div><div class="page-title">Gestión de Turnos</div><div class="page-sub">Semana del ${lunes.getDate()} al ${new Date(lunes.getTime()+6*864e5).getDate()} de ${meses[lunes.getMonth()]}</div></div>
+      <button class="btn btn-p" onclick="abrirNuevoTurno()">+ Asignar turno</button>
+    </div>
+
+    <!-- Vista semana por empleado -->
+    <div class="card mb16">
+      <div class="card-title">Vista semanal del equipo</div>
+      <div style="overflow-x:auto">
+        <table style="min-width:700px">
+          <thead>
+            <tr>
+              <th style="width:140px">Empleado</th>
+              ${semana.map((d,i)=>`<th style="text-align:center;font-size:11px">${diasSemana[i]}<br><span style="color:var(--txt);font-size:13px">${d.getDate()}</span></th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`
+              <tr>
+                <td style="font-weight:500;font-size:13px">${e.nombre}</td>
+                ${semana.map(d=>{
+                  const t=turnosPorEmpleadoDia[e.id+"_"+fmt(d)];
+                  if(!t)return`<td style="text-align:center"><span style="color:var(--muted);font-size:11px">—</span></td>`;
+                  const colors={oficina:"var(--a3)",evento:"var(--a2)",rodaje:"var(--a1)",libre:"var(--muted)"};
+                  return`<td style="text-align:center;cursor:pointer" onclick="editarTurno('${t.id}')">
+                    <div style="background:${colors[t.tipo]||"var(--muted)"}22;border:1px solid ${colors[t.tipo]||"var(--muted)"}44;border-radius:6px;padding:3px 6px;font-size:11px;color:${colors[t.tipo]||"var(--muted)"}">
+                      ${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}
+                    </div>
+                  </td>`;
+                }).join("")}
+              </tr>`).join("")}
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <!-- Formulario asignar turno -->
+    <div class="card mb16" id="form-turno-card" style="display:none">
+      <div class="card-title" id="form-turno-title">Asignar turno</div>
+      <input type="hidden" id="turno-edit-id"/>
+      <div class="g2">
+        <div>
+          <label class="form-lbl">Empleado</label>
+          <select class="form-select" id="turno-empleado">
+            ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<option value="${e.id}">${e.nombre}</option>`).join("")}
+          </select>
+          <label class="form-lbl">Fecha</label>
+          <input class="form-input" id="turno-fecha" type="date" value="${fmt(hoy)}"/>
+          <label class="form-lbl">Tipo</label>
+          <select class="form-select" id="turno-tipo" onchange="toggleLibre()">
+            <option value="oficina">Oficina</option>
+            <option value="evento">Evento</option>
+            <option value="rodaje">Rodaje</option>
+            <option value="libre">Libre / Descanso</option>
+          </select>
+        </div>
+        <div id="turno-horario-div">
+          <label class="form-lbl">Entrada</label>
+          <input class="form-input" id="turno-entrada" type="time" value="09:00"/>
+          <label class="form-lbl">Salida</label>
+          <input class="form-input" id="turno-salida" type="time" value="17:00"/>
+          <label class="form-lbl">Lugar</label>
+          <input class="form-input" id="turno-lugar" placeholder="Oficina / Sala / Estudio…"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="guardarTurno()">Guardar turno</button>
+        <button class="btn btn-g" style="flex:1;justify-content:center" onclick="cerrarFormTurno()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Lista completa de turnos -->
     <div class="card">
-      <div class="card-title">Turnos semana actual</div>
-      ${DEMO_TURNOS.map(t=>`<div class="t-row"><span class="t-dia">${t.dia}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.entrada==="—"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span><button class="btn btn-g" style="padding:3px 8px;font-size:11px;margin-left:8px" onclick="toast('Turno eliminado')">✕</button></div>`).join("")}
+      <div class="card-title">Todos los turnos asignados (${TURNOS_EQUIPO.length})</div>
+      ${TURNOS_EQUIPO.length===0?`<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">No hay turnos asignados aún</div>`:`
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Empleado</th><th>Fecha</th><th>Tipo</th><th>Horario</th><th>Lugar</th><th></th></tr></thead>
+        <tbody>
+          ${TURNOS_EQUIPO.map(t=>{
+            const emp=DEMO_EMPLEADOS.find(e=>e.id===t.empleadoId);
+            return`<tr>
+              <td style="font-weight:500">${emp?emp.nombre:t.empleadoNombre||"—"}</td>
+              <td>${t.fecha}</td>
+              <td><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}">${t.tipo}</span></td>
+              <td style="color:var(--muted)">${t.tipo==="libre"?"—":`${t.entrada||""}–${t.salida||""}`}</td>
+              <td style="color:var(--muted)">${t.lugar||"—"}</td>
+              <td><div style="display:flex;gap:6px">
+                <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarTurno('${t.id}')">Editar</button>
+                <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTurno('${t.id}')">✕</button>
+              </div></td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table></div>`}
     </div>`;
 }
+
+function abrirNuevoTurno(){
+  document.getElementById("form-turno-card").style.display="block";
+  document.getElementById("form-turno-title").textContent="Asignar turno";
+  document.getElementById("turno-edit-id").value="";
+  document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});
+}
+
+function cerrarFormTurno(){
+  document.getElementById("form-turno-card").style.display="none";
+}
+
+function toggleLibre(){
+  const tipo=document.getElementById("turno-tipo").value;
+  document.getElementById("turno-horario-div").style.opacity=tipo==="libre"?"0.3":"1";
+  document.getElementById("turno-horario-div").style.pointerEvents=tipo==="libre"?"none":"auto";
+}
+
+async function guardarTurno(){
+  const empleadoId=document.getElementById("turno-empleado").value;
+  const emp=DEMO_EMPLEADOS.find(e=>e.id===empleadoId);
+  const editId=document.getElementById("turno-edit-id").value;
+  const tipo=document.getElementById("turno-tipo").value;
+  const turno={
+    empleadoId,
+    empleadoNombre:emp?emp.nombre:"—",
+    fecha:document.getElementById("turno-fecha").value,
+    tipo,
+    entrada:tipo==="libre"?"—":document.getElementById("turno-entrada").value,
+    salida:tipo==="libre"?"—":document.getElementById("turno-salida").value,
+    lugar:tipo==="libre"?"Libre":document.getElementById("turno-lugar").value||"—",
+  };
+  if(!turno.fecha||!turno.empleadoId){toast("⚠️ Selecciona empleado y fecha");return;}
+  try{
+    const{db,collection,doc,addDoc,updateDoc}=window._firebase;
+    if(editId){
+      await updateDoc(doc(db,"turnos",editId),turno);
+      toast("Turno actualizado ✓");
+    }else{
+      await addDoc(collection(db,"turnos"),turno);
+      toast(`Turno asignado a ${turno.empleadoNombre} ✓`);
+    }
+  }catch(e){toast("Guardado localmente");}
+  cerrarFormTurno();
+  await cargarTodosLosTurnos();
+  renderAdminTurnos(document.getElementById("page-content"));
+}
+
+function editarTurno(id){
+  const t=TURNOS_EQUIPO.find(x=>x.id===id);if(!t)return;
+  document.getElementById("form-turno-card").style.display="block";
+  document.getElementById("form-turno-title").textContent="Editar turno";
+  document.getElementById("turno-edit-id").value=id;
+  document.getElementById("turno-empleado").value=t.empleadoId;
+  document.getElementById("turno-fecha").value=t.fecha;
+  document.getElementById("turno-tipo").value=t.tipo;
+  document.getElementById("turno-entrada").value=t.entrada||"09:00";
+  document.getElementById("turno-salida").value=t.salida||"17:00";
+  document.getElementById("turno-lugar").value=t.lugar||"";
+  toggleLibre();
+  document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});
+}
+
+async function eliminarTurno(id){
+  try{
+    const{db,doc,deleteDoc}=window._firebase;
+    await deleteDoc(doc(db,"turnos",id));
+    toast("Turno eliminado ✓");
+  }catch(e){toast("Eliminado localmente");}
+  TURNOS_EQUIPO=TURNOS_EQUIPO.filter(x=>x.id!==id);
+  renderAdminTurnos(document.getElementById("page-content"));
+}
+
+
+function generarPDFNomina(n){
+  const nombre=n.empleadoNombre||userProfile.nombre;
+  const mes=n.mes||"—";
+  const bruto=n.bruto||0;
+  const irpf=n.irpf||15;
+  const ret=n.retencion||Math.round(bruto*irpf/100);
+  const ss=n.ss||160;
+  const neto=n.neto||(bruto-ret-ss);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <style>body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#111}
+    h1{font-size:22px;margin-bottom:4px}
+    .sub{color:#666;font-size:13px;margin-bottom:30px}
+    table{width:100%;border-collapse:collapse;margin-top:20px}
+    td,th{padding:10px 14px;border:1px solid #ddd;font-size:14px}
+    th{background:#f5f5f5;text-align:left}
+    .total{font-size:18px;font-weight:bold;color:#000}
+    .neg{color:#c00}
+    </style></head><body>
+    <h1>NOCTUA · Nómina</h1>
+    <div class="sub">${mes} · Generada el ${new Date().toLocaleDateString("es-ES")}</div>
+    <table>
+      <tr><th>Empleado</th><td>${nombre}</td></tr>
+      <tr><th>Mes</th><td>${mes}</td></tr>
+      <tr><th>Salario bruto</th><td>${bruto.toLocaleString()}€</td></tr>
+      <tr><th>Retención IRPF (${irpf}%)</th><td class="neg">−${ret.toLocaleString()}€</td></tr>
+      <tr><th>Seguridad Social</th><td class="neg">−${ss}€</td></tr>
+      <tr><th class="total">SALARIO NETO</th><td class="total">${neto.toLocaleString()}€</td></tr>
+    </table>
+    <p style="margin-top:30px;font-size:12px;color:#999">Documento generado automáticamente por Portal NOCTUA</p>
+    </body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.html`;
+  a.click();URL.revokeObjectURL(url);
+  toast("PDF descargado ✓");
+}
+
+
 </script>
 </body>
 </html>

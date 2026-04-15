@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>InOut Media · Connect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <!-- Firebase compat CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg:#07070f; --surf:#0d0d1a; --card:#111120; --border:#1c1c2e;
+      --a1:#c8ff00; --a2:#ff3cac; --a3:#00d4ff;
+      --txt:#e6e6f0; --muted:#60607a; --r:13px; --sidebar:240px;
+    }
+    html,body { height:100%; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--txt); background:var(--bg); overflow-x:hidden; }
+    ::-webkit-scrollbar { width:4px; height:4px; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+    #app { display:flex; min-height:100vh; }
+    .sidebar { width:var(--sidebar); min-height:100vh; background:var(--surf); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; z-index:200; transition:transform .25s cubic-bezier(.4,0,.2,1); }
+    .main-area { margin-left:var(--sidebar); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+    .topbar { height:56px; background:var(--surf); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 16px; gap:12px; position:sticky; top:0; z-index:100; }
+    @media(max-width:480px){ .topbar{height:52px;padding:0 12px;} }
+    .main-content { flex:1; padding:28px 24px; max-width:1100px; width:100%; margin:0 auto; }
+    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:150; }
+    .overlay.show { display:block; }
+    .s-logo { padding:20px 20px 16px; border-bottom:1px solid var(--border); font-family:'Syne',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.5px; display:flex; align-items:center; justify-content:space-between; }
+    .s-logo-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px; line-height:1; }
+    .s-logo-close:hover { color:var(--txt); }
+    .logo-dot { color:var(--a1); }
+    .s-user { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; cursor:pointer; transition:background .15s; }
+    .s-user:hover { background:rgba(255,255,255,.04); }
+    .s-user-arrow { margin-left:auto; color:var(--muted); font-size:14px; transition:all .2s; }
+    .s-user:hover .s-user-arrow { color:var(--a1); transform:translateX(2px); }
+    .avatar { width:36px; height:36px; border-radius:50%; background:var(--a1); color:#000; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; flex-shrink:0; }
+    .av-pink{background:var(--a2);color:#fff;} .av-blue{background:var(--a3);color:#000;} .av-gray{background:var(--muted);color:#fff;}
+    .u-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .u-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .nav { flex:1; padding:8px 0; overflow-y:auto; }
+    .nav-sec { padding:10px 20px 4px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 20px; cursor:pointer; color:var(--muted); transition:all .15s; font-size:13px; border-left:2px solid transparent; user-select:none; }
+    .nav-item:hover { color:var(--txt); background:rgba(255,255,255,.03); }
+    .nav-item.active { color:var(--a1); border-left-color:var(--a1); background:rgba(200,255,0,.05); }
+    .nav-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+    .s-bottom { padding:14px 20px; border-top:1px solid var(--border); }
+    .btn-logout { width:100%; padding:9px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; transition:all .15s; }
+    .btn-logout:hover { border-color:var(--a2); color:var(--a2); }
+    .burger { background:none; border:none; color:var(--txt); font-size:20px; cursor:pointer; padding:4px; display:none; }
+    .topbar-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; }
+    .topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+    .notif-btn { width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; transition:border-color .15s; }
+    .notif-btn:hover { border-color:var(--a1); }
+    .page-hd { margin-bottom:24px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:700; letter-spacing:-.5px; }
+    .page-sub { color:var(--muted); font-size:13px; margin-top:3px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; }
+    .card-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:14px; }
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;} .g-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+    .mb16{margin-bottom:16px;} .mb24{margin-bottom:24px;} .flex{display:flex;} .items-c{align-items:center;} .j-between{justify-content:space-between;}
+    .stat { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:18px 20px; }
+    .stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+    .stat-val { font-family:'Syne',sans-serif; font-size:26px; font-weight:700; letter-spacing:-1px; }
+    .stat-note { font-size:12px; color:var(--muted); margin-top:4px; }
+    .c-a1{color:var(--a1);} .c-a2{color:var(--a2);} .c-a3{color:var(--a3);}
+    .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
+    .b-green{background:rgba(200,255,0,.12);color:var(--a1);} .b-pink{background:rgba(255,60,172,.12);color:var(--a2);} .b-blue{background:rgba(0,212,255,.12);color:var(--a3);} .b-gray{background:rgba(107,107,136,.15);color:var(--muted);} .b-orange{background:rgba(255,165,0,.12);color:#ffa500;}
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;}
+    .tbl-wrap::-webkit-scrollbar{height:3px;}
+    .tbl-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+    table{width:100%;border-collapse:collapse;}
+    thead th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+    tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
+    tbody tr:last-child td{border-bottom:none;}
+    tbody tr:hover td{background:rgba(255,255,255,.02);}
+    .prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:2px;background:var(--a1);}
+    .prog-fill.blue{background:var(--a3);}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap;}
+    .btn-p{background:var(--a1);color:#000;} .btn-p:hover{background:#d4ff20;}
+    .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);} .btn-g:hover{color:var(--txt);border-color:var(--muted);}
+    .btn-danger{background:rgba(255,60,172,.1);color:var(--a2);border:1px solid rgba(255,60,172,.2);}
+    .btn-full{width:100%;justify-content:center;}
+    .t-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+    .t-row:last-child{border-bottom:none;}
+    .t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .d-evento{background:var(--a2);} .d-oficina{background:var(--a3);} .d-rodaje{background:var(--a1);} .d-libre{background:var(--muted);}
+    .t-dia{width:85px;font-size:13px;font-weight:500;flex-shrink:0;}
+    .t-hrs{font-size:12px;color:var(--muted);width:115px;flex-shrink:0;}
+    .t-lug{font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nom-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;}
+    .nom-row:last-child{border-bottom:none;}
+    .nom-total{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--a1);}
+    .irpf-big{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;color:var(--a1);text-align:center;line-height:1;}
+    input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer;height:4px;}
+
+    /* Calendario interactivo */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+    .cal-hd{text-align:center;padding:6px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;font-size:13px;cursor:pointer;transition:all .15s;background:var(--bg);border:1px solid var(--border);user-select:none;position:relative;}
+    .cal-day:hover{border-color:var(--a3);background:rgba(0,212,255,.05);}
+    .cal-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
+    .cal-day.today{border-color:var(--a1);color:var(--a1);font-weight:700;}
+    .cal-day.selected{background:rgba(200,255,0,.14);border-color:var(--a1);color:var(--a1);}
+    .cal-day.has-event::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a2);}
+    .cal-day.has-turno::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a3);}
+    .cal-dot{width:5px;height:5px;border-radius:50%;margin-top:2px;}
+    .day-detail{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:16px;animation:fadeIn .2s ease;}
+    .day-detail-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;color:var(--a1);}
+    .day-event-item{padding:12px;background:var(--card);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;}
+    .day-event-item:last-child{margin-bottom:0;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Perfil */
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-lbl{color:var(--muted);font-size:13px;}
+
+    /* Evento card */
+    .ev-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:border-color .2s,transform .2s;cursor:pointer;}
+    .ev-card:hover{border-color:rgba(200,255,0,.25);transform:translateY(-2px);}
+    .ev-nombre{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin:8px 0 6px;}
+    .ev-meta{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px;}
+    .proy-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+    .proy-nom{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:3px;}
+    .proy-cli{font-size:12px;color:var(--muted);margin-bottom:14px;}
+
+    /* Form */
+    .form-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
+    .form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;margin-bottom:14px;}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--a1);}
+    .form-textarea{resize:vertical;min-height:80px;}
+
+    /* Modal */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;padding:16px;}
+    .modal-bg.show{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px;}
+    .modal-close{float:right;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;margin-top:-4px;}
+    .modal-close:hover{color:var(--a2);}
+
+    /* Login */
+    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 50% -5%,rgba(200,255,0,.09) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 85% 85%,rgba(255,60,172,.07) 0%,transparent 55%);}
+    .login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;}
+    .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;}
+    .login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:1000;transition:transform .3s;white-space:nowrap;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:768px){
+      :root{--sidebar:100vw;}
+      .sidebar{width:100vw;transform:translateX(-100%);position:fixed;top:0;left:0;height:100vh;z-index:300;overflow-y:auto;}
+      .sidebar.open{transform:translateX(0);box-shadow:none;}
+      .main-area{margin-left:0;}
+      .burger{display:flex!important;}
+      .main-content{padding:16px 12px;}
+      .g4{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr;} .g2{grid-template-columns:1fr;}
+      .g-auto{grid-template-columns:1fr;}
+      .page-title{font-size:20px;} .irpf-big{font-size:40px;} .nom-total{font-size:20px;}
+      .page-hd{margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+      .page-hd .btn{width:100%;justify-content:center;}
+      .card{padding:16px;}
+      .stat{padding:14px;}
+      .stat-val{font-size:22px;}
+      .btn{padding:10px 14px;font-size:14px;}
+      .modal{padding:20px;}
+      .tbl-wrap{border-radius:8px;}
+      thead th{font-size:10px;padding:6px 8px;}
+      tbody td{padding:10px 8px;font-size:12px;}
+      .t-dia{width:70px;font-size:12px;}
+      .t-hrs{width:90px;font-size:11px;}
+      .cal-day{font-size:12px;border-radius:7px;}
+      .cal-hd{font-size:10px;padding:4px 2px;}
+      .ev-nombre{font-size:13px;}
+      .nav-item{padding:14px 20px;font-size:15px;}
+      .nav-icon{font-size:18px;}
+      .s-logo{padding:24px 20px 18px;font-size:22px;}
+      .s-user{padding:18px 20px;}
+      .u-name{font-size:15px;}
+      .nav-sec{font-size:11px;padding:14px 20px 6px;}
+    }
+    @media(max-width:480px){
+      .g4{grid-template-columns:1fr 1fr;}
+      .g3{grid-template-columns:1fr;}
+      .topbar-title{font-size:14px;}
+      .main-content{padding:12px 10px;}
+      .page-title{font-size:18px;}
+      .card{padding:14px;}
+      .stat-val{font-size:20px;}
+      .modal{max-height:92vh;padding:18px;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;}
+      .modal-bg.show{align-items:flex-end;padding:0;}
+      .page-hd{flex-direction:column;align-items:stretch;}
+      .page-hd .btn{width:100%;justify-content:center;padding:12px;font-size:14px;}
+    }
+    @media(orientation:landscape) and (max-width:900px){
+      :root{--sidebar:260px;}
+      .sidebar{width:260px;transform:translateX(-100%);}
+      .sidebar.open{transform:translateX(0);box-shadow:4px 0 40px rgba(0,0,0,.85);}
+      .main-area{margin-left:0;}
+      .g4{grid-template-columns:repeat(4,1fr);}
+      .main-content{padding:14px 16px;}
+    }
+    /* Touch improvements */
+    @media(hover:none){
+      .nav-item:hover{background:transparent;color:var(--muted);}
+      .nav-item.active:hover{background:rgba(200,255,0,.05);color:var(--a1);}
+      .btn:active{opacity:.8;transform:scale(.97);}
+      .ev-card:hover{transform:none;}
+      .cal-day:active{background:rgba(0,212,255,.1);border-color:var(--a3);}
+    }
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">InOut<span class="logo-dot">.</span></div>
+    <div class="login-sub">Portal del equipo · InOut Media</div>
+    <div id="login-error" style="display:none;background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);color:var(--a2);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+    <label class="form-lbl">Email</label>
+    <input class="form-input" id="login-email" type="email" placeholder="tu@noctua.es" autocomplete="email"/>
+    <label class="form-lbl">Contraseña</label>
+    <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    <button class="btn btn-p btn-full" id="login-btn" onclick="doLogin()" style="font-size:15px;padding:12px">Entrar al portal</button>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">¿Sin acceso? Contacta con el administrador</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="s-logo">
+      <span>InOut<span class="logo-dot">.</span></span>
+      <button class="s-logo-close" onclick="closeSidebar()" title="Cerrar menú">✕</button>
+    </div>
+    <div class="s-user" onclick="navigate('perfil')" title="Ver mi perfil">
+      <div class="avatar" id="s-avatar">--</div>
+      <div style="flex:1;min-width:0">
+        <div class="u-name" id="s-name">—</div>
+        <div class="u-role" id="s-role">—</div>
+      </div>
+      <span class="s-user-arrow">›</span>
+    </div>
+    <nav class="nav" id="nav-items"></nav>
+    <div class="s-bottom">
+      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </aside>
+  <div class="main-area">
+    <div class="topbar">
+      <button class="burger" id="burger-btn" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbar-title">Portal</span>
+      <div class="topbar-right">
+        <div class="notif-btn" onclick="toast('Sin notificaciones nuevas')">🔔</div>
+        <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="navigate('perfil')">--</div>
+      </div>
+    </div>
+    <div class="main-content" id="page-content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────────────────
+const DEMO_MODE = true;
+let _db=null, _auth=null; // Se asignan cuando Firebase inicia
+let currentUser=null, userProfile=null, currentPage="dashboard";
+
+// ── DATOS DEMO ───────────────────────────────────────────────────────────
+const DEMO_PROFILES = {
+  admin:    {nombre:"Carlos Mendez",role:"admin",    dept:"Dirección",    email:"carlos@noctua.es",irpf:20,salarioBase:3200},
+  rrhh:     {nombre:"Sofía Ruiz",   role:"rrhh",     dept:"RRHH",         email:"sofia@noctua.es", irpf:15,salarioBase:2600},
+  empleado: {nombre:"Javier López", role:"empleado", dept:"Producción AV",email:"javier@noctua.es",irpf:15,salarioBase:2400},
+  freelance:{nombre:"Ana Torres",   role:"freelance",dept:"Eventos",      email:"ana@noctua.es",   irpf:15,salarioBase:0},
+};
+
+let DEMO_NOMINAS=[];  // Se carga desde Firestore por usuario
+
+let DEMO_EVENTOS=[];  // Se carga desde Firestore
+
+let DEMO_EMPLEADOS=[];  // Se carga desde Firestore al entrar
+
+let DEMO_TURNOS=[];  // Se carga desde Firestore por empleado/semana
+let TURNOS_EQUIPO=[];  // Todos los turnos del equipo (solo admin/rrhh)
+
+let DEMO_PROYECTOS=[];  // Se carga desde Firestore
+
+// ── NAV CONFIG ───────────────────────────────────────────────────────────
+const NAV_CONFIG={
+  admin:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  ],
+  rrhh:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  ],
+  empleado:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+  ],
+  freelance:[
+    {sec:"Principal"},{key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},
+    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
+    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+  ],
+};
+
+const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
+
+// ── UTILS ────────────────────────────────────────────────────────────────
+function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
+function canAdmin(){return["admin","rrhh"].includes(userProfile?.role);}
+function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
+function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":"";}
+
+function badge(e){
+  const m={pagada:["b-green","Pagada"],pendiente:["b-orange","Pendiente"],confirmado:["b-green","Confirmado"],produccion:["b-blue","En producción"],preproduccion:["b-gray","Preproducción"],negociacion:["b-orange","Negociación"],activo:["b-green","Activo"],cerrado:["b-gray","Cerrado"],baja:["b-pink","Baja"]};
+  const[c,l]=m[e]||["b-gray",e];return`<span class="badge ${c}">${l}</span>`;
+}
+function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
+function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
+
+function showModal(h){document.getElementById("modal-body").innerHTML=h;document.getElementById("modal-bg").classList.add("show");}
+function closeModal(){document.getElementById("modal-bg").classList.remove("show");}
+document.getElementById("modal-bg").addEventListener("click",e=>{if(e.target===document.getElementById("modal-bg"))closeModal();});
+
+// ── AUTH ─────────────────────────────────────────────────────────────────
+function setLoginError(msg){
+  const el=document.getElementById("login-error");
+  el.textContent=msg; el.style.display=msg?"block":"none";
+}
+function setLoginLoading(on){
+  document.getElementById("login-btn").disabled=on;
+  document.getElementById("login-btn").textContent=on?"Entrando…":"Entrar al portal";
+}
+
+async function doLogin(){
+  const email=document.getElementById("login-email").value.trim();
+  const pass=document.getElementById("login-pass").value;
+  setLoginError("");
+  if(!email||!pass){setLoginError("Introduce email y contraseña.");return;}
+  setLoginLoading(true);
+  // Esperar a que Firebase esté listo
+  let tries=0;
+  while(!window._firebase && tries<20){await new Promise(r=>setTimeout(r,200));tries++;}
+  if(!window._firebase){setLoginError("Error de conexión. Recarga la página.");setLoginLoading(false);return;}
+  try{
+    const{auth,signInWithEmailAndPassword,db,doc,getDoc}=window._firebase;
+    const cred=await signInWithEmailAndPassword(auth,email,pass);
+    currentUser=cred.user;
+    const snap=await getDoc(doc(db,"Usuarios",currentUser.uid));
+    if(!snap.exists()){
+      setLoginError("Perfil no encontrado. Contacta con el administrador.");
+      await window._firebase.signOut(auth);
+      setLoginLoading(false);return;
+    }
+    userProfile=snap.data();
+    enterApp();
+  }catch(e){
+    setLoginLoading(false);
+    const msgs={"auth/invalid-credential":"Email o contraseña incorrectos.","auth/user-not-found":"Email no registrado.","auth/wrong-password":"Contraseña incorrecta.","auth/too-many-requests":"Demasiados intentos. Espera unos minutos.","auth/invalid-email":"Email no válido."};
+    setLoginError(msgs[e.code]||"Error al iniciar sesión: "+e.message);
+  }
+}
+
+document.getElementById("login-pass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+
+async function doLogout(){
+  const{auth,signOut}=window._firebase;
+  await signOut(auth);
+  currentUser=null;userProfile=null;
+  document.getElementById("app").style.display="none";
+  document.getElementById("login-screen").style.display="flex";
+  document.getElementById("login-email").value="";
+  document.getElementById("login-pass").value="";
+  closeSidebar();
+}
+
+// Auth state manejado por Firebase init block
+
+async function enterApp(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").style.display="flex";
+  const ini=initials(userProfile.nombre),avc=avatarColor(userProfile.role);
+  ["s-avatar","tb-avatar"].forEach(id=>{const el=document.getElementById(id);el.textContent=ini;el.className=`avatar ${avc}`;});
+  document.getElementById("s-name").textContent=userProfile.nombre;
+  document.getElementById("s-role").textContent=userProfile.role;
+  buildNav(userProfile.role);
+  // Cargar datos desde Firestore
+  await cargarEventos();
+  await cargarProyectos();
+  await cargarMisNominas();
+  await cargarMisTurnos();
+  // Precargar inventario e incidencias en background
+  _db&&_db.collection("inventario").get().then(s=>{INVENTARIO=s.docs.map(d=>({id:d.id,...d.data()}));}).catch(()=>{});
+  if(canAdminRole(userProfile.role)){
+    await cargarEmpleados();
+    await cargarTodosLosTurnos();
+  }
+  navigate("dashboard");
+}
+
+function canAdminRole(r){return["admin","rrhh"].includes(r);}
+
+async function cargarMisNominas(){
+  try{
+    const{db,collection,query,where,getDocs,orderBy}=window._firebase;
+    const q=query(collection(db,"nominas"),where("empleadoId","==",currentUser.uid));
+    const snap=await getDocs(q);
+    DEMO_NOMINAS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    DEMO_NOMINAS.sort((a,b)=>(b.fechaCreacion||"").localeCompare(a.fechaCreacion||""));
+  }catch(e){console.warn("Error cargando nóminas:",e);DEMO_NOMINAS=[];}
+}
+
+async function cargarMisTurnos(){
+  try{
+    const{db,collection,query,where,getDocs}=window._firebase;
+    const q=query(collection(db,"turnos"),where("empleadoId","==",currentUser.uid));
+    const snap=await getDocs(q);
+    DEMO_TURNOS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    DEMO_TURNOS.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }catch(e){console.warn("Error cargando turnos:",e);DEMO_TURNOS=[];}
+}
+
+async function cargarTodosLosTurnos(){
+  try{
+    const{db,collection,getDocs}=window._firebase;
+    const snap=await getDocs(collection(db,"turnos"));
+    TURNOS_EQUIPO=snap.docs.map(d=>({id:d.id,...d.data()}));
+    TURNOS_EQUIPO.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }catch(e){console.warn("Error cargando turnos equipo:",e);TURNOS_EQUIPO=[];}
+}
+
+async function cargarEventos(){
+  try{
+    const{db,collection,getDocs}=window._firebase;
+    const snap=await getDocs(collection(db,"eventos"));
+    DEMO_EVENTOS=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){console.warn("Error cargando eventos:",e);}
+}
+
+async function cargarProyectos(){
+  try{
+    const{db,collection,getDocs}=window._firebase;
+    const snap=await getDocs(collection(db,"proyectos"));
+    DEMO_PROYECTOS=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){console.warn("Error cargando proyectos:",e);}
+}
+
+async function cargarEmpleados(){
+  try{
+    const{db,collection,getDocs}=window._firebase;
+    const snap=await getDocs(collection(db,"Usuarios"));
+    DEMO_EMPLEADOS=snap.docs.map(d=>{
+      const data=d.data();
+      return {
+        id:d.id,
+        nombre:data.nombre||data.Nombre||"—",
+        email:data.email||data["e-mail"]||"—",
+        role:data.role||data.Rol||"empleado",
+        dept:data.dept||data.departamento||data.Departamento||"—",
+        tipo:data.tipo||"fijo",
+        irpf:data.irpf||data.IRPF||15,
+        salario:data.salarioBase||data["Salario base"]||0,
+        salarioBase:data.salarioBase||0,
+        estado:data.estado||"activo",
+        tlf:data.tlf||data.telefono||"—",
+        fechaAlta:data.fechaAlta||"—",
+      };
+    });
+  }catch(e){console.warn("Error cargando empleados:",e);}
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────
+function buildNav(role){
+  const items=NAV_CONFIG[role]||NAV_CONFIG.empleado;
+  document.getElementById("nav-items").innerHTML=items.map(i=>i.sec?`<div class="nav-sec">${i.sec}</div>`:`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></div>`).join("");
+}
+
+function navigate(page){
+  // Bloquear acceso a páginas de admin para roles no autorizados
+  const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
+  if(adminPages.includes(page)&&!canAdmin()){
+    toast("⛔ Sin acceso");
+    page="dashboard";
+  }
+  currentPage=page;
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  document.getElementById(`nav-${page}`)?.classList.add("active");
+  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
+  closeSidebar();
+  const pc=document.getElementById("page-content");pc.scrollTop=0;
+  ({dashboard,perfil:renderPerfil,nominas:renderNominas,retribuciones:renderRetribuciones,calendario:renderCalendario,eventos:renderEventos,produccion:renderProduccion,inventario:renderInventario,incidencias:renderIncidencias,admin:renderAdmin,"admin-irpf":renderAdminIRPF,"admin-nominas":renderAdminNominas,"admin-turnos":renderAdminTurnos}[page]||dashboard)(pc);
+}
+function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
+function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────
+function dashboard(pc){
+  const p=userProfile;
+  const hoy=new Date().toISOString().slice(0,10);
+  const prox=DEMO_TURNOS.length>0?(DEMO_TURNOS.find(t=>t.fecha>=hoy&&t.tipo!=="libre")||DEMO_TURNOS[0]):null;
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Hola, ${p.nombre.split(" ")[0]} 👋</div><div class="page-sub">Resumen de actividad · Abril 2025</div></div></div>
+    <div class="g4 mb24">
+      <div class="stat"><div class="stat-lbl">Próximo turno</div><div class="stat-val c-a1" style="font-size:15px">${prox?new Date((prox.fecha||"2025-01-01")+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"}):"Sin turnos"}</div><div class="stat-note">${prox?(prox.lugar||"—")+" · "+(prox.tipo==="libre"?"Libre":(prox.entrada||"")+"–"+(prox.salida||"")):"Contacta con RRHH"}</div></div>
+      <div class="stat"><div class="stat-lbl">Nómina este mes</div><div class="stat-val" style="font-size:18px">${DEMO_NOMINAS[0].neto.toLocaleString()}€</div><div class="stat-note">${badge(DEMO_NOMINAS[0].estado)}</div></div>
+      <div class="stat"><div class="stat-lbl">Eventos próximos</div><div class="stat-val c-a3">${DEMO_EVENTOS.filter(e=>["confirmado","produccion"].includes(e.estado)).length}</div><div class="stat-note">Confirmados o en producción</div></div>
+      <div class="stat"><div class="stat-lbl">IRPF aplicado</div><div class="stat-val c-a2">${p.irpf}%</div><div class="stat-note" style="cursor:pointer;color:var(--a3);text-decoration:underline" onclick="navigate('retribuciones')">Modificar</div></div>
+    </div>
+    <div class="g2 mb16">
+      <div class="card">
+        <div class="card-title">Tus próximos turnos</div>
+        ${DEMO_TURNOS.length===0
+          ?`<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`
+          :DEMO_TURNOS.slice(0,5).map(t=>{
+            const d=new Date((t.fecha||"2025-01-01")+"T12:00:00");
+            const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+            const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+            return`<div class="t-row"><span class="t-dia">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}</span><span class="t-lug">${t.lugar||"—"}</span></div>`;
+          }).join("")
+        }
+      </div>
+      <div class="card">
+        <div class="card-title">Próximos eventos</div>
+        ${DEMO_EVENTOS.slice(0,3).map(ev=>`<div style="padding:11px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="verEvento('${ev.id}')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${ev.nombre}</span>${badge(ev.estado)}</div><div style="font-size:12px;color:var(--muted)">📅 ${ev.fecha} &nbsp;·&nbsp; 📍 ${ev.lugar}</div></div>`).join("")}
+        <div style="text-align:center;margin-top:4px"><span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="navigate('eventos')">Ver todos →</span></div>
+      </div>
+    </div>`;
+}
+
+// ── PERFIL ───────────────────────────────────────────────────────────────
+function renderPerfil(pc){
+  const p=userProfile,ini=initials(p.nombre),avc=avatarColor(p.role);
+  const ret=Math.round((p.salarioBase||0)*p.irpf/100),ss=p.salarioBase>0?160:0,neto=(p.salarioBase||0)-ret-ss;
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Mi Perfil</div><button class="btn btn-p" onclick="editarPerfil()">✏️ Editar</button></div>
+    <div class="g2">
+      <div>
+        <div class="card mb16">
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap">
+            <div class="avatar ${avc}" style="width:64px;height:64px;font-size:20px">${ini}</div>
+            <div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;margin-bottom:5px">${p.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(p.role)}&nbsp;${tipoBadge(p.role==="freelance"?"freelance":"fijo")}</div></div>
+          </div>
+          <div class="info-row"><span class="info-lbl">📧 Email</span><span>${p.email}</span></div>
+          <div class="info-row"><span class="info-lbl">🏢 Departamento</span><span>${p.dept}</span></div>
+          <div class="info-row"><span class="info-lbl">📊 IRPF</span><span style="color:var(--a1);font-weight:600">${p.irpf}%</span></div>
+          ${p.salarioBase>0?`<div class="info-row"><span class="info-lbl">💶 Salario base</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€/mes</span></div>`:""}
+        </div>
+        <div class="card">
+          <div class="card-title">Acciones rápidas</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-g btn-full" onclick="navigate('nominas')">💶 Ver mis nóminas</button>
+            <button class="btn btn-g btn-full" onclick="navigate('retribuciones')">📊 Cambiar IRPF</button>
+            <button class="btn btn-g btn-full" onclick="navigate('calendario')">📅 Ver calendario</button>
+            <button class="btn btn-g btn-full" onclick="cambiarPassword()">🔑 Cambiar contraseña</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card mb16">
+          <div class="card-title">Resumen económico</div>
+          ${p.salarioBase>0?`
+            <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€</span></div>
+            <div class="nom-row"><span>IRPF (${p.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+            <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+            <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--muted)">Neto mensual</span>
+              <span class="nom-total">${neto.toLocaleString()}€</span>
+            </div>
+            <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:9px;text-align:center">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Neto anual estimado</div>
+              <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:700;color:var(--a1)">${(neto*12).toLocaleString()}€</div>
+            </div>
+          `:`<div style="color:var(--muted);font-size:13px">Retribución por caché / proyecto</div>`}
+        </div>
+        <div class="card">
+          <div class="card-title">Últimas nóminas</div>
+          ${DEMO_NOMINAS.slice(0,3).map(n=>`<div class="info-row" style="cursor:pointer" onclick="navigate('nominas')"><span>${n.mes}</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:var(--a1)">${n.neto.toLocaleString()}€</span>${badge(n.estado)}</div></div>`).join("")}
+          <div style="margin-top:10px;text-align:right"><span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="navigate('nominas')">Ver historial →</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editarPerfil(){
+  const p=userProfile;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar mi perfil</div>
+    <label class="form-lbl">Nombre completo</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
+    <label class="form-lbl">Email</label><input class="form-input" id="ep-email" type="email" value="${p.email}"/>
+    <label class="form-lbl">Teléfono</label><input class="form-input" id="ep-tlf" type="tel" placeholder="600 000 000"/>
+    <div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:16px;font-size:12px;color:var(--muted)">Para cambiar departamento o salario, contacta con RRHH.</div>
+    <button class="btn btn-p btn-full" onclick="guardarPerfil()">Guardar cambios</button>`);
+}
+
+function guardarPerfil(){
+  userProfile.nombre=document.getElementById("ep-nombre").value.trim()||userProfile.nombre;
+  userProfile.email=document.getElementById("ep-email").value.trim()||userProfile.email;
+  const ini=initials(userProfile.nombre);
+  ["s-avatar","tb-avatar"].forEach(id=>document.getElementById(id).textContent=ini);
+  document.getElementById("s-name").textContent=userProfile.nombre;
+  toast("Perfil actualizado ✓");closeModal();
+  renderPerfil(document.getElementById("page-content"));
+}
+
+function cambiarPassword(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Cambiar contraseña</div>
+    <label class="form-lbl">Contraseña actual</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <label class="form-lbl">Nueva contraseña</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <label class="form-lbl">Confirmar nueva contraseña</label><input class="form-input" type="password" placeholder="••••••••"/>
+    <button class="btn btn-p btn-full" onclick="toast('Contraseña actualizada ✓');closeModal()">Actualizar</button>`);
+}
+
+// ── NÓMINAS ──────────────────────────────────────────────────────────────
+async function renderNominas(pc){
+  await cargarMisNominas();
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">${userProfile.role==="freelance"?"Mis Cachés":"Mis Nóminas"}</div><div class="page-sub">Historial de retribuciones</div></div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Historial</div>
+        ${DEMO_NOMINAS.length===0?`<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">No hay nóminas generadas aún.<br>Contacta con RRHH para más información.</div>`:`
+        <div class="tbl-wrap"><table><thead><tr><th>Mes</th><th>Bruto</th><th>Neto</th><th>Estado</th><th></th></tr></thead><tbody>
+          ${DEMO_NOMINAS.map(n=>`<tr style="cursor:pointer" onclick="verNomina('${n.id}')"><td style="font-weight:500">${n.mes}</td><td>${(n.bruto||0).toLocaleString()}€</td><td style="color:var(--a1);font-weight:600">${(n.neto||0).toLocaleString()}€</td><td>${badge(n.estado||"pendiente")}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button></td></tr>`).join("")}
+        </tbody></table></div>`}
+      </div>
+      <div class="card" id="nomina-detail"><div class="card-title">Detalle</div><div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona una nómina para ver el detalle.</div></div>
+    </div>`;
+}
+
+function verNomina(id){
+  const n=DEMO_NOMINAS.find(x=>x.id===id);if(!n)return;
+  const bruto=n.bruto||0,irpf=n.irpf||15,ss=n.ss||160;
+  const ret=Math.round(bruto*irpf/100);
+  const neto=n.neto||(bruto-ret-ss);
+  document.getElementById("nomina-detail").innerHTML=`
+    <div class="card-title">${n.mes||"—"}</div>
+    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
+    <div class="nom-row"><span>IRPF (${irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
+      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto</span>
+      <span class="nom-total">${neto.toLocaleString()}€</span>
+    </div>
+    <div style="margin-top:18px">
+      <button class="btn btn-p" onclick="descargarPDFPorId('${id}')">⬇ Descargar PDF</button>
+    </div>`;
+}
+
+function descargarPDFPorId(id){
+  const n=DEMO_NOMINAS.find(x=>x.id===id);
+  if(n)generarPDFNomina(n);
+  else toast("No se encontró la nómina");
+}
+
+// ── RETRIBUCIONES ─────────────────────────────────────────────────────────
+function renderRetribuciones(pc){
+  const bruto=userProfile.salarioBase||2400;
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Retribuciones & IRPF</div><div class="page-sub">Simula y solicita cambios de retención</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Modificar IRPF</div>
+        <div style="text-align:center;padding:20px 0 24px">
+          <div class="irpf-big" id="irpf-display">${userProfile.irpf}%</div>
+          <div style="color:var(--muted);font-size:12px;margin:6px 0 20px">Tu retención actual</div>
+          <input type="range" min="2" max="45" value="${userProfile.irpf}" id="irpf-slider" oninput="updateIRPF(this.value)"/>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2% mín.</span><span>45% máx.</span></div>
+        </div>
+        <div style="padding:14px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">⚠️ El cambio requiere aprobación de RRHH y se aplica en la siguiente nómina.</div>
+          <button class="btn btn-p btn-full" onclick="solicitarIRPF()">Solicitar cambio de IRPF</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">Simulación mensual</div><div id="sim-content"></div>
+        <div style="margin-top:20px"><div class="card-title">Proyección anual</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px" id="anual-content"></div></div>
+      </div>
+    </div>`;
+  updateIRPF(userProfile.irpf);
+}
+
+function updateIRPF(val){
+  const v=parseInt(val);
+  document.getElementById("irpf-display").textContent=v+"%";
+  const bruto=userProfile.salarioBase||2400,ss=160,ret=Math.round(bruto*v/100),neto=bruto-ret-ss;
+  document.getElementById("sim-content").innerHTML=`
+    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
+    <div class="nom-row"><span>IRPF (${v}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto mensual</span>
+      <span class="nom-total" style="font-size:24px">${neto.toLocaleString()}€</span>
+    </div>`;
+  document.getElementById("anual-content").innerHTML=`
+    <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Bruto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px">${(bruto*12).toLocaleString()}€</div></div>
+    <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Neto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a1)">${(neto*12).toLocaleString()}€</div></div>`;
+}
+
+async function solicitarIRPF(){
+  const v=document.getElementById("irpf-slider").value;
+  try{
+    await _db.collection("solicitudes_irpf").add({
+      empleadoId:currentUser.uid,
+      empleadoNombre:userProfile.nombre,
+      email:userProfile.email,
+      irpfActual:userProfile.irpf,
+      irpfSolicitado:parseInt(v),
+      fecha:new Date().toISOString(),
+      estado:"pendiente",
+    });
+  }catch(e){console.warn("Error guardando solicitud:",e);}
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Solicitud enviada ✅</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6">Tu solicitud de cambio de IRPF al <strong style="color:var(--a1)">${v}%</strong> ha sido enviada a RRHH.<br><br>Se procesará antes de la próxima nómina. Recibirás confirmación por email.</p>
+    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Entendido</button></div>`);
+}
+
+// ── CALENDARIO INTERACTIVO ────────────────────────────────────────────────
+function renderCalendario(pc){
+  const dias=["L","M","X","J","V","S","D"];
+  const ahora=new Date();
+  const calYear=ahora.getFullYear();
+  const calMonth=ahora.getMonth(); // 0-based
+  const primerDia=new Date(calYear,calMonth,1);
+  const ultimoDia=new Date(calYear,calMonth+1,0).getDate();
+  // offset: lunes=0 ... domingo=6
+  const offset=(primerDia.getDay()+6)%7;
+  const total=ultimoDia;
+  const all=[];for(let i=0;i<offset;i++)all.push(null);for(let d=1;d<=total;d++)all.push(d);while(all.length%7!==0)all.push(null);
+  const mesStr=String(calMonth+1).padStart(2,"0");
+  // Días con eventos reales
+  const eventDays=new Set(DEMO_EVENTOS.map(e=>{
+    const m=e.fecha.match(new RegExp(`${calYear}-${mesStr}-(\\d{2})`));
+    return m?parseInt(m[1]):null;
+  }).filter(Boolean));
+  // Días con turnos reales del usuario
+  const turnoDias={};
+  DEMO_TURNOS.forEach(t=>{
+    const m=t.fecha&&t.fecha.match(new RegExp(`${calYear}-${mesStr}-(\\d{2})`));
+    if(m)turnoDias[parseInt(m[1])]=t.tipo;
+  });
+  const dotColor={evento:"var(--a2)",rodaje:"var(--a1)",oficina:"var(--a3)",libre:"var(--muted)"};
+  const mesesNombres=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div class="flex items-c j-between" style="width:100%;flex-wrap:wrap;gap:8px">
+        <div><div class="page-title">Calendario Laboral</div><div class="page-sub">${mesesNombres[calMonth]} ${calYear} · Pulsa un día para ver su detalle</div></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+          ${Object.entries(dotColor).map(([k,v])=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${v};display:inline-block"></span>${k}</span>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="card mb16">
+      <div class="cal-grid">
+        ${dias.map(d=>`<div class="cal-hd">${d}</div>`).join("")}
+        ${all.map(n=>{
+          if(!n)return`<div class="cal-day empty"></div>`;
+          const hoyD=new Date();
+          const isToday=(n===hoyD.getDate()&&calMonth===hoyD.getMonth()&&calYear===hoyD.getFullYear());
+          const hasEv=eventDays.has(n);
+          const tipoTurno=turnoDias[n];
+          return`<div class="cal-day ${isToday?"today":""} ${hasEv?"has-event":tipoTurno?"has-turno":""}" id="cal-day-${n}" onclick="selectDay(${n})">${n}${tipoTurno?`<div class="cal-dot" style="background:${dotColor[tipoTurno]}"></div>`:""}</div>`;
+        }).join("")}
+      </div>
+    </div>
+    <div id="day-detail-area"></div>
+    <div class="card">
+      <div class="card-title">Tus turnos próximos</div>
+      ${DEMO_TURNOS.length===0
+        ?`<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">No tienes turnos asignados aún</div>`
+        :DEMO_TURNOS.slice(0,7).map(t=>{
+          const d=new Date(t.fecha+"T12:00:00");
+          const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+          const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+          const label=`${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+          return`<div class="t-row"><span class="t-dia">${label}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada}–${t.salida}`}</span><span class="t-lug">${t.lugar||"—"}</span><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}" style="margin-left:auto;flex-shrink:0">${t.tipo}</span></div>`;
+        }).join("")
+      }
+    </div>`;
+}
+
+function selectDay(n){
+  document.querySelectorAll(".cal-day.selected").forEach(el=>el.classList.remove("selected"));
+  document.getElementById(`cal-day-${n}`)?.classList.add("selected");
+  const ahora2=new Date();
+  const cY=ahora2.getFullYear(),cM=ahora2.getMonth()+1;
+  const fechaDia=`${cY}-${String(cM).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
+  const evs=DEMO_EVENTOS.filter(e=>e.fecha===fechaDia);
+  const turno=DEMO_TURNOS.find(t=>t.fecha===fechaDia);
+  const area=document.getElementById("day-detail-area");
+  const ahora3=new Date();
+  const mesesN=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  let html=`<div class="day-detail"><div class="day-detail-title">📅 ${n} de ${mesesN[ahora3.getMonth()]} de ${ahora3.getFullYear()}</div>`;
+  if(turno){
+    html+=`<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tu turno</div>
+      <div class="day-event-item" style="display:flex;align-items:center;gap:10px">
+        <span class="t-dot d-${turno.tipo}" style="width:9px;height:9px"></span>
+        <div><div style="font-weight:500">${turno.tipo==="libre"?"Día libre":turno.lugar}</div><div style="font-size:12px;color:var(--muted)">${turno.entrada==="—"?"Sin horario asignado":`${turno.entrada} – ${turno.salida}`}</div></div>
+      </div></div>`;
+  }
+  if(evs.length>0){
+    html+=`<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Eventos del día</div>
+      ${evs.map(ev=>`<div class="day-event-item" style="cursor:pointer" onclick="verEvento('${ev.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-family:Syne,sans-serif;font-weight:600;font-size:14px">${ev.nombre}</span>${badge(ev.estado)}
+        </div>
+        <div style="font-size:12px;color:var(--muted)">📍 ${ev.lugar} · 👥 ${ev.equipo} personas</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${ev.notas}</div>
+      </div>`).join("")}</div>`;
+  }
+  if(!turno&&evs.length===0){
+    html+=`<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px 0">Sin actividad registrada${canAdmin()?`<br><button class="btn btn-p" style="margin-top:10px" onclick="nuevoEvento()">+ Añadir evento</button>`:""}</div>`;
+  }else if(canAdmin()){
+    html+=`<div style="margin-top:12px"><button class="btn btn-g" style="font-size:12px" onclick="nuevoEvento()">+ Añadir evento en este día</button></div>`;
+  }
+  html+=`</div>`;
+  area.innerHTML=html;
+  area.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+// ── EVENTOS ──────────────────────────────────────────────────────────────
+function renderEventos(pc){
+  const tc={Festival:"b-pink",Audiovisual:"b-green",Gala:"b-blue",Club:"b-orange"};
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Gestión de Eventos</div><div class="page-sub">${DEMO_EVENTOS.length} eventos registrados</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoEvento()">+ Nuevo evento</button>`:""}</div>
+    <div class="g-auto">
+      ${DEMO_EVENTOS.map(ev=>`<div class="ev-card" onclick="verEvento('${ev.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span class="badge ${tc[ev.tipo]||"b-gray"}">${ev.tipo}</span>${badge(ev.estado)}</div>
+        <div class="ev-nombre">${ev.nombre}</div>
+        <div class="ev-meta"><span>📅 ${ev.fecha}</span><span>📍 ${ev.lugar}</span><span>👥 ${ev.equipo} personas</span>${ev.material&&ev.material.length>0?`<span>📦 ${ev.material.length} elementos</span>`:""}</div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();verEvento('${ev.id}')">Ver detalle</button>
+          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();editEvento('${ev.id}')">Editar</button>`:""}
+        </div></div>`).join("")}
+    </div>`;
+}
+
+function verEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${ev.nombre}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap"><span class="badge b-gray">${ev.tipo}</span>${badge(ev.estado)}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div><span style="color:var(--muted)">📅 Fecha:</span> ${ev.fecha}</div>
+      <div><span style="color:var(--muted)">📍 Lugar:</span> ${ev.lugar}</div>
+      <div><span style="color:var(--muted)">👥 Equipo:</span> ${ev.equipo} personas</div>
+      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Notas</div><div style="font-size:13px;line-height:1.6">${ev.notas}</div></div>
+      ${ev.material&&ev.material.length>0?`
+      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Material asignado (${ev.material.length})</div>
+        ${ev.material.map(m=>`<div style="font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">${m.nombre}</div>`).join("")}
+      </div>`:""}
+    </div>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal()">Cerrar</button>
+      ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();editEvento('${ev.id}')">Editar</button>`:""}
+    </div>`);
+}
+
+function nuevoEvento(){
+  closeModal();
+  setTimeout(()=>{
+    _ticketRowCount=0;
+    showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Nuevo evento</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ev-nombre" placeholder="Ej: Festival BeachClub"/>
+    <label class="form-lbl">Fecha</label><input class="form-input" id="ev-fecha" type="date"/>
+    <label class="form-lbl">Lugar</label><input class="form-input" id="ev-lugar" placeholder="Sala, Ciudad"/>
+    <div class="form-grid">
+      <div><label class="form-lbl">Tipo</label><select class="form-select" id="ev-tipo"><option>Festival</option><option>Audiovisual</option><option>Gala</option><option>Club</option></select></div>
+      <div><label class="form-lbl">Estado</label><select class="form-select" id="ev-estado"><option value="preproduccion">Preproducción</option><option value="confirmado">Confirmado</option><option value="produccion">En producción</option><option value="negociacion">Negociación</option></select></div>
+    </div>
+    <label class="form-lbl">Personas en equipo</label><input class="form-input" id="ev-equipo" type="number" value="4" min="1"/>
+    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ev-notas" placeholder="Detalles del evento…"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <label class="form-lbl" style="margin-bottom:0">🎟️ Tipos de entrada</label>
+      <button class="btn btn-g" style="padding:4px 10px;font-size:12px" onclick="addTicketRow()">+ Añadir tipo</button>
+    </div>
+    <div id="ticket-types-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+      <div style="color:var(--muted);font-size:12px;text-align:center;padding:8px" id="ticket-empty-msg">Sin tipos de entrada. Pulsa "+ Añadir tipo".</div>
+    </div>
+    <label class="form-lbl">Material asignado</label>
+    <div id="mat-selector-ev" style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;max-height:120px;overflow-y:auto;margin-bottom:14px">
+      ${INVENTARIO.length===0
+        ?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px">Sin material en inventario.</div>`
+        :INVENTARIO.filter(m=>m.estado==="disponible"||m.estado==="en_uso").map(m=>`
+          <label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13px">
+            <input type="checkbox" value="${m.id}" data-nombre="${m.codigo?m.codigo+" - ":""}${m.nombre}" style="accent-color:var(--a1);width:14px;height:14px"/>
+            <span>${m.codigo?`<strong style="color:var(--a1)">${m.codigo}</strong> — `:""}${m.nombre} <span style="color:var(--muted);font-size:11px">(${m.cantidad||1} uds)</span></span>
+          </label>`).join("")
+      }
+    </div>
+    <div style="margin-top:4px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:600">ℹ️ Información adicional (opcional)</div>
+      <label class="form-lbl">🎵 Artistas / Line-up</label>
+      <input class="form-input" id="ev-artistas" placeholder="DJ 1, DJ 2, Artista X…"/>
+      <label class="form-lbl">👔 Código de vestimenta</label>
+      <input class="form-input" id="ev-vestimenta" placeholder="Smart casual, no deportivo…"/>
+      <div class="form-grid">
+        <div><label class="form-lbl">🚪 Apertura de puertas</label>
+        <input class="form-input" id="ev-apertura" type="time"/></div>
+        <div><label class="form-lbl">🔞 Edad mínima</label>
+        <input class="form-input" id="ev-edad" type="number" min="0" max="99" placeholder="18"/></div>
+      </div>
+      <label class="form-lbl">📋 Normas del recinto</label>
+      <textarea class="form-textarea" id="ev-normas" placeholder="No se permite entrada con…" style="min-height:60px"></textarea>
+      <label class="form-lbl">🎤 Descripción del evento</label>
+      <textarea class="form-textarea" id="ev-descripcion" placeholder="Describe el ambiente, la música, la experiencia…" style="min-height:80px"></textarea>
+      <label class="form-lbl">📍 Google Maps (enlace)</label>
+      <input class="form-input" id="ev-maps" placeholder="https://maps.google.com/…"/>
+      <label class="form-lbl">🌐 Web del evento</label>
+      <input class="form-input" id="ev-web" placeholder="https://…" style="margin-bottom:0"/>
+    </div>
+    <button class="btn btn-p btn-full" onclick="guardarEvento()">Guardar evento</button>`);
+  },100);
+}
+
+let _ticketRowCount=0;
+
+function addTicketRow(){
+  const list=document.getElementById("ticket-types-list");
+  if(!list)return;
+  const empty=document.getElementById("ticket-empty-msg");
+  if(empty)empty.remove();
+  const i=_ticketRowCount++;
+  const zonas=["general","vip","backstage","pista","grada","palco"];
+  const row=document.createElement("div");
+  row.id=`tt-row-${i}`;
+  row.style.cssText="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;position:relative";
+  row.innerHTML=`
+    <button onclick="document.getElementById('tt-row-${i}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" placeholder="Ej: General, VIP…" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}">${z}</option>`).join("")}</select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Precio (€)</label><input class="form-input tt-precio" type="number" min="0" step="0.01" placeholder="0.00" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Stock</label><input class="form-input tt-stock" type="number" min="1" placeholder="100" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Máx/persona</label><input class="form-input tt-max" type="number" min="1" value="4" style="margin-bottom:0"/></div>
+    </div>`;
+  list.appendChild(row);
+}
+
+function getTicketTypes(){
+  const rows=document.querySelectorAll("#ticket-types-list [id^='tt-row-']");
+  const types=[];
+  rows.forEach(row=>{
+    const nombre=row.querySelector(".tt-nombre").value.trim();
+    const zona=row.querySelector(".tt-zona").value;
+    const precio=parseFloat(row.querySelector(".tt-precio").value)||0;
+    const stock=parseInt(row.querySelector(".tt-stock").value)||0;
+    const max=parseInt(row.querySelector(".tt-max").value)||4;
+    if(nombre) types.push({nombre,zona,precio,stock_total:stock,stock_disponible:stock,max_por_persona:max});
+  });
+  return types;
+}
+
+
+async function guardarEvento(){
+  const nombre=document.getElementById("ev-nombre").value.trim();
+  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  const matChecks=document.querySelectorAll("#mat-selector-ev input[type=checkbox]:checked");
+  const materialAsignado=Array.from(matChecks).map(cb=>({id:cb.value,nombre:cb.dataset.nombre}));
+  const ticketTypes=getTicketTypes();
+  const ev={
+    nombre,
+    fecha:document.getElementById("ev-fecha").value||new Date().toISOString().slice(0,10),
+    lugar:document.getElementById("ev-lugar").value||"Por confirmar",
+    tipo:document.getElementById("ev-tipo").value,
+    estado:document.getElementById("ev-estado").value,
+    equipo:parseInt(document.getElementById("ev-equipo").value)||1,
+    notas:document.getElementById("ev-notas").value||"—",
+    material:materialAsignado,
+    ticketTypes,
+    artistas:document.getElementById("ev-artistas")?.value||"",
+    vestimenta:document.getElementById("ev-vestimenta")?.value||"",
+    apertura:document.getElementById("ev-apertura")?.value||"",
+    edadMinima:parseInt(document.getElementById("ev-edad")?.value)||0,
+    normas:document.getElementById("ev-normas")?.value||"",
+    descripcionEvento:document.getElementById("ev-descripcion")?.value||"",
+    mapsUrl:document.getElementById("ev-maps")?.value||"",
+    webEvento:document.getElementById("ev-web")?.value||"",
+    creadoPor:userProfile.nombre,
+    creadoEn:new Date().toISOString()
+  };
+  try{
+    const{db,collection,addDoc}=window._firebase;
+    const ref=await addDoc(collection(db,"eventos"),ev);
+    ev.id=ref.id;
+    toast(`Evento "${nombre}" guardado ✓`);
+  }catch(e){
+    ev.id="e"+Date.now();
+    toast(`Evento "${nombre}" creado localmente`);
+  }
+  try{
+    const res=await fetch("https://inout-check.vercel.app/api/events/create",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre:ev.nombre,fecha:ev.fecha,lugar:ev.lugar,tipo:ev.tipo,estado:ev.estado,firebase_id:ev.id,ticket_types:ticketTypes,artistas:ev.artistas,vestimenta:ev.vestimenta,apertura:ev.apertura,edad_minima:ev.edadMinima,normas:ev.normas,descripcion:ev.descripcionEvento,maps_url:ev.mapsUrl,web_evento:ev.webEvento})
+    });
+    if(res.ok){toast(`✅ "${nombre}" publicado en taquilla`);}
+    else{console.warn("Taquilla error:",(await res.json()));toast(`⚠️ Guardado, error al publicar en taquilla`);}
+  }catch(e){console.warn("Taquilla no disponible:",e);}
+  _ticketRowCount=0;
+  DEMO_EVENTOS.unshift(ev);closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
+}
+
+function editEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  const existingTickets=(ev.ticketTypes||[]);
+  const zonas=["general","vip","backstage","pista","grada","palco"];
+  closeModal();
+  setTimeout(()=>{
+    _ticketRowCount=0;
+    showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Editar evento</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
+    <label class="form-lbl">Fecha</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/>
+    <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
+    <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["preproduccion","confirmado","produccion","negociacion","cerrado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
+    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas}</textarea>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <label class="form-lbl" style="margin-bottom:0">🎟️ Tipos de entrada</label>
+      <button class="btn btn-g" style="padding:4px 10px;font-size:12px" onclick="addTicketRow()">+ Añadir tipo</button>
+    </div>
+    <div id="ticket-types-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+      ${existingTickets.length===0
+        ?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px" id="ticket-empty-msg">Sin tipos de entrada.</div>`
+        :existingTickets.map((t,i)=>`
+          <div id="tt-row-${i}" style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;position:relative">
+            <button onclick="document.getElementById('tt-row-${i}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">✕</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" value="${t.nombre||""}" placeholder="Ej: General, VIP…" style="margin-bottom:0"/></div>
+              <div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}" ${(t.zona||t.tipo_zona)===z?"selected":""}>${z}</option>`).join("")}</select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><label class="form-lbl">Precio (€)</label><input class="form-input tt-precio" type="number" min="0" step="0.01" value="${t.precio||0}" style="margin-bottom:0"/></div>
+              <div><label class="form-lbl">Stock</label><input class="form-input tt-stock" type="number" min="1" value="${t.stock_total||0}" style="margin-bottom:0"/></div>
+              <div><label class="form-lbl">Máx/persona</label><input class="form-input tt-max" type="number" min="1" value="${t.max_por_persona||4}" style="margin-bottom:0"/></div>
+            </div>
+          </div>`).join("")
+      }
+    </div>
+
+    <label class="form-lbl">Material asignado</label>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;max-height:150px;overflow-y:auto;margin-bottom:14px">
+      ${INVENTARIO.length===0
+        ?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px">Sin material en inventario</div>`
+        :INVENTARIO.filter(m=>m.estado==="disponible"||m.estado==="en_uso").map(m=>{
+          const yaAsignado=(ev.material||[]).some(x=>x.id===m.id);
+          return`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13px">
+            <input type="checkbox" class="ee-mat-check" value="${m.id}" data-nombre="${m.codigo?m.codigo+" - ":""}${m.nombre}" ${yaAsignado?"checked":""} style="accent-color:var(--a1);width:14px;height:14px"/>
+            <span>${m.codigo?`<strong style="color:var(--a1)">${m.codigo}</strong> — `:""}${m.nombre} <span style="color:var(--muted);font-size:11px">(${m.cantidad||1} uds)</span></span>
+          </label>`;
+        }).join("")
+      }
+    </div>
+    <div style="margin-top:4px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:600">ℹ️ Información adicional (opcional)</div>
+      <label class="form-lbl">🎵 Artistas / Line-up</label>
+      <input class="form-input" id="ee-artistas" value="${ev.artistas||""}" placeholder="DJ 1, DJ 2…"/>
+      <label class="form-lbl">👔 Código de vestimenta</label>
+      <input class="form-input" id="ee-vestimenta" value="${ev.vestimenta||""}" placeholder="Smart casual…"/>
+      <div class="form-grid">
+        <div><label class="form-lbl">🚪 Apertura de puertas</label>
+        <input class="form-input" id="ee-apertura" type="time" value="${ev.apertura||""}"/></div>
+        <div><label class="form-lbl">🔞 Edad mínima</label>
+        <input class="form-input" id="ee-edad" type="number" min="0" max="99" value="${ev.edadMinima||""}" placeholder="18"/></div>
+      </div>
+      <label class="form-lbl">📋 Normas del recinto</label>
+      <textarea class="form-textarea" id="ee-normas" style="min-height:60px">${ev.normas||""}</textarea>
+      <label class="form-lbl">🎤 Descripción del evento</label>
+      <textarea class="form-textarea" id="ee-descripcion" style="min-height:80px">${ev.descripcionEvento||""}</textarea>
+      <label class="form-lbl">📍 Google Maps (enlace)</label>
+      <input class="form-input" id="ee-maps" value="${ev.mapsUrl||""}" placeholder="https://maps.google.com/…"/>
+      <label class="form-lbl">🌐 Web del evento</label>
+      <input class="form-input" id="ee-web" value="${ev.webEvento||""}" placeholder="https://…" style="margin-bottom:0"/>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarEvento('${ev.id}')">Guardar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEvento('${ev.id}')">Eliminar</button>
+    </div>`);
+    // Sincronizar el contador de filas con las existentes
+    _ticketRowCount=existingTickets.length;
+  },100);
+}
+
+async function actualizarEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  ev.nombre=document.getElementById("ee-nombre").value.trim()||ev.nombre;
+  ev.fecha=document.getElementById("ee-fecha").value||ev.fecha;
+  ev.lugar=document.getElementById("ee-lugar").value||ev.lugar;
+  ev.estado=document.getElementById("ee-estado").value;
+  ev.notas=document.getElementById("ee-notas").value;
+  const eeMatChecks=document.querySelectorAll(".ee-mat-check:checked");
+  ev.material=Array.from(eeMatChecks).map(cb=>({id:cb.value,nombre:cb.dataset.nombre}));
+  ev.ticketTypes=getTicketTypes();
+  ev.artistas=document.getElementById("ee-artistas")?.value||ev.artistas||"";
+  ev.vestimenta=document.getElementById("ee-vestimenta")?.value||ev.vestimenta||"";
+  ev.apertura=document.getElementById("ee-apertura")?.value||ev.apertura||"";
+  ev.edadMinima=parseInt(document.getElementById("ee-edad")?.value)||ev.edadMinima||0;
+  ev.normas=document.getElementById("ee-normas")?.value||ev.normas||"";
+  ev.descripcionEvento=document.getElementById("ee-descripcion")?.value||ev.descripcionEvento||"";
+  ev.mapsUrl=document.getElementById("ee-maps")?.value||ev.mapsUrl||"";
+  ev.webEvento=document.getElementById("ee-web")?.value||ev.webEvento||"";
+  try{
+    const{db,doc,updateDoc}=window._firebase;
+    await updateDoc(doc(db,"eventos",id),{nombre:ev.nombre,fecha:ev.fecha,lugar:ev.lugar,estado:ev.estado,notas:ev.notas,material:ev.material,ticketTypes:ev.ticketTypes,artistas:ev.artistas,vestimenta:ev.vestimenta,apertura:ev.apertura,edadMinima:ev.edadMinima,normas:ev.normas,descripcionEvento:ev.descripcionEvento,mapsUrl:ev.mapsUrl,webEvento:ev.webEvento});
+    toast("Evento actualizado ✓");
+  }catch(e){toast("Actualizado localmente");}
+  // Sincronizar ticket types con taquilla
+  try{
+    await fetch("https://inout-check.vercel.app/api/events/create",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre:ev.nombre,fecha:ev.fecha,lugar:ev.lugar,tipo:ev.tipo,estado:ev.estado,firebase_id:ev.id,ticket_types:ev.ticketTypes,artistas:ev.artistas,vestimenta:ev.vestimenta,apertura:ev.apertura,edad_minima:ev.edadMinima,normas:ev.normas,descripcion:ev.descripcionEvento,maps_url:ev.mapsUrl,web_evento:ev.webEvento})
+    });
+  }catch(e){console.warn("Taquilla no disponible:",e);}
+  _ticketRowCount=0;
+  closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
+}
+
+async function eliminarEvento(id){
+  try{
+    const{db,doc,deleteDoc}=window._firebase;
+    await deleteDoc(doc(db,"eventos",id));
+  }catch(e){console.warn("No se pudo borrar de Firebase:",e);}
+  DEMO_EVENTOS=DEMO_EVENTOS.filter(e=>e.id!==id);
+  toast("Evento eliminado");closeModal();
+  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+}
+
+// ── PRODUCCIÓN ───────────────────────────────────────────────────────────
+function renderProduccion(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Producción Audiovisual</div><div class="page-sub">Proyectos activos y archivo</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoProyecto()">+ Nuevo proyecto</button>`:""}</div>
+    <div class="g2">
+      ${DEMO_PROYECTOS.map(p=>`<div class="proy-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="proy-nom">${p.nombre}</div>${badge(p.estado)}</div>
+        <div class="proy-cli">${p.cliente}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+          <div><div style="font-size:11px;color:var(--muted)">Inicio</div><div style="font-size:12px;margin-top:2px">${p.inicio}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">Fin</div><div style="font-size:12px;margin-top:2px">${p.fin}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">Presupuesto</div><div style="font-size:12px;margin-top:2px;font-weight:600">${p.presupuesto.toLocaleString()}€</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Progreso</span><span style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</span></div>
+        <div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="verProyecto('${p.id}')">Detalle</button>
+          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="editarProyecto('${p.id}')">Editar</button>`:""}
+          ${canAdmin()?`<button class="btn btn-danger" style="flex:1;justify-content:center;font-size:12px" onclick="eliminarProyecto('${p.id}')">✕</button>`:""}
+        </div></div>`).join("")}
+    </div>`;
+}
+
+function verProyecto(id){
+  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${p.nombre}</div>${badge(p.estado)}
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div><span style="color:var(--muted)">Cliente:</span> ${p.cliente}</div>
+      <div><span style="color:var(--muted)">Periodo:</span> ${p.inicio} → ${p.fin}</div>
+      <div><span style="color:var(--muted)">Presupuesto:</span> <strong>${p.presupuesto.toLocaleString()}€</strong></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:var(--muted)">Progreso</span><strong style="color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</strong></div><div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div></div>
+    </div>
+    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+function nuevoProyecto(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Nuevo proyecto AV</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="proy-nombre" placeholder="Ej: Spot Mahou Verano"/>
+    <label class="form-lbl">Cliente</label><input class="form-input" id="proy-cliente" placeholder="Empresa o nombre"/>
+    <div class="form-grid">
+      <div><label class="form-lbl">Inicio</label><input class="form-input" id="proy-inicio" type="date"/></div>
+      <div><label class="form-lbl">Fin</label><input class="form-input" id="proy-fin" type="date"/></div>
+    </div>
+    <label class="form-lbl">Presupuesto (€)</label><input class="form-input" id="proy-pres" type="number" placeholder="15000"/>
+    <button class="btn btn-p btn-full" onclick="guardarProyecto()">Guardar proyecto</button>`);
+}
+
+async function guardarProyecto(){
+  const nombre=document.getElementById("proy-nombre").value.trim();
+  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  const proy={
+    nombre,
+    cliente:document.getElementById("proy-cliente").value||"—",
+    inicio:document.getElementById("proy-inicio").value||new Date().toISOString().slice(0,10),
+    fin:document.getElementById("proy-fin").value||"—",
+    presupuesto:parseInt(document.getElementById("proy-pres").value)||0,
+    estado:"activo",progreso:0,
+    creadoPor:userProfile.nombre,creadoEn:new Date().toISOString()
+  };
+  try{
+    const{db,collection,addDoc}=window._firebase;
+    const ref=await addDoc(collection(db,"proyectos"),proy);
+    proy.id=ref.id;
+    toast(`Proyecto "${nombre}" creado ✓`);
+  }catch(e){proy.id="p"+Date.now();toast(`Proyecto "${nombre}" guardado localmente`);}
+  DEMO_PROYECTOS.unshift(proy);
+  closeModal();
+  renderProduccion(document.getElementById("page-content"));
+}
+
+function editarProyecto(id){
+  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Editar proyecto</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
+    <label class="form-lbl">Cliente</label><input class="form-input" id="ep-cliente" value="${p.cliente}"/>
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="ep-estado">
+      ${["activo","preproduccion","cerrado"].map(s=>`<option value="${s}" ${p.estado===s?"selected":""}>${s}</option>`).join("")}
+    </select>
+    <label class="form-lbl">Progreso (%)</label>
+    <input class="form-input" id="ep-progreso" type="number" min="0" max="100" value="${p.progreso}"/>
+    <label class="form-lbl">Presupuesto (€)</label>
+    <input class="form-input" id="ep-pres" type="number" value="${p.presupuesto}"/>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarProyecto('${p.id}')">Guardar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarProyecto('${p.id}')">Eliminar</button>
+    </div>`),100);
+}
+
+async function actualizarProyecto(id){
+  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
+  p.nombre=document.getElementById("ep-nombre").value.trim()||p.nombre;
+  p.cliente=document.getElementById("ep-cliente").value||p.cliente;
+  p.estado=document.getElementById("ep-estado").value;
+  p.progreso=parseInt(document.getElementById("ep-progreso").value)||0;
+  p.presupuesto=parseInt(document.getElementById("ep-pres").value)||0;
+  try{
+    const{db,doc,updateDoc}=window._firebase;
+    await updateDoc(doc(db,"proyectos",id),{nombre:p.nombre,cliente:p.cliente,estado:p.estado,progreso:p.progreso,presupuesto:p.presupuesto});
+    toast("Proyecto actualizado ✓");
+  }catch(e){toast("Actualizado localmente");}
+  closeModal();renderProduccion(document.getElementById("page-content"));
+}
+
+async function eliminarProyecto(id){
+  try{
+    const{db,doc,deleteDoc}=window._firebase;
+    await deleteDoc(doc(db,"proyectos",id));
+    toast("Proyecto eliminado ✓");
+  }catch(e){toast("Eliminado localmente");}
+  DEMO_PROYECTOS=DEMO_PROYECTOS.filter(x=>x.id!==id);
+  closeModal();renderProduccion(document.getElementById("page-content"));
+}
+
+// ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────
+function renderAdmin(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div><div class="page-title">Gestión de Empleados</div><div class="page-sub">Panel de administración</div></div><button class="btn btn-p" onclick="nuevoEmpleado()">+ Añadir</button></div>
+    <div class="g4 mb24">
+      <div class="stat"><div class="stat-lbl">Total</div><div class="stat-val c-a1">${DEMO_EMPLEADOS.length}</div></div>
+      <div class="stat"><div class="stat-lbl">Fijos</div><div class="stat-val c-a3">${DEMO_EMPLEADOS.filter(e=>e.tipo==="fijo").length}</div></div>
+      <div class="stat"><div class="stat-lbl">Freelances</div><div class="stat-val">${DEMO_EMPLEADOS.filter(e=>e.tipo==="freelance").length}</div></div>
+      <div class="stat"><div class="stat-lbl">Bajas</div><div class="stat-val c-a2">${DEMO_EMPLEADOS.filter(e=>e.estado==="baja").length}</div></div>
+    </div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>IRPF</th><th>Salario</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${DEMO_EMPLEADOS.map(e=>`<tr>
+          <td style="font-weight:500;cursor:pointer" onclick="verFichaEmpleado('${e.id}')">${e.nombre}</td>
+          <td>${tipoBadge(e.tipo)}</td>
+          <td style="color:var(--muted)">${e.dept}</td>
+          <td><span style="cursor:pointer;color:var(--a1);text-decoration:underline" onclick="editarIRPFEmpleado('${e.id}')">${e.irpf}%</span></td>
+          <td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td>
+          <td>${badge(e.estado)}</td>
+          <td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="verFichaEmpleado('${e.id}')">Ficha</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="confirmarEliminarEmpleado('${e.id}')">✕</button></div></td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div></div>`;
+}
+
+function verFichaEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div class="avatar ${avatarColor(e.role)}" style="width:50px;height:50px;font-size:16px">${initials(e.nombre)}</div>
+      <div><div class="modal-title" style="margin-bottom:4px">${e.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(e.role)}&nbsp;${tipoBadge(e.tipo)}</div></div>
+    </div>
+    ${[["📧 Email",e.email],["📞 Teléfono",e.tlf||"—"],["🏢 Departamento",e.dept],["📊 IRPF",e.irpf+"%"],["💶 Salario",e.salario>0?e.salario.toLocaleString()+"€/mes":"Por caché"],["📅 Alta",e.fechaAlta||"—"],["⚡ Estado",""]].map(([l,v],i)=>`<div class="info-row"><span class="info-lbl">${l}</span><span>${i===6?badge(e.estado):v}</span></div>`).join("")}
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal();editarIRPFEmpleado('${e.id}')">Cambiar IRPF</button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();editEmpleado('${e.id}')">Editar datos</button>
+    </div>`);
+}
+
+function editarIRPFEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">IRPF de ${e.nombre}</div>
+    <div style="text-align:center;padding:16px 0 20px">
+      <div class="irpf-big" id="modal-irpf-display">${e.irpf}%</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:6px;margin-bottom:20px">Retención actual</div>
+      <input type="range" min="2" max="45" value="${e.irpf}" id="modal-irpf-slider" oninput="document.getElementById('modal-irpf-display').textContent=this.value+'%'"/>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2% mín.</span><span>45% máx.</span></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="confirmarIRPFEmpleado('${e.id}')">Aplicar cambio</button>`),100);
+}
+
+async function confirmarIRPFEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  const nv=parseInt(document.getElementById("modal-irpf-slider").value),oldV=e.irpf;
+  e.irpf=nv;
+  try{
+    const{db,doc,updateDoc}=window._firebase;
+    await updateDoc(doc(db,"Usuarios",id),{irpf:nv});
+    toast(`IRPF de ${e.nombre}: ${oldV}% → ${nv}% guardado ✓`);
+  }catch(err){toast(`IRPF de ${e.nombre}: ${oldV}% → ${nv}% ✓`);}
+  closeModal();
+  if(currentPage==="admin")renderAdmin(document.getElementById("page-content"));
+  if(currentPage==="admin-irpf")renderAdminIRPF(document.getElementById("page-content"));
+}
+
+function editEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Editar: ${e.nombre}</div>
+    <label class="form-lbl">Nombre completo</label>
+    <input class="form-input" id="ee-nombre" value="${e.nombre}"/>
+    <label class="form-lbl">Email</label>
+    <input class="form-input" id="ee-email" type="email" value="${e.email}"/>
+    <label class="form-lbl">Teléfono</label>
+    <input class="form-input" id="ee-tlf" value="${e.tlf||""}"/>
+    <div class="form-grid">
+      <div>
+        <label class="form-lbl">Tipo contrato</label>
+        <select class="form-select" id="ee-tipo">
+          <option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option>
+          <option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-lbl">Rol en sistema</label>
+        <select class="form-select" id="ee-role">
+          ${["empleado","freelance","rrhh","admin"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <label class="form-lbl">Departamento</label>
+    <select class="form-select" id="ee-dept">
+      ${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}
+    </select>
+    <div class="form-grid">
+      <div>
+        <label class="form-lbl">Salario base (€)</label>
+        <input class="form-input" id="ee-salario" type="number" value="${e.salario||0}"/>
+      </div>
+      <div>
+        <label class="form-lbl">IRPF (%)</label>
+        <input class="form-input" id="ee-irpf" type="number" min="2" max="45" value="${e.irpf||15}"/>
+      </div>
+    </div>
+    <label class="form-lbl">Fecha de alta</label>
+    <input class="form-input" id="ee-alta" type="date" value="${e.fechaAlta||""}"/>
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="ee-status">
+      <option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option>
+      <option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option>
+    </select>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarEmpleado('${e.id}')">Guardar cambios</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="confirmarEliminarEmpleado('${e.id}')">Eliminar</button>
+    </div>`),100);
+}
+
+async function actualizarEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  e.nombre=document.getElementById("ee-nombre").value.trim()||e.nombre;
+  e.email=document.getElementById("ee-email").value.trim()||e.email;
+  e.tlf=document.getElementById("ee-tlf").value||e.tlf;
+  e.tipo=document.getElementById("ee-tipo").value;
+  e.role=document.getElementById("ee-role").value;
+  e.dept=document.getElementById("ee-dept").value;
+  e.salario=parseInt(document.getElementById("ee-salario").value)||0;
+  e.salarioBase=e.salario;
+  e.irpf=parseInt(document.getElementById("ee-irpf").value)||15;
+  e.fechaAlta=document.getElementById("ee-alta").value||e.fechaAlta;
+  e.estado=document.getElementById("ee-status").value;
+  try{
+    const{db,doc,updateDoc}=window._firebase;
+    await updateDoc(doc(db,"Usuarios",id),{
+      nombre:e.nombre,email:e.email,tlf:e.tlf,
+      tipo:e.tipo,role:e.role,dept:e.dept,
+      salarioBase:e.salario,irpf:e.irpf,
+      fechaAlta:e.fechaAlta,estado:e.estado,
+    });
+    toast(`${e.nombre} actualizado ✓`);
+  }catch(err){toast(`${e.nombre} actualizado localmente`);}
+  closeModal();
+  renderAdmin(document.getElementById("page-content"));
+}
+
+function nuevoEmpleado(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir empleado</div>
+    <label class="form-lbl">Nombre completo</label><input class="form-input" id="emp-nombre" placeholder="Nombre Apellidos"/>
+    <label class="form-lbl">Email</label><input class="form-input" id="emp-email" type="email" placeholder="email@noctua.es"/>
+    <div class="form-grid">
+      <div><label class="form-lbl">Tipo</label><select class="form-select" id="emp-tipo"><option value="fijo">Fijo</option><option value="freelance">Freelance</option></select></div>
+      <div><label class="form-lbl">Rol</label><select class="form-select" id="emp-role"><option value="empleado">Empleado</option><option value="freelance">Freelance</option><option value="rrhh">RRHH</option><option value="admin">Admin</option></select></div>
+    </div>
+    <label class="form-lbl">Departamento</label><select class="form-select" id="emp-dept"><option>Dirección</option><option>RRHH</option><option>Producción AV</option><option>Eventos</option><option>Comunicación</option><option>Audiovisual</option></select>
+    <div class="form-grid">
+      <div><label class="form-lbl">Salario (€)</label><input class="form-input" id="emp-salario" type="number" placeholder="0"/></div>
+      <div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="emp-irpf" type="number" value="15" min="2" max="45"/></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="guardarEmpleado()">Crear empleado</button>`);
+}
+
+async function guardarEmpleado(){
+  const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();
+  if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}
+  const nuevoEmp={nombre,email,tipo:document.getElementById("emp-tipo").value,role:document.getElementById("emp-role").value,dept:document.getElementById("emp-dept").value,salarioBase:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15,estado:"activo",tlf:"—",fechaAlta:new Date().toISOString().slice(0,10)};
+  try{
+    const{db,collection,addDoc}=window._firebase;
+    const ref=await addDoc(collection(db,"Usuarios"),nuevoEmp);
+    nuevoEmp.id=ref.id;nuevoEmp.salario=nuevoEmp.salarioBase;
+  }catch(e){nuevoEmp.id="u"+Date.now();nuevoEmp.salario=nuevoEmp.salarioBase;}
+  DEMO_EMPLEADOS.push(nuevoEmp);
+  toast(`Empleado "${nombre}" creado ✓`);closeModal();
+  await cargarEmpleados();
+  renderAdmin(document.getElementById("page-content"));
+}
+
+function confirmarEliminarEmpleado(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">¿Eliminar empleado?</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">
+      Vas a eliminar a <strong style="color:var(--txt)">${e.nombre}</strong> del sistema.<br>
+      Esta acción no se puede deshacer.
+    </p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEmpleadoDB('${e.id}')">Sí, eliminar</button>
+    </div>`);
+}
+
+async function eliminarEmpleadoDB(id){
+  try{
+    const{db,doc,deleteDoc}=window._firebase;
+    await deleteDoc(doc(db,"Usuarios",id));
+    toast("Empleado eliminado ✓");
+  }catch(e){
+    toast("Eliminado localmente");
+  }
+  DEMO_EMPLEADOS=DEMO_EMPLEADOS.filter(x=>x.id!==id);
+  closeModal();
+  renderAdmin(document.getElementById("page-content"));
+}
+
+// ── ADMIN: CAMBIAR IRPF ───────────────────────────────────────────────────
+async function renderAdminIRPF(pc){
+  pc.innerHTML=`
+    <div class="page-hd"><div class="page-title">Cambiar IRPF del equipo</div><div class="page-sub">Modifica la retención fiscal de cualquier empleado</div></div>
+    <div class="card">
+      <div class="card-title">Empleados activos</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Empleado</th><th>Departamento</th><th>Tipo</th><th>IRPF actual</th><th>Nuevo IRPF</th><th></th></tr></thead>
+        <tbody>
+          ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<tr>
+            <td style="font-weight:500">${e.nombre}</td>
+            <td style="color:var(--muted)">${e.dept}</td>
+            <td>${tipoBadge(e.tipo)}</td>
+            <td><span style="color:var(--a1);font-weight:600">${e.irpf}%</span></td>
+            <td><div style="display:flex;align-items:center;gap:8px"><input type="range" min="2" max="45" value="${e.irpf}" id="irpf-r-${e.id}" oninput="document.getElementById('irpf-v-${e.id}').textContent=this.value+'%'" style="width:100px;height:3px"/><span id="irpf-v-${e.id}" style="font-size:13px;font-weight:600;width:36px;color:var(--a1)">${e.irpf}%</span></div></td>
+            <td><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aplicarIRPF('${e.id}')">Aplicar</button></td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+    </div>
+    <div style="margin-top:16px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--muted);line-height:1.6">
+      💡 <strong style="color:var(--txt)">Nota:</strong> Los cambios de IRPF se aplican en la siguiente nómina. El empleado recibirá notificación por email.
+    </div>
+    <div class="card" style="margin-top:16px" id="solicitudes-irpf-card">
+      <div class="card-title">Solicitudes de cambio de IRPF pendientes</div>
+      <div id="solicitudes-irpf-list"><div style="color:var(--muted);font-size:13px">Cargando…</div></div>
+    </div>`;
+  // Cargar solicitudes pendientes
+  try{
+    const snap=await _db.collection("solicitudes_irpf").where("estado","==","pendiente").get();
+    const lista=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const el=document.getElementById("solicitudes-irpf-list");
+    if(!el)return;
+    if(lista.length===0){el.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px">No hay solicitudes pendientes</div>';return;}
+    el.innerHTML=lista.map(s=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:500">${s.empleadoNombre}</div>
+          <div style="font-size:12px;color:var(--muted)">${s.irpfActual}% → <strong style="color:var(--a1)">${s.irpfSolicitado}%</strong> · ${new Date(s.fecha).toLocaleDateString("es-ES")}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aprobarSolicitudIRPF('${s.id}','${s.empleadoId}',${s.irpfSolicitado})">Aprobar</button>
+          <button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="rechazarSolicitudIRPF('${s.id}')">Rechazar</button>
+        </div>
+      </div>`).join("");
+  }catch(e){console.warn(e);}
+}
+
+function aplicarIRPF(id){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  const nv=parseInt(document.getElementById(`irpf-r-${id}`).value),old=e.irpf;
+  e.irpf=nv;toast(`IRPF de ${e.nombre}: ${old}% → ${nv}% ✓`);
+  renderAdminIRPF(document.getElementById("page-content"));
+}
+
+// ── ADMIN: NÓMINAS EQUIPO ─────────────────────────────────────────────────
+async function renderAdminNominas(pc){
+  await cargarEmpleados();
+  const ahora=new Date();
+  const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const mesActual=`${meses[ahora.getMonth()]} ${ahora.getFullYear()}`;
+  const empleadosFijos=DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.salario>0);
+  const totalBruto=empleadosFijos.reduce((a,e)=>a+e.salario,0);
+  let nominasGeneradas=[];
+  try{
+    const{db,collection,query,where,getDocs}=window._firebase;
+    const q=query(collection(db,"nominas"),where("mes","==",mesActual));
+    const snap=await getDocs(q);
+    nominasGeneradas=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){}
+  const yaGenerado=(empId)=>nominasGeneradas.find(n=>n.empleadoId===empId);
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div><div class="page-title">Nóminas del equipo</div><div class="page-sub">Gestión y generación · ${mesActual}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="generarTodasNominas('${mesActual}')">⚡ Generar todas</button>
+        <button class="btn btn-danger" onclick="limpiarNominasDuplicadas('${mesActual}')" title="Elimina nóminas duplicadas del mes">🗑 Limpiar duplicadas</button>
+      </div>
+    </div>
+    <div class="g3 mb16">
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total bruto mensual</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px">${totalBruto.toLocaleString()}€</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Empleados fijos activos</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a3)">${empleadosFijos.length}</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nóminas generadas este mes</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a2)">${nominasGeneradas.length}/${empleadosFijos.length}</div>
+      </div>
+    </div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Empleado</th><th>Tipo</th><th>Bruto</th><th>IRPF</th><th>SS</th><th>Neto est.</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>{
+          const ss=e.salario>0?160:0;
+          const ret=Math.round(e.salario*(e.irpf||15)/100);
+          const neto=e.salario-ret-ss;
+          const gen=yaGenerado(e.id);
+          return`<tr>
+            <td style="font-weight:500">${e.nombre}</td>
+            <td>${tipoBadge(e.tipo)}</td>
+            <td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td>
+            <td>${e.irpf||15}%</td>
+            <td>${ss>0?ss+"€":"—"}</td>
+            <td style="color:var(--a1);font-weight:600">${e.salario>0?neto.toLocaleString()+"€":"—"}</td>
+            <td>${gen?badge("pagada"):e.salario>0?badge("pendiente"):badge("cerrado")}</td>
+            <td>${e.salario>0?`<div style="display:flex;gap:6px">
+              <button class="btn btn-p" style="padding:4px 10px;font-size:11px" onclick="generarNominaEmp('${e.id}','${mesActual}')">${gen?"Regenerar":"Generar"}</button>
+              ${gen?`<button class="btn btn-g" style="padding:4px 10px;font-size:11px" onclick="descargarNominaPDF('${gen.id}')">PDF</button>`:""}
+            </div>`:"—"}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table></div></div>`;
+}
+
+async function generarNominaEmp(empleadoId,mes){
+  const e=DEMO_EMPLEADOS.find(x=>x.id===empleadoId);if(!e||e.salario<=0)return;
+  const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;
+  try{
+    await _db.collection("nominas").add({
+      empleadoId,empleadoNombre:e.nombre,mes,
+      bruto:e.salario,irpf:e.irpf||15,retencion:ret,ss,neto,
+      estado:"pendiente",fechaCreacion:new Date().toISOString(),
+      generadoPor:userProfile.nombre,
+    });
+    toast(`Nómina de ${e.nombre} generada ✓`);
+  }catch(err){toast("Error al generar nómina: "+err.message);}
+  renderAdminNominas(document.getElementById("page-content"));
+}
+
+async function generarTodasNominas(mes){
+  let existentes=new Set();
+  try{
+    const snap=await _db.collection("nominas").where("mes","==",mes).get();
+    snap.docs.forEach(d=>existentes.add(d.data().empleadoId));
+  }catch(e){}
+  let count=0;
+  for(const e of DEMO_EMPLEADOS.filter(x=>x.estado==="activo"&&x.salario>0)){
+    if(existentes.has(e.id))continue;
+    const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;
+    try{
+      await _db.collection("nominas").add({
+        empleadoId:e.id,empleadoNombre:e.nombre,mes,
+        bruto:e.salario,irpf:e.irpf||15,retencion:ret,ss,neto,
+        estado:"pendiente",fechaCreacion:new Date().toISOString(),
+        generadoPor:userProfile.nombre,
+      });
+      count++;
+    }catch(err){}
+  }
+  if(count>0)toast(`${count} nóminas generadas ✓`);
+  else toast("Todas las nóminas de este mes ya están generadas");
+  renderAdminNominas(document.getElementById("page-content"));
+}
+
+function descargarNominaPDF(id){
+  const n=DEMO_NOMINAS.find(x=>x.id===id)||{};
+  generarPDFNomina(n);
+}
+
+
+// ── ADMIN: GESTIÓN DE TURNOS REAL ────────────────────────────────────────
+async function renderAdminTurnos(pc){
+  await cargarTodosLosTurnos();
+  const hoy=new Date();
+  const lunes=new Date(hoy);lunes.setDate(hoy.getDate()-((hoy.getDay()+6)%7));
+  const semana=[];
+  for(let i=0;i<7;i++){const d=new Date(lunes);d.setDate(lunes.getDate()+i);semana.push(d);}
+  const fmt=d=>d.toISOString().slice(0,10);
+  const diasSemana=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  const turnosPorEmpleadoDia={};
+  TURNOS_EQUIPO.forEach(t=>{
+    const key=t.empleadoId+"_"+t.fecha;
+    turnosPorEmpleadoDia[key]=t;
+  });
+
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div><div class="page-title">Gestión de Turnos</div><div class="page-sub">Semana del ${lunes.getDate()} al ${new Date(lunes.getTime()+6*864e5).getDate()} de ${meses[lunes.getMonth()]}</div></div>
+      <button class="btn btn-p" onclick="abrirNuevoTurno()">+ Asignar turno</button>
+    </div>
+
+    <!-- Vista semana por empleado -->
+    <div class="card mb16">
+      <div class="card-title">Vista semanal del equipo</div>
+      <div style="overflow-x:auto">
+        <table style="min-width:700px">
+          <thead>
+            <tr>
+              <th style="width:140px">Empleado</th>
+              ${semana.map((d,i)=>`<th style="text-align:center;font-size:11px">${diasSemana[i]}<br><span style="color:var(--txt);font-size:13px">${d.getDate()}</span></th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`
+              <tr>
+                <td style="font-weight:500;font-size:13px">${e.nombre}</td>
+                ${semana.map(d=>{
+                  const t=turnosPorEmpleadoDia[e.id+"_"+fmt(d)];
+                  if(!t)return`<td style="text-align:center"><span style="color:var(--muted);font-size:11px">—</span></td>`;
+                  const colors={oficina:"var(--a3)",evento:"var(--a2)",rodaje:"var(--a1)",libre:"var(--muted)"};
+                  return`<td style="text-align:center;cursor:pointer" onclick="editarTurno('${t.id}')">
+                    <div style="background:${colors[t.tipo]||"var(--muted)"}22;border:1px solid ${colors[t.tipo]||"var(--muted)"}44;border-radius:6px;padding:3px 6px;font-size:11px;color:${colors[t.tipo]||"var(--muted)"}">
+                      ${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}
+                    </div>
+                  </td>`;
+                }).join("")}
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Formulario asignar turno -->
+    <div class="card mb16" id="form-turno-card" style="display:none">
+      <div class="card-title" id="form-turno-title">Asignar turno</div>
+      <input type="hidden" id="turno-edit-id"/>
+      <div class="g2">
+        <div>
+          <label class="form-lbl">Empleado</label>
+          <select class="form-select" id="turno-empleado">
+            ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<option value="${e.id}">${e.nombre}</option>`).join("")}
+          </select>
+          <label class="form-lbl">Fecha</label>
+          <input class="form-input" id="turno-fecha" type="date" value="${fmt(hoy)}"/>
+          <label class="form-lbl">Tipo</label>
+          <select class="form-select" id="turno-tipo" onchange="toggleLibre()">
+            <option value="oficina">Oficina</option>
+            <option value="evento">Evento</option>
+            <option value="rodaje">Rodaje</option>
+            <option value="libre">Libre / Descanso</option>
+          </select>
+        </div>
+        <div id="turno-horario-div">
+          <label class="form-lbl">Entrada</label>
+          <input class="form-input" id="turno-entrada" type="time" value="09:00"/>
+          <label class="form-lbl">Salida</label>
+          <input class="form-input" id="turno-salida" type="time" value="17:00"/>
+          <label class="form-lbl">Lugar</label>
+          <input class="form-input" id="turno-lugar" placeholder="Oficina / Sala / Estudio…"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="guardarTurno()">Guardar turno</button>
+        <button class="btn btn-g" style="flex:1;justify-content:center" onclick="cerrarFormTurno()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Lista completa de turnos -->
+    <div class="card">
+      <div class="card-title">Todos los turnos asignados (${TURNOS_EQUIPO.length})</div>
+      ${TURNOS_EQUIPO.length===0?`<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">No hay turnos asignados aún</div>`:`
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Empleado</th><th>Fecha</th><th>Tipo</th><th>Horario</th><th>Lugar</th><th></th></tr></thead>
+        <tbody>
+          ${TURNOS_EQUIPO.map(t=>{
+            const emp=DEMO_EMPLEADOS.find(e=>e.id===t.empleadoId);
+            return`<tr>
+              <td style="font-weight:500">${emp?emp.nombre:t.empleadoNombre||"—"}</td>
+              <td>${t.fecha}</td>
+              <td><span class="badge ${t.tipo==="libre"?"b-gray":t.tipo==="evento"?"b-pink":t.tipo==="rodaje"?"b-green":"b-blue"}">${t.tipo}</span></td>
+              <td style="color:var(--muted)">${t.tipo==="libre"?"—":`${t.entrada||""}–${t.salida||""}`}</td>
+              <td style="color:var(--muted)">${t.lugar||"—"}</td>
+              <td><div style="display:flex;gap:6px">
+                <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarTurno('${t.id}')">Editar</button>
+                <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTurno('${t.id}')">✕</button>
+              </div></td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table></div>`}
+    </div>`;
+}
+
+function abrirNuevoTurno(){
+  document.getElementById("form-turno-card").style.display="block";
+  document.getElementById("form-turno-title").textContent="Asignar turno";
+  document.getElementById("turno-edit-id").value="";
+  document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});
+}
+
+function cerrarFormTurno(){
+  document.getElementById("form-turno-card").style.display="none";
+}
+
+function toggleLibre(){
+  const tipo=document.getElementById("turno-tipo").value;
+  document.getElementById("turno-horario-div").style.opacity=tipo==="libre"?"0.3":"1";
+  document.getElementById("turno-horario-div").style.pointerEvents=tipo==="libre"?"none":"auto";
+}
+
+async function guardarTurno(){
+  const empleadoId=document.getElementById("turno-empleado").value;
+  const emp=DEMO_EMPLEADOS.find(e=>e.id===empleadoId);
+  const editId=document.getElementById("turno-edit-id").value;
+  const tipo=document.getElementById("turno-tipo").value;
+  const turno={
+    empleadoId,
+    empleadoNombre:emp?emp.nombre:"—",
+    fecha:document.getElementById("turno-fecha").value,
+    tipo,
+    entrada:tipo==="libre"?"—":document.getElementById("turno-entrada").value,
+    salida:tipo==="libre"?"—":document.getElementById("turno-salida").value,
+    lugar:tipo==="libre"?"Libre":document.getElementById("turno-lugar").value||"—",
+  };
+  if(!turno.fecha||!turno.empleadoId){toast("⚠️ Selecciona empleado y fecha");return;}
+  try{
+    const{db,collection,doc,addDoc,updateDoc}=window._firebase;
+    if(editId){
+      await updateDoc(doc(db,"turnos",editId),turno);
+      toast("Turno actualizado ✓");
+    }else{
+      await addDoc(collection(db,"turnos"),turno);
+      toast(`Turno asignado a ${turno.empleadoNombre} ✓`);
+    }
+  }catch(e){toast("Guardado localmente");}
+  cerrarFormTurno();
+  await cargarTodosLosTurnos();
+  renderAdminTurnos(document.getElementById("page-content"));
+}
+
+function editarTurno(id){
+  const t=TURNOS_EQUIPO.find(x=>x.id===id);if(!t)return;
+  document.getElementById("form-turno-card").style.display="block";
+  document.getElementById("form-turno-title").textContent="Editar turno";
+  document.getElementById("turno-edit-id").value=id;
+  document.getElementById("turno-empleado").value=t.empleadoId;
+  document.getElementById("turno-fecha").value=t.fecha;
+  document.getElementById("turno-tipo").value=t.tipo;
+  document.getElementById("turno-entrada").value=t.entrada||"09:00";
+  document.getElementById("turno-salida").value=t.salida||"17:00";
+  document.getElementById("turno-lugar").value=t.lugar||"";
+  toggleLibre();
+  document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});
+}
+
+async function eliminarTurno(id){
+  try{
+    const{db,doc,deleteDoc}=window._firebase;
+    await deleteDoc(doc(db,"turnos",id));
+    toast("Turno eliminado ✓");
+  }catch(e){toast("Eliminado localmente");}
+  TURNOS_EQUIPO=TURNOS_EQUIPO.filter(x=>x.id!==id);
+  renderAdminTurnos(document.getElementById("page-content"));
+}
+
+
+function generarPDFNomina(n){
+  // Obtener datos del perfil actual si la nómina no tiene todos los campos
+  const nombre = n.empleadoNombre || userProfile.nombre;
+  const dept   = userProfile.dept || "—";
+  const email  = userProfile.email || "—";
+  const mes    = n.mes || "—";
+  const bruto  = n.bruto || userProfile.salarioBase || 0;
+  const irpf   = n.irpf  || userProfile.irpf || 15;
+  const ret    = n.retencion || Math.round(bruto * irpf / 100);
+  const ss     = n.ss || (bruto > 0 ? 160 : 0);
+  const neto   = n.neto || (bruto - ret - ss);
+  const fecha  = new Date().toLocaleDateString("es-ES", {day:"2-digit",month:"long",year:"numeric"});
+  const anio   = new Date().getFullYear();
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Nómina ${nombre} · ${mes}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:40px 20px;font-size:14px}
+  .doc{max-width:720px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+  .header{background:#07070f;padding:32px 40px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-family:'Inter',sans-serif;font-weight:700;font-size:24px;color:#fff;letter-spacing:-1px}
+  .logo span{color:#c8ff00}
+  .header-right{text-align:right}
+  .doc-title{color:#c8ff00;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+  .doc-mes{color:#fff;font-size:18px;font-weight:600;margin-top:4px}
+  .body{padding:36px 40px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:28px;border-bottom:2px solid #f0f0f5}
+  .info-block label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px}
+  .info-block span{font-size:15px;font-weight:500;color:#1a1a2e}
+  .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;margin-bottom:28px}
+  tr{border-bottom:1px solid #f0f0f5}
+  tr:last-child{border-bottom:none}
+  td{padding:12px 0;font-size:14px}
+  td:last-child{text-align:right;font-weight:500}
+  .row-neg td:last-child{color:#e53e3e}
+  .row-total{background:#f8f8fc;border-radius:8px}
+  .row-total td{padding:16px 14px;font-weight:700;font-size:16px}
+  .row-total td:last-child{color:#07070f;font-size:22px}
+  .neto-highlight{color:#2d6a2d!important;font-size:24px!important}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .badge-pend{background:#fff3cd;color:#856404}
+  .badge-pag{background:#d1fae5;color:#065f46}
+  .footer{background:#f8f8fc;padding:20px 40px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e8e8f0}
+  .footer-left{font-size:12px;color:#aaa}
+  .footer-right{font-size:12px;color:#aaa;text-align:right}
+  .firma{margin-top:40px;padding-top:20px;border-top:1px dashed #ddd;display:flex;justify-content:space-between}
+  .firma-box{text-align:center;width:200px}
+  .firma-line{height:1px;background:#bbb;margin-bottom:8px}
+  .firma-label{font-size:11px;color:#aaa}
+  @media print{body{padding:0;background:#fff}.doc{box-shadow:none;border-radius:0}}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="header">
+    <div class="logo">InOut<span style="color:#c8ff00">Media</span></div>
+    <div class="header-right">
+      <div class="doc-title">Recibo de Salario</div>
+      <div class="doc-mes">${mes}</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="info-grid">
+      <div class="info-block"><label>Trabajador</label><span>${nombre}</span></div>
+      <div class="info-block"><label>Departamento</label><span>${dept}</span></div>
+      <div class="info-block"><label>Email</label><span>${email}</span></div>
+      <div class="info-block"><label>Fecha de emisión</label><span>${fecha}</span></div>
+    </div>
+
+    <div class="section-title">Devengos</div>
+    <table>
+      <tr><td>Salario base mensual</td><td>${bruto.toLocaleString("es-ES")}€</td></tr>
+      <tr><td>Horas extra / complementos</td><td>0€</td></tr>
+    </table>
+
+    <div class="section-title">Deducciones</div>
+    <table>
+      <tr class="row-neg"><td>Retención IRPF (${irpf}%)</td><td>−${ret.toLocaleString("es-ES")}€</td></tr>
+      <tr class="row-neg"><td>Cotización Seguridad Social</td><td>−${ss.toLocaleString("es-ES")}€</td></tr>
+    </table>
+
+    <table>
+      <tr class="row-total">
+        <td>SALARIO LÍQUIDO A PERCIBIR</td>
+        <td class="neto-highlight">${neto.toLocaleString("es-ES")}€</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:8px;text-align:right">
+      <span class="badge ${n.estado==="pagada"?"badge-pag":"badge-pend"}">${n.estado==="pagada"?"✓ Pagado":"Pendiente de pago"}</span>
+    </div>
+
+    <div class="firma" style="margin-top:50px">
+      <div class="firma-box">
+        <div class="firma-line"></div>
+        <div class="firma-label">Firma empresa</div>
+      </div>
+      <div class="firma-box">
+        <div class="firma-line"></div>
+        <div class="firma-label">Firma trabajador</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-left">InOut Media S.L. · CIF: B-XXXXXXXX<br>Documento generado el ${fecha}</div>
+    <div class="footer-right">Ejercicio ${anio}<br>Confidencial</div>
+  </div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:"text/html"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Nómina descargada ✓");
+}
+
+
+async function aprobarSolicitudIRPF(solicitudId, empleadoId, nuevoIRPF){
+  try{
+    await _db.collection("Usuarios").doc(empleadoId).update({irpf:nuevoIRPF});
+    await _db.collection("solicitudes_irpf").doc(solicitudId).update({estado:"aprobada"});
+    toast("IRPF actualizado y solicitud aprobada ✓");
+  }catch(e){toast("Error al aprobar: "+e.message);}
+  renderAdminIRPF(document.getElementById("page-content"));
+}
+
+async function rechazarSolicitudIRPF(solicitudId){
+  try{
+    await _db.collection("solicitudes_irpf").doc(solicitudId).update({estado:"rechazada"});
+    toast("Solicitud rechazada");
+  }catch(e){}
+  renderAdminIRPF(document.getElementById("page-content"));
+}
+
+async function limpiarNominasDuplicadas(mes){
+  try{
+    const snap=await _db.collection("nominas").where("mes","==",mes).get();
+    const vistos=new Set();const aEliminar=[];
+    snap.docs.forEach(d=>{
+      const empId=d.data().empleadoId;
+      if(vistos.has(empId))aEliminar.push(d.id);
+      else vistos.add(empId);
+    });
+    for(const id of aEliminar) await _db.collection("nominas").doc(id).delete();
+    toast(`${aEliminar.length} nóminas duplicadas eliminadas ✓`);
+    renderAdminNominas(document.getElementById("page-content"));
+  }catch(e){toast("Error: "+e.message);}
+}
+
+// ── INVENTARIO ────────────────────────────────────────────────────────────
+let INVENTARIO=[];
+
+async function renderInventario(pc){
+  try{
+    const snap=await _db.collection("inventario").orderBy("nombre").get();
+    INVENTARIO=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){INVENTARIO=[];}
+
+  const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];
+  const estadoColor={disponible:"b-green",en_uso:"b-blue",mantenimiento:"b-orange",baja:"b-pink"};
+
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div><div class="page-title">Inventario de Material</div><div class="page-sub">${INVENTARIO.length} elementos registrados</div></div>
+      ${canAdmin()?`<button class="btn btn-p" onclick="nuevoMaterial()">+ Añadir material</button>`:""}
+    </div>
+    ${INVENTARIO.length===0?`
+      <div class="card" style="text-align:center;padding:40px">
+        <div style="font-size:36px;margin-bottom:12px">📦</div>
+        <div style="color:var(--muted);font-size:14px">No hay material registrado aún</div>
+        ${canAdmin()?`<button class="btn btn-p" style="margin-top:16px" onclick="nuevoMaterial()">+ Añadir primer elemento</button>`:""}
+      </div>`:
+    `<div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th>Evento asignado</th>${canAdmin()?`<th></th>`:""}</tr></thead>
+      <tbody>
+        ${INVENTARIO.map(m=>`<tr>
+          <td style="color:var(--a1);font-family:Syne,sans-serif;font-weight:700;font-size:12px">${m.codigo||"—"}</td>
+          <td style="font-weight:500">${m.nombre||"—"}</td>
+          <td><span class="badge b-gray">${m.categoria||"—"}</span></td>
+          <td style="text-align:center;font-weight:600">${m.cantidad||0}</td>
+          <td>${(m.estado&&estadoColor[m.estado])?`<span class="badge ${estadoColor[m.estado]}">${m.estado.replace("_"," ")}</span>`:badge(m.estado||"activo")}</td>
+          <td style="color:var(--muted)">${m.ubicacion||"—"}</td>
+          <td style="color:var(--muted)">${m.eventoAsignado||"—"}</td>
+          ${canAdmin()?`<td><div style="display:flex;gap:6px">
+            <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarMaterial('${m.id}')">Editar</button>
+            <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarMaterial('${m.id}')">✕</button>
+          </div></td>`:""}
+        </tr>`).join("")}
+      </tbody>
+    </table></div></div>`}`;
+}
+
+function nuevoMaterial(){
+  const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Añadir material</div>
+    <label class="form-lbl">Nombre del elemento</label>
+    <input class="form-input" id="mat-nombre" placeholder="Ej: Micrófono Shure SM58"/>
+    <div class="form-grid">
+      <div><label class="form-lbl">Código / Nº referencia</label>
+        <input class="form-input" id="mat-codigo" placeholder="001, 002…"/>
+      </div>
+      <div><label class="form-lbl">Categoría</label>
+        <select class="form-select" id="mat-cat">
+          ${cats.map(c=>`<option>${c}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div><label class="form-lbl">Cantidad</label>
+        <input class="form-input" id="mat-cant" type="number" value="1" min="1"/>
+      </div>
+      <div><label class="form-lbl">Estado</label>
+        <select class="form-select" id="mat-estado-2" style="display:none"></select>
+      </div>
+    </div>
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="mat-estado">
+      <option value="disponible">Disponible</option>
+      <option value="en_uso">En uso</option>
+      <option value="mantenimiento">En mantenimiento</option>
+      <option value="baja">Baja</option>
+    </select>
+    <label class="form-lbl">Ubicación / Almacén</label>
+    <input class="form-input" id="mat-ubic" placeholder="Almacén principal, Furgoneta 1…"/>
+    <label class="form-lbl">Evento asignado (opcional)</label>
+    <input class="form-input" id="mat-evento" placeholder="Nombre del evento"/>
+    <label class="form-lbl">Notas</label>
+    <textarea class="form-textarea" id="mat-notas" placeholder="Número de serie, observaciones…"></textarea>
+    <button class="btn btn-p btn-full" onclick="guardarMaterial()">Guardar</button>`);
+}
+
+async function guardarMaterial(){
+  const nombre=document.getElementById("mat-nombre").value.trim();
+  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  const codigoInput=document.getElementById("mat-codigo");
+  const codigo=codigoInput?codigoInput.value.trim():"";
+  const mat={
+    nombre,
+    codigo,
+    categoria:document.getElementById("mat-cat").value,
+    cantidad:parseInt(document.getElementById("mat-cant").value)||1,
+    estado:document.getElementById("mat-estado").value,
+    ubicacion:document.getElementById("mat-ubic").value||"—",
+    eventoAsignado:document.getElementById("mat-evento").value||"—",
+    notas:document.getElementById("mat-notas").value||"",
+    creadoPor:userProfile.nombre,
+    fechaAlta:new Date().toISOString(),
+  };
+  try{
+    const ref=await _db.collection("inventario").add(mat);
+    mat.id=ref.id;
+    toast(`"${nombre}" añadido al inventario ✓`);
+  }catch(e){mat.id="m"+Date.now();toast("Guardado localmente");}
+  closeModal();
+  renderInventario(document.getElementById("page-content"));
+}
+
+function editarMaterial(id){
+  const m=INVENTARIO.find(x=>x.id===id);if(!m)return;
+  const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Editar: ${m.nombre}</div>
+    <label class="form-lbl">Nombre</label>
+    <input class="form-input" id="em-nombre" value="${m.nombre}"/>
+    <div class="form-grid">
+      <div><label class="form-lbl">Categoría</label>
+        <select class="form-select" id="em-cat">${cats.map(c=>`<option ${m.categoria===c?"selected":""}>${c}</option>`).join("")}</select>
+      </div>
+      <div><label class="form-lbl">Cantidad</label>
+        <input class="form-input" id="em-cant" type="number" value="${m.cantidad||1}"/>
+      </div>
+    </div>
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="em-estado">
+      ${["disponible","en_uso","mantenimiento","baja"].map(s=>`<option value="${s}" ${m.estado===s?"selected":""}>${s.replace("_"," ")}</option>`).join("")}
+    </select>
+    <label class="form-lbl">Ubicación</label>
+    <input class="form-input" id="em-ubic" value="${m.ubicacion||""}"/>
+    <label class="form-lbl">Evento asignado</label>
+    <input class="form-input" id="em-evento" value="${m.eventoAsignado||""}"/>
+    <label class="form-lbl">Notas</label>
+    <textarea class="form-textarea" id="em-notas">${m.notas||""}</textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarMaterial('${m.id}')">Guardar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarMaterial('${m.id}')">Eliminar</button>
+    </div>`),100);
+}
+
+async function actualizarMaterial(id){
+  const m=INVENTARIO.find(x=>x.id===id);if(!m)return;
+  m.nombre=document.getElementById("em-nombre").value.trim()||m.nombre;
+  m.categoria=document.getElementById("em-cat").value;
+  m.cantidad=parseInt(document.getElementById("em-cant").value)||m.cantidad;
+  m.estado=document.getElementById("em-estado").value;
+  m.ubicacion=document.getElementById("em-ubic").value||m.ubicacion;
+  m.eventoAsignado=document.getElementById("em-evento").value||m.eventoAsignado;
+  m.notas=document.getElementById("em-notas").value;
+  try{
+    await _db.collection("inventario").doc(id).update({
+      nombre:m.nombre,categoria:m.categoria,cantidad:m.cantidad,
+      estado:m.estado,ubicacion:m.ubicacion,eventoAsignado:m.eventoAsignado,notas:m.notas,
+    });
+    toast("Material actualizado ✓");
+  }catch(e){toast("Actualizado localmente");}
+  closeModal();
+  renderInventario(document.getElementById("page-content"));
+}
+
+async function eliminarMaterial(id){
+  try{
+    await _db.collection("inventario").doc(id).delete();
+    toast("Material eliminado ✓");
+  }catch(e){}
+  INVENTARIO=INVENTARIO.filter(x=>x.id!==id);
+  closeModal();
+  renderInventario(document.getElementById("page-content"));
+}
+
+// ── INCIDENCIAS ───────────────────────────────────────────────────────────
+let INCIDENCIAS=[];
+
+async function renderIncidencias(pc){
+  try{
+    const snap=await _db.collection("incidencias").orderBy("fecha","desc").get();
+    INCIDENCIAS=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){INCIDENCIAS=[];}
+
+  const prioColor={alta:"b-pink",media:"b-orange",baja:"b-gray"};
+  const estadoInc={abierta:"b-pink",en_proceso:"b-blue",resuelta:"b-green"};
+
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div><div class="page-title">Incidencias de Material</div><div class="page-sub">${INCIDENCIAS.length} incidencias registradas</div></div>
+      <button class="btn btn-p" onclick="nuevaIncidencia()">+ Nueva incidencia</button>
+    </div>
+    ${INCIDENCIAS.length===0?`
+      <div class="card" style="text-align:center;padding:40px">
+        <div style="font-size:36px;margin-bottom:12px">🚨</div>
+        <div style="color:var(--muted);font-size:14px">No hay incidencias registradas</div>
+        <button class="btn btn-p" style="margin-top:16px" onclick="nuevaIncidencia()">+ Reportar incidencia</button>
+      </div>`:`
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Material afectado</th><th>Reportado por</th><th>Cuándo</th><th>Dónde</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        ${INCIDENCIAS.map(inc=>`<tr>
+          <td style="font-weight:500">${inc.material||"—"}</td>
+          <td style="color:var(--muted)">${inc.reportadoPor||"—"}</td>
+          <td style="color:var(--muted);font-size:12px">${inc.fecha?new Date(inc.fecha).toLocaleDateString("es-ES"):"—"}</td>
+          <td style="color:var(--muted)">${inc.lugar||"—"}</td>
+          <td><span class="badge ${prioColor[inc.prioridad]||"b-gray"}">${inc.prioridad||"—"}</span></td>
+          <td><span class="badge ${estadoInc[inc.estado]||"b-gray"}">${(inc.estado||"abierta").replace("_"," ")}</span></td>
+          <td><div style="display:flex;gap:6px">
+            <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="verIncidencia('${inc.id}')">Ver</button>
+            ${canAdmin()?`<button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="cambiarEstadoIncidencia('${inc.id}')">Estado</button>`:""}
+          </div></td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div></div>`}`;
+}
+
+function nuevaIncidencia(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🚨 Nueva incidencia</div>
+    <label class="form-lbl">Tu nombre</label>
+    <input class="form-input" id="inc-quien" value="${userProfile.nombre}" readonly style="opacity:.7"/>
+    <label class="form-lbl">Material / Equipo afectado</label>
+    <input class="form-input" id="inc-material" placeholder="Ej: Micrófono Shure SM58, Mesa de mezclas…"/>
+    <label class="form-lbl">¿Qué ha pasado?</label>
+    <select class="form-select" id="inc-tipo">
+      <option value="averia">Avería / No funciona</option>
+      <option value="perdida">Pérdida / No se encuentra</option>
+      <option value="dano">Daño físico</option>
+      <option value="mantenimiento">Necesita mantenimiento</option>
+      <option value="otro">Otro</option>
+    </select>
+    <div class="form-grid">
+      <div><label class="form-lbl">Cuándo ocurrió</label>
+        <input class="form-input" id="inc-cuando" type="datetime-local"/>
+      </div>
+      <div><label class="form-lbl">Prioridad</label>
+        <select class="form-select" id="inc-prioridad">
+          <option value="alta">Alta — Urgente</option>
+          <option value="media" selected>Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+    </div>
+    <label class="form-lbl">Dónde ocurrió</label>
+    <input class="form-input" id="inc-donde" placeholder="Nombre del evento, sala, almacén…"/>
+    <label class="form-lbl">Descripción detallada</label>
+    <textarea class="form-textarea" id="inc-desc" placeholder="Describe con detalle qué pasó, cómo estaba el material, qué circunstancias había…" style="min-height:100px"></textarea>
+    <button class="btn btn-p btn-full" onclick="guardarIncidencia()">Enviar incidencia</button>`);
+}
+
+async function guardarIncidencia(){
+  const material=document.getElementById("inc-material").value.trim();
+  if(!material){toast("⚠️ Indica el material afectado");return;}
+  const inc={
+    material,
+    reportadoPor:userProfile.nombre,
+    empleadoId:currentUser.uid,
+    tipo:document.getElementById("inc-tipo").value,
+    fecha:document.getElementById("inc-cuando").value||new Date().toISOString(),
+    prioridad:document.getElementById("inc-prioridad").value,
+    lugar:document.getElementById("inc-donde").value||"—",
+    descripcion:document.getElementById("inc-desc").value||"—",
+    estado:"abierta",
+    fechaCreacion:new Date().toISOString(),
+  };
+  try{
+    const ref=await _db.collection("incidencias").add(inc);
+    inc.id=ref.id;
+    toast("Incidencia reportada ✓");
+  }catch(e){inc.id="i"+Date.now();toast("Guardado localmente");}
+  closeModal();
+  renderIncidencias(document.getElementById("page-content"));
+}
+
+function verIncidencia(id){
+  const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;
+  const tiposInc={averia:"Avería",perdida:"Pérdida",dano:"Daño físico",mantenimiento:"Mantenimiento",otro:"Otro"};
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🚨 ${inc.material||"Incidencia"}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <span class="badge ${inc.prioridad==="alta"?"b-pink":inc.prioridad==="media"?"b-orange":"b-gray"}">${inc.prioridad||"—"}</span>
+      <span class="badge ${inc.estado==="resuelta"?"b-green":inc.estado==="en_proceso"?"b-blue":"b-pink"}">${(inc.estado||"abierta").replace("_"," ")}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div><span style="color:var(--muted)">👤 Reportado por:</span> ${inc.reportadoPor||"—"}</div>
+      <div><span style="color:var(--muted)">🔧 Tipo:</span> ${tiposInc[inc.tipo]||inc.tipo||"—"}</div>
+      <div><span style="color:var(--muted)">📅 Cuándo:</span> ${inc.fecha?new Date(inc.fecha).toLocaleString("es-ES"):"—"}</div>
+      <div><span style="color:var(--muted)">📍 Dónde:</span> ${inc.lugar||"—"}</div>
+      <div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Descripción</div>
+        <div style="font-size:13px;line-height:1.6">${inc.descripcion||"Sin descripción"}</div>
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal()">Cerrar</button>
+      ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();cambiarEstadoIncidencia('${inc.id}')">Cambiar estado</button>`:""}
+    </div>`);
+}
+
+function cambiarEstadoIncidencia(id){
+  const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;
+  closeModal();
+  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Estado de incidencia</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">${inc.material}</p>
+    <label class="form-lbl">Nuevo estado</label>
+    <select class="form-select" id="inc-nuevo-estado">
+      <option value="abierta" ${inc.estado==="abierta"?"selected":""}>Abierta</option>
+      <option value="en_proceso" ${inc.estado==="en_proceso"?"selected":""}>En proceso</option>
+      <option value="resuelta" ${inc.estado==="resuelta"?"selected":""}>Resuelta</option>
+    </select>
+    <button class="btn btn-p btn-full" onclick="actualizarEstadoIncidencia('${inc.id}')">Guardar</button>`),100);
+}
+
+async function actualizarEstadoIncidencia(id){
+  const nuevoEstado=document.getElementById("inc-nuevo-estado").value;
+  try{
+    await _db.collection("incidencias").doc(id).update({estado:nuevoEstado});
+    toast("Estado actualizado ✓");
+  }catch(e){toast("Actualizado localmente");}
+  const inc=INCIDENCIAS.find(x=>x.id===id);
+  if(inc)inc.estado=nuevoEstado;
+  closeModal();
+  renderIncidencias(document.getElementById("page-content"));
+}
+
+
+</script>
+
+<script>
+(function initFirebase(){
+  const firebaseConfig={
+    apiKey:"AIzaSyAi9e2CzdgQ6QwqCS6NCYXVI_8Ng-BZTfo",
+    authDomain:"noctua-portal.firebaseapp.com",
+    projectId:"noctua-portal",
+    storageBucket:"noctua-portal.firebasestorage.app",
+    messagingSenderId:"299676465112",
+    appId:"1:299676465112:web:93ebc6041c5e8170e464ad"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  _auth=firebase.auth();
+  _db=firebase.firestore();
+  window._firebase={
+    auth:_auth,db:_db,
+    signInWithEmailAndPassword:(a,email,pass)=>_auth.signInWithEmailAndPassword(email,pass),
+    signOut:()=>_auth.signOut(),
+    onAuthStateChanged:(a,cb)=>_auth.onAuthStateChanged(cb),
+    doc:(db,col,id)=>_db.collection(col).doc(id),
+    getDoc:(ref)=>ref.get().then(s=>({exists:()=>s.exists,data:()=>s.data(),id:s.id})),
+    setDoc:(ref,data)=>ref.set(data),
+    collection:(db,col)=>_db.collection(col),
+    getDocs:(ref)=>ref.get().then(s=>({docs:s.docs.map(d=>({id:d.id,data:()=>d.data()}))})),
+    addDoc:(ref,data)=>ref.add(data).then(r=>({id:r.id})),
+    updateDoc:(ref,data)=>ref.update(data),
+    deleteDoc:(ref)=>ref.delete(),
+    query:(col,...cs)=>{let q=col;cs.forEach(c=>{q=c(q);});return q;},
+    where:(f,op,v)=>q=>q.where(f,op,v),
+    orderBy:(f,d)=>q=>q.orderBy(f,d||"asc"),
+  };
+  _auth.onAuthStateChanged(async user=>{
+    if(user&&!userProfile){
+      currentUser=user;
+      try{
+        const snap=await _db.collection("Usuarios").doc(user.uid).get();
+        if(snap.exists){userProfile=snap.data();enterApp();}
+      }catch(e){console.warn("Sin perfil:",e);}
+    }
+  });
+})();
+</script>
+</body>
+</html>

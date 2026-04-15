@@ -8,7 +8,6 @@ if (!admin.apps.length) {
 }
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', 'https://inout-connect.vercel.app')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -16,19 +15,17 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' })
 
-  const { email, nombre } = req.body
+  const { email, nombre, firestoreId } = req.body
 
   if (!email || !nombre) {
     return res.status(400).json({ error: 'Email y nombre son obligatorios' })
   }
 
   try {
-    // Crear usuario en Firebase Auth con contraseña temporal
     const tempPassword = Math.random().toString(36).slice(-10) + 'A1!'
     
     let userRecord
     try {
-      // Intentar crear el usuario
       userRecord = await admin.auth().createUser({
         email,
         password: tempPassword,
@@ -36,30 +33,35 @@ module.exports = async (req, res) => {
       })
     } catch (e) {
       if (e.code === 'auth/email-already-exists') {
-        // Si ya existe, obtener el usuario existente
         userRecord = await admin.auth().getUserByEmail(email)
       } else {
         throw e
       }
     }
 
-    // Enviar email de reset para que establezca su propia contraseña
-    const resetLink = await admin.auth().generatePasswordResetLink(email, {
-      url: 'https://inout-connect.vercel.app',
-    })
+    const db = admin.firestore()
 
-    // Usar nodemailer o simplemente devolver el link
-    // Por ahora Firebase enviará el email automáticamente con sendPasswordResetEmail
-    // desde el cliente — aquí solo creamos el usuario en Auth
+    // Si hay un firestoreId antiguo, migrar los datos al nuevo documento con el UID correcto
+    if (firestoreId && firestoreId !== userRecord.uid) {
+      const oldDoc = await db.collection('Usuarios').doc(firestoreId).get()
+      if (oldDoc.exists) {
+        // Crear nuevo documento con el UID de Auth
+        await db.collection('Usuarios').doc(userRecord.uid).set(oldDoc.data())
+        // Borrar el antiguo
+        await db.collection('Usuarios').doc(firestoreId).delete()
+      }
+    }
+
+    // Generar link de reset para que el empleado establezca su contraseña
+    await admin.auth().generatePasswordResetLink(email)
 
     return res.status(200).json({ 
       success: true, 
-      uid: userRecord.uid,
-      message: `Usuario creado en Auth. Email de bienvenida enviado a ${email}`
+      uid: userRecord.uid
     })
 
   } catch (error) {
-    console.error('Error creando usuario:', error)
+    console.error('Error:', error)
     return res.status(500).json({ error: error.message })
   }
 }

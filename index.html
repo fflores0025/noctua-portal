@@ -607,8 +607,24 @@ function navigate(page){
     "admin-turnos": renderAdminTurnos
   }[page] || dashboard)(pc);
 }
-function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
-function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
+function toggleSidebar(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("overlay").classList.toggle("show");
+}
+
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const hash = window.location.hash.replace("#", "");
+  if(hash){
+    navigate(hash);
+  } else {
+    navigate("dashboard");
+  }
+});
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 function dashboard(pc){

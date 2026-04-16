@@ -471,7 +471,8 @@ async function enterApp(){
     await cargarEmpleados();
     await cargarTodosLosTurnos();
   }
-  navigate("dashboard");
+  const hash = window.location.hash.replace('#', '');
+navigate(hash || "dashboard");
 }
 
 async function cargarInventarioBackground(){
@@ -568,9 +569,15 @@ function buildNav(role){
 }
 
 function navigate(page){
+  function navigate(page){
   const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
   if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
-  currentPage=page;
+  
+  currentPage = page;
+
+  // 👇 AÑADE ESTA LÍNEA
+  window.location.hash = page;
+
   document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
   document.getElementById(`nav-${page}`)?.classList.add("active");
   document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;

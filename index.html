@@ -320,7 +320,7 @@ function canAdminRole(r){return["admin","rrhh"].includes(r);}
 function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":"";}
 function badge(e){
-  const m={pagada:["b-green","Pagada"],pendiente:["b-orange","Pendiente"],confirmado:["b-green","Confirmado"],produccion:["b-blue","En producción"],preproduccion:["b-gray","Preproducción"],negociacion:["b-orange","Negociación"],activo:["b-green","Activo"],cerrado:["b-gray","Cerrado"],baja:["b-pink","Baja"]};
+  const m={pagada:["b-green","Pagada"],pendiente:["b-orange","Pendiente"],confirmado:["b-green","Confirmado"],produccion:["b-blue","En producción"],preproduccion:["b-gray","Preproducción"],negociacion:["b-orange","Negociación"],activo:["b-green","Activo"],cerrado:["b-gray","Cerrado"],baja:["b-pink","Baja"],borrador:["b-gray","Borrador"],publicado:["b-green","Publicado"],agotado:["b-pink","Agotado"],cancelado:["b-pink","Cancelado"],finalizado:["b-gray","Finalizado"]};
   const[c,l]=m[e]||["b-gray",e];return`<span class="badge ${c}">${l}</span>`;
 }
 function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
@@ -472,14 +472,20 @@ async function cargarTodosLosTurnos(){
 
 async function cargarEventos(){
   try{
+    // Marcar eventos finalizados antes de cargar
+    try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}
     const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});
     DEMO_EVENTOS=(data||[]).map(e=>({
-      id:e.id,nombre:e.nombre,fecha:e.fecha_inicio?e.fecha_inicio.slice(0,10):"",
+      id:e.id,nombre:e.nombre,
+      fecha:e.fecha_inicio?e.fecha_inicio.slice(0,10):"",
+      hora_inicio:e.fecha_inicio?e.fecha_inicio.slice(11,16):"",
+      fecha_fin:e.fecha_fin?e.fecha_fin.slice(0,10):"",
+      hora_fin:e.fecha_fin?e.fecha_fin.slice(11,16):"",
       lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,
       tipo:e.tipo||"nocturno",estado:e.estado||"borrador",
       equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",
       material:e.material||[],
-      ticketTypes:[],// se cargan aparte si hace falta
+      ticketTypes:[],
       artistas:e.artistas||"",vestimenta:e.vestimenta||"",
       apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,
       normas:e.normas||"",descripcionEvento:e.descripcion||"",
@@ -793,10 +799,13 @@ function renderEventos(pc){
 
 function verEvento(id){
   const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
+  const horaInicio=ev.hora_inicio||"";
+  const fechaFinStr=ev.fecha_fin&&ev.fecha_fin!==ev.fecha?`${ev.fecha_fin}${ev.hora_fin?" "+ev.hora_fin:""}`:(ev.hora_fin?ev.hora_fin:"");
   showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${ev.nombre}</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap"><span class="badge b-gray">${ev.tipo}</span>${badge(ev.estado)}</div>
     <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
-      <div><span style="color:var(--muted)">📅 Fecha:</span> ${ev.fecha}</div>
+      <div><span style="color:var(--muted)">📅 Inicio:</span> ${ev.fecha}${horaInicio?" "+horaInicio:""}</div>
+      ${fechaFinStr?`<div><span style="color:var(--muted)">🏁 Fin:</span> ${fechaFinStr}</div>`:""}
       <div><span style="color:var(--muted)">📍 Lugar:</span> ${ev.lugar}</div>
       ${ev.artistas?`<div><span style="color:var(--muted)">🎵 Artistas:</span> ${ev.artistas}</div>`:""}
       <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Notas</div><div style="font-size:13px;line-height:1.6">${ev.notas}</div></div>
@@ -835,7 +844,15 @@ function nuevoEvento(){
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Nuevo evento</div>
     <label class="form-lbl">Nombre</label><input class="form-input" id="ev-nombre" placeholder="Ej: Festival BeachClub"/>
-    <label class="form-lbl">Fecha</label><input class="form-input" id="ev-fecha" type="date"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ev-fecha" type="date"/></div>
+      <div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ev-hora-inicio" type="time" value="22:00"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ev-fecha-fin" type="date"/></div>
+      <div><label class="form-lbl">Hora fin</label><input class="form-input" id="ev-hora-fin" type="time" value="06:00"/></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin:-8px 0 14px">💡 Para discotecas: fecha fin = día siguiente (ej: inicio 15/04 22:00, fin 16/04 06:00)</div>
     <label class="form-lbl">Lugar (Sala, Ciudad)</label><input class="form-input" id="ev-lugar" placeholder="Sala, Ciudad"/>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div><label class="form-lbl">Tipo</label><select class="form-select" id="ev-tipo"><option value="festival">Festival</option><option value="corporativo">Corporativo</option><option value="nocturno">Nocturno</option><option value="concierto">Concierto</option></select></div>
@@ -848,7 +865,7 @@ function nuevoEvento(){
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:600">ℹ️ Info adicional</div>
       <label class="form-lbl">🎵 Artistas</label><input class="form-input" id="ev-artistas" placeholder="DJ 1, DJ 2…"/>
       <label class="form-lbl">👔 Vestimenta</label><input class="form-input" id="ev-vestimenta" placeholder="Smart casual…"/>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura</label><input class="form-input" id="ev-apertura" type="time"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ev-edad" type="number" min="0" max="99" placeholder="18"/></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura puertas</label><input class="form-input" id="ev-apertura" type="time"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ev-edad" type="number" min="0" max="99" placeholder="18"/></div></div>
       <label class="form-lbl">📋 Normas</label><textarea class="form-textarea" id="ev-normas" style="min-height:60px"></textarea>
       <label class="form-lbl">🎤 Descripción</label><textarea class="form-textarea" id="ev-descripcion" style="min-height:80px"></textarea>
       <label class="form-lbl">📍 Google Maps</label><input class="form-input" id="ev-maps" placeholder="https://maps.google.com/…"/>
@@ -862,12 +879,15 @@ async function guardarEvento(){
   const nombre=document.getElementById("ev-nombre").value.trim();
   if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
   const fecha=document.getElementById("ev-fecha").value||new Date().toISOString().slice(0,10);
+  const horaInicio=document.getElementById("ev-hora-inicio").value||"22:00";
+  const fechaFin=document.getElementById("ev-fecha-fin").value||fecha;
+  const horaFin=document.getElementById("ev-hora-fin").value||"06:00";
   const lugar=document.getElementById("ev-lugar").value||"Por confirmar";
   const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"Por confirmar";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   const slug=toSlug(nombre)+"-"+Date.now();
-  const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:new Date(fecha+"T22:00:00").toISOString(),venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
+  const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:new Date(fecha+"T"+horaInicio+":00").toISOString(),fecha_fin:new Date(fechaFin+"T"+horaFin+":00").toISOString(),venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
   try{
     const{data:ev,error}=await _sb.from('events').insert(campos).select().single();
     if(error)throw error;
@@ -893,7 +913,14 @@ function editEvento(id){
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Editar evento</div>
     <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
-    <label class="form-lbl">Fecha</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/></div>
+      <div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="date" value="${ev.fecha_fin||ev.fecha}"/></div>
+      <div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div>
+    </div>
     <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
     <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["borrador","publicado","agotado","cancelado","finalizado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas||""}</textarea>
@@ -904,7 +931,7 @@ function editEvento(id){
     <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:14px">
       <label class="form-lbl">🎵 Artistas</label><input class="form-input" id="ee-artistas" value="${ev.artistas||""}"/>
       <label class="form-lbl">👔 Vestimenta</label><input class="form-input" id="ee-vestimenta" value="${ev.vestimenta||""}"/>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura</label><input class="form-input" id="ee-apertura" type="time" value="${ev.apertura||""}"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ee-edad" type="number" value="${ev.edadMinima||""}" placeholder="18"/></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura puertas</label><input class="form-input" id="ee-apertura" type="time" value="${ev.apertura||""}"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ee-edad" type="number" value="${ev.edadMinima||""}" placeholder="18"/></div></div>
       <label class="form-lbl">📋 Normas</label><textarea class="form-textarea" id="ee-normas" style="min-height:60px">${ev.normas||""}</textarea>
       <label class="form-lbl">🎤 Descripción</label><textarea class="form-textarea" id="ee-descripcion" style="min-height:80px">${ev.descripcionEvento||""}</textarea>
       <label class="form-lbl">📍 Maps</label><input class="form-input" id="ee-maps" value="${ev.mapsUrl||""}"/>
@@ -922,12 +949,14 @@ async function actualizarEvento(id){
   const lugar=document.getElementById("ee-lugar").value||"";
   const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
   const fecha=document.getElementById("ee-fecha").value;
+  const horaInicio=document.getElementById("ee-hora-inicio").value||"22:00";
+  const fechaFin=document.getElementById("ee-fecha-fin").value||fecha;
+  const horaFin=document.getElementById("ee-hora-fin").value||"06:00";
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
-  const campos={nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fecha?new Date(fecha+"T22:00:00").toISOString():undefined,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null};
+  const campos={nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fecha?new Date(fecha+"T"+horaInicio+":00").toISOString():undefined,fecha_fin:fechaFin?new Date(fechaFin+"T"+horaFin+":00").toISOString():undefined,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null};
   try{
     await _sb.from('events').update(campos).eq('id',id);
-    // Borrar ticket types viejos y crear nuevos
     await _sb.from('ticket_types').delete().eq('event_id',id);
     if(ticketTypes.length>0){
       const rows=ticketTypes.map(t=>({event_id:id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true}));

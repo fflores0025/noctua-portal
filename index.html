@@ -45,6 +45,7 @@
     .nav-item:hover { color:var(--txt); background:rgba(255,255,255,.03); }
     .nav-item.active { color:var(--a1); border-left-color:var(--a1); background:rgba(200,255,0,.05); }
     .nav-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+    .nav-badge { background:var(--a2); color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:auto; line-height:1.4; }
     .s-bottom { padding:14px 20px; border-top:1px solid var(--border); flex-shrink:0; }
     .btn-logout { width:100%; padding:9px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; transition:all .15s; }
     .btn-logout:hover { border-color:var(--a2); color:var(--a2); }
@@ -136,6 +137,29 @@
     .login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;}
     #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:1000;transition:transform .3s;white-space:nowrap;}
     #toast.show{transform:translateX(-50%) translateY(0);}
+    /* ── CHAT STYLES ── */
+    .chat-container{display:flex;flex-direction:column;height:calc(100vh - 180px);min-height:400px;max-height:700px;}
+    .chat-messages{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:4px;min-height:0;}
+    .chat-messages::-webkit-scrollbar{width:3px;}
+    .chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+    .chat-bubble-wrap{display:flex;gap:8px;padding:4px 0;animation:fadeIn .2s ease;}
+    .chat-bubble-wrap.mine{flex-direction:row-reverse;}
+    .chat-bubble{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5;position:relative;}
+    .chat-bubble.theirs{background:var(--surf);border:1px solid var(--border);border-top-left-radius:4px;}
+    .chat-bubble.mine{background:rgba(200,255,0,.12);border:1px solid rgba(200,255,0,.15);border-top-right-radius:4px;}
+    .chat-sender{font-size:11px;font-weight:600;color:var(--a3);margin-bottom:3px;}
+    .chat-bubble.mine .chat-sender{color:var(--a1);}
+    .chat-meta{font-size:10px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px;}
+    .chat-bubble.mine .chat-meta{justify-content:flex-end;}
+    .chat-dest{font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.06);}
+    .chat-input-bar{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);margin-top:8px;align-items:flex-end;}
+    .chat-input-bar select{padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;flex-shrink:0;max-width:130px;}
+    .chat-input-bar select:focus{border-color:var(--a1);}
+    .chat-input-bar input{flex:1;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+    .chat-input-bar input:focus{border-color:var(--a1);}
+    .chat-input-bar button{padding:10px 18px;border-radius:9px;border:none;background:var(--a1);color:#000;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;flex-shrink:0;}
+    .chat-input-bar button:hover{background:#d4ff20;}
+    .chat-date-sep{text-align:center;padding:12px 0 6px;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.5px;}
     @media(max-width:768px){
       :root{--sidebar:100vw;}
       .sidebar{width:100vw;transform:translateX(-100%);position:fixed;top:0;left:0;height:100vh;z-index:300;overflow-y:auto;display:flex;flex-direction:column;}
@@ -167,6 +191,12 @@
       .s-user{padding:18px 20px;}
       .u-name{font-size:15px;}
       .nav-sec{font-size:11px;padding:14px 20px 6px;}
+      .chat-container{height:calc(100vh - 160px);}
+      .chat-bubble{max-width:85%;}
+      .chat-input-bar{flex-wrap:wrap;}
+      .chat-input-bar select{max-width:100%;width:100%;order:1;}
+      .chat-input-bar input{order:2;min-width:0;}
+      .chat-input-bar button{order:3;}
     }
     @media(max-width:480px){
       .g4{grid-template-columns:1fr 1fr;}
@@ -287,6 +317,7 @@ let TURNOS_EQUIPO=[];
 let DEMO_PROYECTOS=[];
 let INVENTARIO=[];
 let INCIDENCIAS=[];
+let unreadMsgCount=0;
 
 // ── NAV CONFIG ───────────────────────────────────────────────────────────
 const NAV_CONFIG={
@@ -294,7 +325,7 @@ admin:[
   {sec:"Principal"},
   {key:"dashboard",icon:"⚡",label:"Inicio"},
   {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"}, 
+  {key:"mensajes", icon:"💬", label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
     {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
@@ -302,7 +333,7 @@ admin:[
   rrhh:[
   {key:"dashboard",icon:"⚡",label:"Inicio"},
   {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"}, 
+  {key:"mensajes", icon:"💬", label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
     {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
@@ -310,20 +341,20 @@ admin:[
   empleado:[
   {key:"dashboard",icon:"⚡",label:"Inicio"},
   {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"}, 
+  {key:"mensajes", icon:"💬", label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
   ],
   freelance:[
   {key:"dashboard",icon:"⚡",label:"Inicio"},
   {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"}, 
+  {key:"mensajes", icon:"💬", label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
   ],
 };
 
-const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
+const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",mensajes:"Mensajes",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
 
 // ── UTILS ────────────────────────────────────────────────────────────────
 function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
@@ -361,31 +392,26 @@ async function doLogin(){
     const{data,error}=await _sb.auth.signInWithPassword({email,password:pass});
     if(error) throw error;
     currentUser=data.user;
-    // Buscar perfil en tabla empleados
     const{data:perfil,error:perfilErr}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
     if(perfilErr||!perfil){
       setLoginError("Perfil no encontrado. Contacta con el administrador.");
       await _sb.auth.signOut();
       setLoginLoading(false);return;
     }
-    // Comprobar edad de la contraseña (máx 60 días)
     const{data:lastChange}=await _sb.from('password_history').select('created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).single();
     let diasDesde=0;
     if(lastChange){
       diasDesde=Math.floor((Date.now()-new Date(lastChange.created_at).getTime())/(1000*60*60*24));
     }else{
-      // Sin historial: guardar esta primera entrada como referencia
       const hashActual=await hashPassword(pass);
       await _sb.from('password_history').insert({user_id:currentUser.id,password_hash:hashActual});
       diasDesde=0;
     }
     if(diasDesde>=60){
-      // Forzar cambio de contraseña
       setLoginLoading(false);
       mostrarForzarCambioPass();
       return;
     }
-    // Si quedan pocos días, avisar pero dejar entrar
     if(diasDesde>=55){
       toast(`⚠️ Tu contraseña caduca en ${60-diasDesde} días`,5000);
     }
@@ -480,8 +506,12 @@ async function enterApp(){
     await cargarEmpleados();
     await cargarTodosLosTurnos();
   }
+  // Contar mensajes no leídos para badge
+  actualizarBadgeMensajes();
+  // Activar realtime de chat globalmente
+  activarRealtime();
   const hash = window.location.hash.replace('#', '');
-navigate(hash || "dashboard");
+  navigate(hash || "dashboard");
 }
 
 async function cargarInventarioBackground(){
@@ -514,13 +544,9 @@ async function cargarTodosLosTurnos(){
 
 async function cargarEventos(){
   try{
-    // Marcar eventos finalizados antes de cargar
     try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}
     const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});
     DEMO_EVENTOS=(data||[]).map(e=>{
-      // Leer fecha y hora sin conversión de zona horaria
-      // fecha_inicio viene como "2026-04-16T21:30:00+00:00" o similar
-      // Extraemos directamente los caracteres 0-10 (fecha) y 11-16 (hora)
       const fi=e.fecha_inicio||"";
       const ff=e.fecha_fin||"";
       return {
@@ -574,7 +600,11 @@ async function cargarEmpleados(){
 // ── NAV ──────────────────────────────────────────────────────────────────
 function buildNav(role){
   const items=NAV_CONFIG[role]||NAV_CONFIG.empleado;
-  document.getElementById("nav-items").innerHTML=items.map(i=>i.sec?`<div class="nav-sec">${i.sec}</div>`:`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></div>`).join("");
+  document.getElementById("nav-items").innerHTML=items.map(i=>{
+    if(i.sec) return`<div class="nav-sec">${i.sec}</div>`;
+    const badgeHtml = i.key==="mensajes" && unreadMsgCount>0 ? `<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>` : "";
+    return`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span>${badgeHtml}</div>`;
+  }).join("");
 }
 
 function navigate(page){
@@ -586,11 +616,8 @@ function navigate(page){
   }
 
   currentPage = page;
-
-  // Guardar en URL
   window.location.hash = page;
 
-  // UI
   document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
   document.getElementById(`nav-${page}`)?.classList.add("active");
   document.getElementById("topbar-title").textContent = PAGE_TITLE[page] || page;
@@ -600,23 +627,32 @@ function navigate(page){
   const pc = document.getElementById("page-content");
   pc.scrollTop = 0;
 
- ({
-  dashboard,
-  perfil: renderPerfil,
-  nominas: renderNominas,
-  retribuciones: renderRetribuciones,
-  calendario: renderCalendario,
-  eventos: renderEventos,
-  produccion: renderProduccion,
-  inventario: renderInventario,
-  incidencias: renderIncidencias,
-  mensajes: renderMensajes,   // 👈 ESTA LÍNEA
-  admin: renderAdmin,
-  "admin-irpf": renderAdminIRPF,
-  "admin-nominas": renderAdminNominas,
-  "admin-turnos": renderAdminTurnos
-}[page] || dashboard)(pc);
+  ({
+    dashboard,
+    perfil: renderPerfil,
+    nominas: renderNominas,
+    retribuciones: renderRetribuciones,
+    calendario: renderCalendario,
+    eventos: renderEventos,
+    produccion: renderProduccion,
+    inventario: renderInventario,
+    incidencias: renderIncidencias,
+    mensajes: renderMensajes,
+    admin: renderAdmin,
+    "admin-irpf": renderAdminIRPF,
+    "admin-nominas": renderAdminNominas,
+    "admin-turnos": renderAdminTurnos
+  }[page] || dashboard)(pc);
 }
+
+// ── HASH ROUTING: botón atrás/adelante del navegador ─────────────────────
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash.replace("#", "");
+  if(hash && hash !== currentPage && userProfile){
+    navigate(hash);
+  }
+});
+
 function toggleSidebar(){
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("overlay").classList.toggle("show");
@@ -626,15 +662,6 @@ function closeSidebar(){
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("overlay").classList.remove("show");
 }
-
-window.addEventListener("DOMContentLoaded", () => {
-  const hash = window.location.hash.replace("#", "");
-  if(hash){
-    navigate(hash);
-  } else {
-    navigate("dashboard");
-  }
-});
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 function dashboard(pc){
@@ -981,8 +1008,6 @@ async function guardarEvento(){
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   const slug=toSlug(nombre)+"-"+Date.now();
-  // Guardar hora local sin conversión de zona horaria (formato "YYYY-MM-DDTHH:MM:00")
-  // Supabase lo interpretará como UTC pero al mostrarlo no habrá conversión
   const fechaInicioLocal=`${fecha}T${horaInicio}:00`;
   const fechaFinLocal=`${fechaFin}T${horaFin}:00`;
   const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:fechaInicioLocal,fecha_fin:fechaFinLocal,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
@@ -1003,7 +1028,6 @@ function editEvento(id){
   const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
   closeModal();
   setTimeout(async()=>{
-    // Cargar ticket types del evento
     const{data:tts}=await _sb.from('ticket_types').select('*').eq('event_id',id);
     const existingTickets=(tts||[]).map(t=>({nombre:t.nombre,zona:t.tipo_zona,precio:parseFloat(t.precio),stock_total:t.stock_total,max_por_persona:t.max_por_persona}));
     _ticketRowCount=0;
@@ -1070,7 +1094,6 @@ async function actualizarEvento(id){
 }
 
 async function eliminarEvento(id){
-  // Borrar primero todas las dependencias
   const{data:tks}=await _sb.from('tickets').select('id').eq('event_id',id);
   if(tks&&tks.length>0){
     const ticketIds=tks.map(t=>t.id);
@@ -1145,16 +1168,7 @@ function nuevoProyecto(){
 async function guardarProyecto(){
   const nombre=document.getElementById("proy-nombre").value.trim();
   if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
-  const proy={
-    nombre,
-    cliente:document.getElementById("proy-cliente").value||null,
-    inicio:document.getElementById("proy-inicio").value||null,
-    fin:document.getElementById("proy-fin").value||null,
-    presupuesto:parseFloat(document.getElementById("proy-pres").value)||0,
-    estado:document.getElementById("proy-estado").value,
-    progreso:0,
-    creado_por:userProfile.nombre
-  };
+  const proy={nombre,cliente:document.getElementById("proy-cliente").value||null,inicio:document.getElementById("proy-inicio").value||null,fin:document.getElementById("proy-fin").value||null,presupuesto:parseFloat(document.getElementById("proy-pres").value)||0,estado:document.getElementById("proy-estado").value,progreso:0,creado_por:userProfile.nombre};
   const{error}=await _sb.from('proyectos').insert(proy);
   if(error){toast("Error: "+error.message);return;}
   toast(`Proyecto "${nombre}" creado ✓`);
@@ -1187,15 +1201,7 @@ function editarProyecto(id){
 }
 
 async function actualizarProyecto(id){
-  const campos={
-    nombre:document.getElementById("ep-nombre").value.trim(),
-    cliente:document.getElementById("ep-cliente").value||null,
-    inicio:document.getElementById("ep-inicio").value||null,
-    fin:document.getElementById("ep-fin").value||null,
-    estado:document.getElementById("ep-estado").value,
-    progreso:parseInt(document.getElementById("ep-progreso").value)||0,
-    presupuesto:parseFloat(document.getElementById("ep-pres").value)||0
-  };
+  const campos={nombre:document.getElementById("ep-nombre").value.trim(),cliente:document.getElementById("ep-cliente").value||null,inicio:document.getElementById("ep-inicio").value||null,fin:document.getElementById("ep-fin").value||null,estado:document.getElementById("ep-estado").value,progreso:parseInt(document.getElementById("ep-progreso").value)||0,presupuesto:parseFloat(document.getElementById("ep-pres").value)||0};
   const{error}=await _sb.from('proyectos').update(campos).eq('id',id);
   if(error){toast("Error: "+error.message);return;}
   toast("Proyecto actualizado ✓");
@@ -1208,109 +1214,145 @@ async function eliminarProyecto(id){
   closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
 }
 
-// ================= CHAT SIMPLE FUNCIONAL =================
+// ================= CHAT / MENSAJERÍA =================
 
 function renderMensajes(pc){
+  // Reset unread count when entering chat
+  unreadMsgCount = 0;
+  const badgeEl = document.getElementById("nav-badge-msg");
+  if(badgeEl) badgeEl.remove();
+
   pc.innerHTML = `
+    <div class="page-hd"><div><div class="page-title">Mensajes</div><div class="page-sub">Chat interno del equipo</div></div></div>
     <div class="card">
-      <h2>💬 Chat interno</h2>
-
-      <div style="display:flex; gap:10px; margin-bottom:10px;">
-        <select id="msg-para">
-          <option value="todos">Todos</option>
-        </select>
-        <input id="msg-texto" placeholder="Escribe mensaje..." style="flex:1;">
-        <button onclick="enviarMensaje()">Enviar</button>
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-box">
+          <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">Cargando mensajes...</div>
+        </div>
+        <div class="chat-input-bar">
+          <select id="msg-para">
+            <option value="todos">📢 Todos</option>
+          </select>
+          <input id="msg-texto" placeholder="Escribe un mensaje..." autocomplete="off"/>
+          <button onclick="enviarMensaje()">Enviar</button>
+        </div>
       </div>
-
-      <div id="chat-box" style="height:400px; overflow:auto;"></div>
     </div>
   `;
 
+  // Enter key to send
+  setTimeout(() => {
+    const input = document.getElementById("msg-texto");
+    if(input) input.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensaje(); } });
+  }, 50);
+
   cargarUsuariosChat();
   cargarMensajes();
-  activarRealtime();
 }
 
-// ---------- CARGAR USUARIOS ----------
 async function cargarUsuariosChat(){
-  const { data } = await _sb.from("empleados").select("nombre");
-
-  const select = document.getElementById("msg-para");
-
-  select.innerHTML = `<option value="todos">Todos</option>`;
-
-  data.forEach(u => {
-    if(!userProfile || u.nombre !== userProfile.nombre){
-      select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
-    }
-  });
+  try {
+    const { data } = await _sb.from("empleados").select("nombre").eq("estado","activo");
+    const select = document.getElementById("msg-para");
+    if(!select || !data) return;
+    select.innerHTML = `<option value="todos">📢 Todos</option>`;
+    data.forEach(u => {
+      if(u.nombre !== userProfile.nombre){
+        select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
+      }
+    });
+  } catch(e) { console.error("Error cargando usuarios chat:", e); }
 }
 
-// ---------- ENVIAR ----------
 async function enviarMensaje(){
-  const texto = document.getElementById("msg-texto").value;
-  const para = document.getElementById("msg-para").value;
+  const input = document.getElementById("msg-texto");
+  const texto = input?.value?.trim();
+  const para = document.getElementById("msg-para")?.value;
+  if(!texto) return;
 
-  if(!texto.trim()){
-    alert("Escribe un mensaje");
+  input.value = "";
+  input.focus();
+
+  try {
+    await _sb.from("mensajes").insert({
+      de: userProfile.nombre,
+      para: para,
+      mensaje: texto
+    });
+  } catch(e) {
+    toast("Error al enviar mensaje");
+    console.error(e);
+  }
+}
+
+async function cargarMensajes(){
+  try {
+    const { data } = await _sb
+      .from("mensajes")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if(!data) return;
+
+    const filtrados = data.filter(m =>
+      m.para === "todos" ||
+      m.para === userProfile.nombre ||
+      m.de === userProfile.nombre
+    );
+
+    pintarMensajes(filtrados);
+  } catch(e) { console.error("Error cargando mensajes:", e); }
+}
+
+function pintarMensajes(lista){
+  const box = document.getElementById("chat-box");
+  if(!box) return;
+
+  if(lista.length === 0){
+    box.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:8px">💬</div>
+      <div style="font-size:13px">Sin mensajes aún. ¡Envía el primero!</div>
+    </div>`;
     return;
   }
 
-  await _sb.from("mensajes").insert({
-    de: userProfile.nombre,
-    para: para,
-    mensaje: texto
+  let html = "";
+  let lastDate = "";
+
+  lista.forEach(m => {
+    const isMine = m.de === userProfile.nombre;
+    const date = new Date(m.created_at);
+    const dateStr = date.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
+    const timeStr = date.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+
+    // Date separator
+    if(dateStr !== lastDate){
+      html += `<div class="chat-date-sep">${dateStr}</div>`;
+      lastDate = dateStr;
+    }
+
+    const ini = initials(m.de);
+    const destLabel = m.para === "todos" ? "todos" : m.para;
+
+    html += `
+      <div class="chat-bubble-wrap ${isMine ? "mine" : ""}">
+        <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${ini}</div>
+        <div class="chat-bubble ${isMine ? "mine" : "theirs"}">
+          <div class="chat-sender">${m.de}</div>
+          <div>${m.mensaje.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+          <div class="chat-meta">
+            <span class="chat-dest">→ ${destLabel}</span>
+            <span>${timeStr}</span>
+          </div>
+        </div>
+      </div>`;
   });
 
-  document.getElementById("msg-texto").value = "";
-
-  cargarMensajes();
-}
-
-// ---------- CARGAR MENSAJES ----------
-async function cargarMensajes(){
-  const { data } = await _sb
-    .from("mensajes")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  const filtrados = data.filter(m =>
-    m.para === "todos" ||
-    m.para === userProfile.nombre ||
-    m.de === userProfile.nombre
-  );
-
-  pintarMensajes(filtrados);
-}
-
-// ---------- PINTAR ----------
-function pintarMensajes(lista){
-  const box = document.getElementById("chat-box");
-
-  box.innerHTML = lista.map(m => `
-    <div style="
-      margin-bottom:8px;
-      display:flex;
-      ${m.de === userProfile.nombre ? 'justify-content:flex-end' : 'justify-content:flex-start'}
-    ">
-      <div style="
-        background:${m.de === userProfile.nombre ? '#00d4aa' : '#1a1a2e'};
-        color:${m.de === userProfile.nombre ? '#000' : '#fff'};
-        padding:8px 12px;
-        border-radius:12px;
-        max-width:70%;
-      ">
-        <small>${m.de}</small><br>
-        ${m.mensaje}
-      </div>
-    </div>
-  `).join("");
-
+  box.innerHTML = html;
   box.scrollTop = box.scrollHeight;
 }
 
-// ---------- REALTIME ----------
+// Realtime subscription (activado una sola vez al entrar a la app)
 let chatActivo = false;
 
 function activarRealtime(){
@@ -1318,13 +1360,38 @@ function activarRealtime(){
   chatActivo = true;
 
   _sb
-    .channel('mensajes')
+    .channel('mensajes-realtime')
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'mensajes' },
-      () => cargarMensajes()
+      (payload) => {
+        const msg = payload.new;
+        // Si estamos en la sección de mensajes, recargar
+        if(currentPage === "mensajes"){
+          cargarMensajes();
+        } else {
+          // Si no estamos en mensajes y el mensaje es para nosotros, mostrar badge
+          if(msg.de !== userProfile.nombre && (msg.para === "todos" || msg.para === userProfile.nombre)){
+            unreadMsgCount++;
+            const navItem = document.getElementById("nav-mensajes");
+            const existingBadge = document.getElementById("nav-badge-msg");
+            if(existingBadge){
+              existingBadge.textContent = unreadMsgCount;
+            } else if(navItem){
+              navItem.insertAdjacentHTML("beforeend", `<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>`);
+            }
+            toast(`💬 ${msg.de}: ${msg.mensaje.substring(0,40)}${msg.mensaje.length>40?"…":""}`);
+          }
+        }
+      }
     )
     .subscribe();
+}
+
+async function actualizarBadgeMensajes(){
+  // Simple: no contamos no leídos en la primera carga (no hay campo "leido" aún)
+  // El badge solo se activa con mensajes nuevos en tiempo real
+  unreadMsgCount = 0;
 }
 
 // ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────
@@ -1360,7 +1427,6 @@ async function guardarEmpleado(){
   const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();
   if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}
   try{
-    // Crear usuario en Supabase Auth via API route
     const res=await fetch("/api/create-employee",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,nombre,departamento:document.getElementById("emp-dept").value,role:document.getElementById("emp-role").value,tipo:document.getElementById("emp-tipo").value,salario_base:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15})});
     const data=await res.json();
     if(res.ok)toast(`✅ "${nombre}" creado. Email de acceso enviado.`);
@@ -1605,17 +1671,14 @@ function generarPDFNomina(n){
   const doc=new jsPDF({unit:"mm",format:"a4"});
   const pw=210;
 
-  // Cabecera negra
   doc.setFillColor(7,7,15);
   doc.rect(0,0,pw,40,"F");
-  // Logo
   doc.setTextColor(255,255,255);
   doc.setFont("helvetica","bold");
   doc.setFontSize(22);
   doc.text("InOut",15,22);
   doc.setTextColor(200,255,0);
   doc.text("Media",42,22);
-  // Subtítulo
   doc.setTextColor(200,255,0);
   doc.setFontSize(9);
   doc.setFont("helvetica","bold");
@@ -1624,7 +1687,6 @@ function generarPDFNomina(n){
   doc.setFontSize(13);
   doc.text(mes,pw-15,26,{align:"right"});
 
-  // Datos empleado
   doc.setTextColor(30,30,30);
   doc.setFontSize(8);
   doc.setFont("helvetica","normal");
@@ -1647,12 +1709,10 @@ function generarPDFNomina(n){
   doc.text(email,15,82);
   doc.text(fecha,110,82);
 
-  // Línea separadora
   doc.setDrawColor(220,220,230);
   doc.setLineWidth(0.3);
   doc.line(15,92,pw-15,92);
 
-  // DEVENGOS
   doc.setTextColor(130,130,130);
   doc.setFontSize(9);
   doc.setFont("helvetica","bold");
@@ -1670,7 +1730,6 @@ function generarPDFNomina(n){
   doc.text("0 €",pw-15,122,{align:"right"});
   doc.line(15,125,pw-15,125);
 
-  // DEDUCCIONES
   doc.setTextColor(130,130,130);
   doc.setFontSize(9);
   doc.setFont("helvetica","bold");
@@ -1691,7 +1750,6 @@ function generarPDFNomina(n){
   doc.text(`− ${ss.toLocaleString("es-ES")} €`,pw-15,158,{align:"right"});
   doc.line(15,161,pw-15,161);
 
-  // Total
   doc.setFillColor(248,248,252);
   doc.rect(15,172,pw-30,16,"F");
   doc.setTextColor(30,30,30);
@@ -1702,7 +1760,6 @@ function generarPDFNomina(n){
   doc.setFontSize(16);
   doc.text(`${neto.toLocaleString("es-ES")} €`,pw-20,182,{align:"right"});
 
-  // Estado
   const esPagada=n.estado==="pagada";
   doc.setFillColor(esPagada?209:255,esPagada?250:243,esPagada?229:205);
   doc.roundedRect(pw-50,195,35,7,2,2,"F");
@@ -1711,7 +1768,6 @@ function generarPDFNomina(n){
   doc.setFont("helvetica","bold");
   doc.text(esPagada?"✓ PAGADO":"PENDIENTE",pw-32.5,199.5,{align:"center"});
 
-  // Firmas
   doc.setDrawColor(200,200,200);
   doc.setLineDashPattern([1,1],0);
   doc.line(15,235,pw-15,235);
@@ -1726,7 +1782,6 @@ function generarPDFNomina(n){
   doc.text("Firma empresa",60,261,{align:"center"});
   doc.text("Firma trabajador",pw-60,261,{align:"center"});
 
-  // Pie
   doc.setFillColor(248,248,252);
   doc.rect(0,277,pw,20,"F");
   doc.setTextColor(150,150,150);
@@ -1742,10 +1797,8 @@ function generarPDFNomina(n){
 
 // ── AUTO-LOGIN (check session) ───────────────────────────────────────────
 (async function checkSession(){
-  // Detectar si venimos de un reset de contraseña
   const hash=window.location.hash;
   if(hash&&hash.includes('type=recovery')){
-    // Mostrar pantalla para establecer nueva contraseña
     document.getElementById("login-screen").style.display="flex";
     document.getElementById("panel-login").style.display="none";
     document.getElementById("panel-reset").style.display="none";
@@ -1788,7 +1841,6 @@ async function guardarNuevaPassword(){
   if(p1!==p2){showMsg("⚠️ Las contraseñas no coinciden",true);return;}
   if(p1.length<6){showMsg("⚠️ Mínimo 6 caracteres",true);return;}
 
-  // Comprobar que no sea igual a una anterior
   const{data:{user}}=await _sb.auth.getUser();
   if(user){
     const{data:hist}=await _sb.from('password_history').select('password_hash').eq('user_id',user.id);
@@ -1804,14 +1856,12 @@ async function guardarNuevaPassword(){
   const{error}=await _sb.auth.updateUser({password:p1});
   if(error){showMsg("Error: "+error.message,true);return;}
 
-  // Guardar hash en historial
   if(user){
     const hashNew=await hashPassword(p1);
     await _sb.from('password_history').insert({user_id:user.id,password_hash:hashNew});
   }
 
   showMsg("✅ Contraseña actualizada. Redirigiendo al login...",false);
-  // Cerrar sesión y redirigir al login
   setTimeout(async()=>{
     await _sb.auth.signOut();
     window.location.hash="";
@@ -1819,56 +1869,11 @@ async function guardarNuevaPassword(){
   },1500);
 }
 
-// Hash SHA-256 para comparar contraseñas en el historial (sin guardar en texto plano)
 async function hashPassword(pass){
   const data=new TextEncoder().encode(pass);
   const buf=await crypto.subtle.digest('SHA-256',data);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-// ─── HASH ROUTING: mantener sección al recargar ───
-function navigateToSection(sectionId) {
-  // 1. Ocultar todas las secciones
-  document.querySelectorAll('.section, [data-section]').forEach(el => {
-    el.style.display = 'none';
-    el.classList.remove('active');
-  });
-
-  // 2. Mostrar la sección seleccionada
-  const target = document.getElementById(sectionId) 
-    || document.querySelector(`[data-section="${sectionId}"]`);
-  if (target) {
-    target.style.display = '';
-    target.classList.add('active');
-  }
-
-  // 3. Actualizar menú activo
-  document.querySelectorAll('nav a, .nav-link, .sidebar a').forEach(link => {
-    link.classList.remove('active');
-    if (link.getAttribute('href') === `#${sectionId}` 
-        || link.dataset.section === sectionId) {
-      link.classList.add('active');
-    }
-  });
-
-  // 4. Guardar en la URL
-  window.location.hash = sectionId;
-}
-
-// Al cargar la página, ir a la sección del hash (o la primera)
-window.addEventListener('DOMContentLoaded', () => {
-  const hash = window.location.hash.replace('#', '');
-  if (hash) {
-    navigateToSection(hash);
-  }
-});
-
-// Escuchar cambios de hash (botón atrás/adelante del navegador)
-window.addEventListener('hashchange', () => {
-  const hash = window.location.hash.replace('#', '');
-  if (hash) {
-    navigateToSection(hash);
-  }
-});
 </script>
 </body>
 </html>

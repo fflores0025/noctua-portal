@@ -1651,6 +1651,50 @@ async function hashPassword(pass){
   const buf=await crypto.subtle.digest('SHA-256',data);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+// ─── HASH ROUTING: mantener sección al recargar ───
+function navigateToSection(sectionId) {
+  // 1. Ocultar todas las secciones
+  document.querySelectorAll('.section, [data-section]').forEach(el => {
+    el.style.display = 'none';
+    el.classList.remove('active');
+  });
+
+  // 2. Mostrar la sección seleccionada
+  const target = document.getElementById(sectionId) 
+    || document.querySelector(`[data-section="${sectionId}"]`);
+  if (target) {
+    target.style.display = '';
+    target.classList.add('active');
+  }
+
+  // 3. Actualizar menú activo
+  document.querySelectorAll('nav a, .nav-link, .sidebar a').forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === `#${sectionId}` 
+        || link.dataset.section === sectionId) {
+      link.classList.add('active');
+    }
+  });
+
+  // 4. Guardar en la URL
+  window.location.hash = sectionId;
+}
+
+// Al cargar la página, ir a la sección del hash (o la primera)
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    navigateToSection(hash);
+  }
+});
+
+// Escuchar cambios de hash (botón atrás/adelante del navegador)
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    navigateToSection(hash);
+  }
+});
 </script>
 </body>
 </html>

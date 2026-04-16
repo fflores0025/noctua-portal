@@ -887,7 +887,11 @@ async function guardarEvento(){
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   const slug=toSlug(nombre)+"-"+Date.now();
-  const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:new Date(fecha+"T"+horaInicio+":00").toISOString(),fecha_fin:new Date(fechaFin+"T"+horaFin+":00").toISOString(),venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
+  // Guardar hora local sin conversión de zona horaria (formato "YYYY-MM-DDTHH:MM:00")
+  // Supabase lo interpretará como UTC pero al mostrarlo no habrá conversión
+  const fechaInicioLocal=`${fecha}T${horaInicio}:00`;
+  const fechaFinLocal=`${fechaFin}T${horaFin}:00`;
+  const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:fechaInicioLocal,fecha_fin:fechaFinLocal,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
   try{
     const{data:ev,error}=await _sb.from('events').insert(campos).select().single();
     if(error)throw error;
@@ -954,7 +958,9 @@ async function actualizarEvento(id){
   const horaFin=document.getElementById("ee-hora-fin").value||"06:00";
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
-  const campos={nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fecha?new Date(fecha+"T"+horaInicio+":00").toISOString():undefined,fecha_fin:fechaFin?new Date(fechaFin+"T"+horaFin+":00").toISOString():undefined,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null};
+  const fechaInicioLocal=fecha?`${fecha}T${horaInicio}:00`:undefined;
+  const fechaFinLocal=fechaFin?`${fechaFin}T${horaFin}:00`:undefined;
+  const campos={nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fechaInicioLocal,fecha_fin:fechaFinLocal,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null};
   try{
     await _sb.from('events').update(campos).eq('id',id);
     await _sb.from('ticket_types').delete().eq('event_id',id);

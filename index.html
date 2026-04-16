@@ -1266,16 +1266,20 @@ async function enviarMensaje(){
   });
 
   document.getElementById("msg-texto").value = "";
-}
 
-async function cargarMensajes(){
+  async function cargarMensajes(){
   const { data } = await _sb
     .from("mensajes")
     .select("*")
-    .order("created_at", { ascending: true })
-    .limit(100);
+    .order("created_at", { ascending: true });
 
-  pintarMensajes(data);
+  const filtrados = data.filter(m =>
+    m.para === "todos" ||
+    m.para === userProfile.nombre ||
+    m.de === userProfile.nombre
+  );
+
+  pintarMensajes(filtrados);
 }
 
 function pintarMensajes(lista){

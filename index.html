@@ -941,8 +941,23 @@ async function actualizarEvento(id){
 }
 
 async function eliminarEvento(id){
-  await _sb.from('events').delete().eq('id',id);
-  toast("Evento eliminado");closeModal();await cargarEventos();
+  // Borrar primero todas las dependencias
+  const{data:tks}=await _sb.from('tickets').select('id').eq('event_id',id);
+  if(tks&&tks.length>0){
+    const ticketIds=tks.map(t=>t.id);
+    await _sb.from('validation_log').delete().in('ticket_id',ticketIds);
+  }
+  const{data:ords}=await _sb.from('orders').select('id').eq('event_id',id);
+  if(ords&&ords.length>0){
+    const orderIds=ords.map(o=>o.id);
+    await _sb.from('order_items').delete().in('order_id',orderIds);
+  }
+  await _sb.from('tickets').delete().eq('event_id',id);
+  await _sb.from('orders').delete().eq('event_id',id);
+  await _sb.from('ticket_types').delete().eq('event_id',id);
+  const{error}=await _sb.from('events').delete().eq('id',id);
+  if(error){toast("Error: "+error.message);return;}
+  toast("Evento eliminado ✓");closeModal();await cargarEventos();
   if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
 }
 

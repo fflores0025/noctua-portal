@@ -7,6 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- jsPDF para generar nóminas en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -256,6 +258,7 @@
       <button class="burger" id="burger-btn" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title" id="topbar-title">Portal</span>
       <div class="topbar-right">
+        <a href="https://inout-check.vercel.app" target="_blank" rel="noopener" title="Abrir taquilla" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a1)'" onmouseout="this.style.borderColor='var(--border)'">🎟️ <span style="display:none;display:inline">Taquilla</span></a>
         <div class="notif-btn" onclick="toast('Sin notificaciones nuevas')">🔔</div>
         <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="navigate('perfil')">--</div>
       </div>
@@ -1410,13 +1413,157 @@ async function actualizarEstadoIncidencia(id){
   toast("Estado actualizado ✓");closeModal();renderIncidencias(document.getElementById("page-content"));
 }
 
-// ── PDF NÓMINA ───────────────────────────────────────────────────────────
+// ── PDF NÓMINA (real .pdf con jsPDF) ────────────────────────────────────
 function generarPDFNomina(n){
-  const nombre=n.empleadoNombre||userProfile.nombre,dept=userProfile.dept||"—",email=userProfile.email||"—",mes=n.mes||"—";
-  const bruto=n.bruto||userProfile.salarioBase||0,irpf=n.irpf||userProfile.irpf||15,ret=n.retencion||Math.round(bruto*irpf/100),ss=n.ss||(bruto>0?160:0),neto=n.neto||(bruto-ret-ss);
+  const { jsPDF } = window.jspdf;
+  const nombre=n.empleadoNombre||userProfile.nombre;
+  const dept=userProfile.dept||"—";
+  const email=userProfile.email||"—";
+  const mes=n.mes||"—";
+  const bruto=n.bruto||userProfile.salarioBase||0;
+  const irpf=n.irpf||userProfile.irpf||15;
+  const ret=n.retencion||Math.round(bruto*irpf/100);
+  const ss=n.ss||(bruto>0?160:0);
+  const neto=n.neto||(bruto-ret-ss);
   const fecha=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"});
-  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Nómina ${nombre} · ${mes}</title><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f4f4f8;color:#1a1a2e;padding:40px 20px;font-size:14px}.doc{max-width:720px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}.header{background:#07070f;padding:32px 40px;display:flex;justify-content:space-between;align-items:center}.logo{font-weight:700;font-size:24px;color:#fff}.logo span{color:#c8ff00}.header-right{text-align:right}.doc-title{color:#c8ff00;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px}.doc-mes{color:#fff;font-size:18px;font-weight:600;margin-top:4px}.body{padding:36px 40px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;padding-bottom:28px;border-bottom:2px solid #f0f0f5}.info-block label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px}.info-block span{font-size:15px;font-weight:500}table{width:100%;border-collapse:collapse;margin-bottom:28px}tr{border-bottom:1px solid #f0f0f5}td{padding:12px 0;font-size:14px}td:last-child{text-align:right;font-weight:500}.row-neg td:last-child{color:#e53e3e}.row-total{background:#f8f8fc;border-radius:8px}.row-total td{padding:16px 14px;font-weight:700;font-size:16px}.row-total td:last-child{color:#07070f;font-size:22px}.footer{background:#f8f8fc;padding:20px 40px;border-top:1px solid #e8e8f0;font-size:12px;color:#aaa;display:flex;justify-content:space-between}@media print{body{padding:0;background:#fff}.doc{box-shadow:none}}</style></head><body><div class="doc"><div class="header"><div class="logo">InOut<span>Media</span></div><div class="header-right"><div class="doc-title">Recibo de Salario</div><div class="doc-mes">${mes}</div></div></div><div class="body"><div class="info-grid"><div class="info-block"><label>Trabajador</label><span>${nombre}</span></div><div class="info-block"><label>Departamento</label><span>${dept}</span></div><div class="info-block"><label>Email</label><span>${email}</span></div><div class="info-block"><label>Fecha</label><span>${fecha}</span></div></div><table><tr><td>Salario base</td><td>${bruto.toLocaleString("es-ES")}€</td></tr></table><table><tr class="row-neg"><td>IRPF (${irpf}%)</td><td>−${ret.toLocaleString("es-ES")}€</td></tr><tr class="row-neg"><td>Seguridad Social</td><td>−${ss.toLocaleString("es-ES")}€</td></tr></table><table><tr class="row-total"><td>LÍQUIDO A PERCIBIR</td><td>${neto.toLocaleString("es-ES")}€</td></tr></table></div><div class="footer"><div>InOut Media S.L. · ${fecha}</div><div>Confidencial</div></div></div></body></html>`;
-  const blob=new Blob([html],{type:"text/html"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.html`;a.click();URL.revokeObjectURL(url);toast("Nómina descargada ✓");
+  const anio=new Date().getFullYear();
+
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const pw=210;
+
+  // Cabecera negra
+  doc.setFillColor(7,7,15);
+  doc.rect(0,0,pw,40,"F");
+  // Logo
+  doc.setTextColor(255,255,255);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(22);
+  doc.text("InOut",15,22);
+  doc.setTextColor(200,255,0);
+  doc.text("Media",42,22);
+  // Subtítulo
+  doc.setTextColor(200,255,0);
+  doc.setFontSize(9);
+  doc.setFont("helvetica","bold");
+  doc.text("RECIBO DE SALARIO",pw-15,18,{align:"right"});
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13);
+  doc.text(mes,pw-15,26,{align:"right"});
+
+  // Datos empleado
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(8);
+  doc.setFont("helvetica","normal");
+  doc.setTextColor(130,130,130);
+  doc.text("TRABAJADOR",15,55);
+  doc.text("DEPARTAMENTO",110,55);
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(11);
+  doc.setFont("helvetica","bold");
+  doc.text(nombre,15,62);
+  doc.text(dept,110,62);
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+  doc.setTextColor(130,130,130);
+  doc.text("EMAIL",15,75);
+  doc.text("FECHA EMISIÓN",110,75);
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(10);
+  doc.text(email,15,82);
+  doc.text(fecha,110,82);
+
+  // Línea separadora
+  doc.setDrawColor(220,220,230);
+  doc.setLineWidth(0.3);
+  doc.line(15,92,pw-15,92);
+
+  // DEVENGOS
+  doc.setTextColor(130,130,130);
+  doc.setFontSize(9);
+  doc.setFont("helvetica","bold");
+  doc.text("DEVENGOS",15,102);
+
+  doc.setTextColor(30,30,30);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(10);
+  doc.text("Salario base mensual",15,112);
+  doc.text(`${bruto.toLocaleString("es-ES")} €`,pw-15,112,{align:"right"});
+  doc.setDrawColor(240,240,245);
+  doc.line(15,115,pw-15,115);
+
+  doc.text("Horas extra / complementos",15,122);
+  doc.text("0 €",pw-15,122,{align:"right"});
+  doc.line(15,125,pw-15,125);
+
+  // DEDUCCIONES
+  doc.setTextColor(130,130,130);
+  doc.setFontSize(9);
+  doc.setFont("helvetica","bold");
+  doc.text("DEDUCCIONES",15,138);
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(10);
+  doc.setTextColor(30,30,30);
+  doc.text(`Retención IRPF (${irpf}%)`,15,148);
+  doc.setTextColor(229,62,62);
+  doc.text(`− ${ret.toLocaleString("es-ES")} €`,pw-15,148,{align:"right"});
+  doc.setDrawColor(240,240,245);
+  doc.line(15,151,pw-15,151);
+
+  doc.setTextColor(30,30,30);
+  doc.text("Cotización Seguridad Social",15,158);
+  doc.setTextColor(229,62,62);
+  doc.text(`− ${ss.toLocaleString("es-ES")} €`,pw-15,158,{align:"right"});
+  doc.line(15,161,pw-15,161);
+
+  // Total
+  doc.setFillColor(248,248,252);
+  doc.rect(15,172,pw-30,16,"F");
+  doc.setTextColor(30,30,30);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(11);
+  doc.text("SALARIO LÍQUIDO A PERCIBIR",20,182);
+  doc.setTextColor(45,106,45);
+  doc.setFontSize(16);
+  doc.text(`${neto.toLocaleString("es-ES")} €`,pw-20,182,{align:"right"});
+
+  // Estado
+  const esPagada=n.estado==="pagada";
+  doc.setFillColor(esPagada?209:255,esPagada?250:243,esPagada?229:205);
+  doc.roundedRect(pw-50,195,35,7,2,2,"F");
+  doc.setTextColor(esPagada?6:133,esPagada?95:100,esPagada?70:4);
+  doc.setFontSize(8);
+  doc.setFont("helvetica","bold");
+  doc.text(esPagada?"✓ PAGADO":"PENDIENTE",pw-32.5,199.5,{align:"center"});
+
+  // Firmas
+  doc.setDrawColor(200,200,200);
+  doc.setLineDashPattern([1,1],0);
+  doc.line(15,235,pw-15,235);
+  doc.setLineDashPattern([],0);
+
+  doc.setDrawColor(180,180,180);
+  doc.line(35,255,85,255);
+  doc.line(pw-85,255,pw-35,255);
+  doc.setTextColor(150,150,150);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+  doc.text("Firma empresa",60,261,{align:"center"});
+  doc.text("Firma trabajador",pw-60,261,{align:"center"});
+
+  // Pie
+  doc.setFillColor(248,248,252);
+  doc.rect(0,277,pw,20,"F");
+  doc.setTextColor(150,150,150);
+  doc.setFontSize(8);
+  doc.text(`InOut Media S.L. · CIF: B-XXXXXXXX`,15,285);
+  doc.text(`Documento generado el ${fecha}`,15,290);
+  doc.text(`Ejercicio ${anio}`,pw-15,285,{align:"right"});
+  doc.text("Confidencial",pw-15,290,{align:"right"});
+
+  doc.save(`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.pdf`);
+  toast("Nómina descargada ✓");
 }
 
 // ── AUTO-LOGIN (check session) ───────────────────────────────────────────

@@ -1217,7 +1217,7 @@ function renderMensajes(pc){
 
       <div style="display:flex; gap:10px; margin-bottom:10px;">
         <select id="msg-para">
-          <option value="todos">📢 Todos</option>
+          <option value="todos">Todos</option>
         </select>
         <input id="msg-texto" placeholder="Escribe mensaje..." style="flex:1;">
         <button onclick="enviarMensaje()">Enviar</button>
@@ -1228,13 +1228,28 @@ function renderMensajes(pc){
   `;
 
   initMensajeria();
-}
-
-function initMensajeria(){
+  function initMensajeria(){
+  cargarUsuariosChat();
   cargarMensajes();
   activarRealtime();
 }
+}
+ 
+  async function cargarUsuariosChat(){
+  const { data } = await _sb.from("empleados").select("nombre");
 
+  console.log("EMPLEADOS:", data);
+
+  const select = document.getElementById("msg-para");
+  select.innerHTML = `<option value="todos">Todos</option>`;
+
+  data.forEach(u => {
+    if(!userProfile || u.nombre !== userProfile.nombre){
+      select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
+    }
+  });
+}
+  
 async function enviarMensaje(){
   const texto = document.getElementById("msg-texto").value;
   const para = document.getElementById("msg-para").value;

@@ -569,21 +569,43 @@ function buildNav(role){
 }
 
 function navigate(page){
-  function navigate(page){
-  const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
-  if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
-  
+  const adminPages = ["admin","admin-irpf","admin-nominas","admin-turnos"];
+
+  if(adminPages.includes(page) && !canAdmin()){
+    toast("⛔ Sin acceso");
+    page = "dashboard";
+  }
+
   currentPage = page;
 
-  // 👇 AÑADE ESTA LÍNEA
+  // Guardar en URL
   window.location.hash = page;
 
-  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  // UI
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
   document.getElementById(`nav-${page}`)?.classList.add("active");
-  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
+  document.getElementById("topbar-title").textContent = PAGE_TITLE[page] || page;
+
   closeSidebar();
-  const pc=document.getElementById("page-content");pc.scrollTop=0;
-  ({dashboard,perfil:renderPerfil,nominas:renderNominas,retribuciones:renderRetribuciones,calendario:renderCalendario,eventos:renderEventos,produccion:renderProduccion,inventario:renderInventario,incidencias:renderIncidencias,admin:renderAdmin,"admin-irpf":renderAdminIRPF,"admin-nominas":renderAdminNominas,"admin-turnos":renderAdminTurnos}[page]||dashboard)(pc);
+
+  const pc = document.getElementById("page-content");
+  pc.scrollTop = 0;
+
+  ({
+    dashboard,
+    perfil: renderPerfil,
+    nominas: renderNominas,
+    retribuciones: renderRetribuciones,
+    calendario: renderCalendario,
+    eventos: renderEventos,
+    produccion: renderProduccion,
+    inventario: renderInventario,
+    incidencias: renderIncidencias,
+    admin: renderAdmin,
+    "admin-irpf": renderAdminIRPF,
+    "admin-nominas": renderAdminNominas,
+    "admin-turnos": renderAdminTurnos
+  }[page] || dashboard)(pc);
 }
 function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
 function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}

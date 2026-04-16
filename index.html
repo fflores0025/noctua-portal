@@ -356,18 +356,33 @@ async function doLogin(){
       await _sb.auth.signOut();
       setLoginLoading(false);return;
     }
+    // Comprobar edad de la contraseña (máx 60 días)
+    const{data:lastChange}=await _sb.from('password_history').select('created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).single();
+    let diasDesde=0;
+    if(lastChange){
+      diasDesde=Math.floor((Date.now()-new Date(lastChange.created_at).getTime())/(1000*60*60*24));
+    }else{
+      // Sin historial: guardar esta primera entrada como referencia
+      const hashActual=await hashPassword(pass);
+      await _sb.from('password_history').insert({user_id:currentUser.id,password_hash:hashActual});
+      diasDesde=0;
+    }
+    if(diasDesde>=60){
+      // Forzar cambio de contraseña
+      setLoginLoading(false);
+      mostrarForzarCambioPass();
+      return;
+    }
+    // Si quedan pocos días, avisar pero dejar entrar
+    if(diasDesde>=55){
+      toast(`⚠️ Tu contraseña caduca en ${60-diasDesde} días`,5000);
+    }
     userProfile={
-      nombre:perfil.nombre,
-      role:perfil.role,
-      dept:perfil.departamento||"—",
-      email:perfil.email,
-      irpf:parseFloat(perfil.irpf)||15,
-      salarioBase:parseFloat(perfil.salario_base)||0,
-      tipo:perfil.tipo||"fijo",
-      tlf:perfil.telefono||"—",
-      fechaAlta:perfil.fecha_alta||"—",
-      estado:perfil.estado||"activo",
-      _supabase_id:perfil.id,
+      nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",
+      email:perfil.email,irpf:parseFloat(perfil.irpf)||15,
+      salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",
+      tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",
+      estado:perfil.estado||"activo",_supabase_id:perfil.id,
     };
     enterApp();
   }catch(e){
@@ -375,6 +390,20 @@ async function doLogin(){
     const msgs={"Invalid login credentials":"Email o contraseña incorrectos.","Email not confirmed":"Confirma tu email primero."};
     setLoginError(msgs[e.message]||"Error al iniciar sesión: "+e.message);
   }
+}
+
+function mostrarForzarCambioPass(){
+  const loginCard=document.querySelector(".login-card");
+  loginCard.innerHTML=`
+    <div class="login-logo">InOut<span class="logo-dot">.</span></div>
+    <div class="login-sub" style="margin-bottom:20px;color:var(--a2)">⚠️ Tu contraseña ha caducado.<br/>Debes establecer una nueva.</div>
+    <div id="newpass-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+    <label class="form-lbl">Nueva contraseña</label>
+    <input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    <label class="form-lbl">Confirmar contraseña</label>
+    <input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>
+  `;
 }
 
 document.getElementById("login-pass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
@@ -1437,14 +1466,43 @@ async function guardarNuevaPassword(){
   if(!p1||!p2){showMsg("⚠️ Rellena ambos campos",true);return;}
   if(p1!==p2){showMsg("⚠️ Las contraseñas no coinciden",true);return;}
   if(p1.length<6){showMsg("⚠️ Mínimo 6 caracteres",true);return;}
+
+  // Comprobar que no sea igual a una anterior
+  const{data:{user}}=await _sb.auth.getUser();
+  if(user){
+    const{data:hist}=await _sb.from('password_history').select('password_hash').eq('user_id',user.id);
+    if(hist&&hist.length>0){
+      const hashNew=await hashPassword(p1);
+      if(hist.some(h=>h.password_hash===hashNew)){
+        showMsg("⚠️ No puedes usar una contraseña anterior. Elige una nueva.",true);
+        return;
+      }
+    }
+  }
+
   const{error}=await _sb.auth.updateUser({password:p1});
   if(error){showMsg("Error: "+error.message,true);return;}
-  showMsg("✅ Contraseña actualizada. Redirigiendo...",false);
-  // Limpiar hash y redirigir al portal
-  setTimeout(()=>{
+
+  // Guardar hash en historial
+  if(user){
+    const hashNew=await hashPassword(p1);
+    await _sb.from('password_history').insert({user_id:user.id,password_hash:hashNew});
+  }
+
+  showMsg("✅ Contraseña actualizada. Redirigiendo al login...",false);
+  // Cerrar sesión y redirigir al login
+  setTimeout(async()=>{
+    await _sb.auth.signOut();
     window.location.hash="";
-    window.location.reload();
+    window.location.href=window.location.pathname;
   },1500);
+}
+
+// Hash SHA-256 para comparar contraseñas en el historial (sin guardar en texto plano)
+async function hashPassword(pass){
+  const data=new TextEncoder().encode(pass);
+  const buf=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 </script>
 </body>

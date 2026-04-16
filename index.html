@@ -1245,7 +1245,7 @@ async function enviarMensaje(){
   }
 
   await _sb.from("mensajes").insert({
-    de: currentUser,
+    de: userProfile.nombre,
     para: para,
     mensaje: texto
   });
@@ -1270,11 +1270,11 @@ function pintarMensajes(lista){
     <div style="
       margin-bottom:8px;
       display:flex;
-      ${m.de === currentUser ? 'justify-content:flex-end' : 'justify-content:flex-start'}
+      ${m.de === userProfile.nombre ? 'justify-content:flex-end' : 'justify-content:flex-start'}
     ">
       <div style="
-        background:${m.de === currentUser ? '#00d4aa' : '#1a1a2e'};
-        color:${m.de === currentUser ? '#000' : '#fff'};
+        background:${m.de === userProfile.nombre ? '#00d4aa' : '#1a1a2e'};
+        color:${m.de === userProfile.nombre ? '#000' : '#fff'};
         padding:8px 12px;
         border-radius:12px;
         max-width:70%;
@@ -1312,11 +1312,11 @@ function añadirMensaje(m){
     <div style="
       margin-bottom:8px;
       display:flex;
-      ${m.de === currentUser ? 'justify-content:flex-end' : 'justify-content:flex-start'}
+      ${m.de === userProfile.nombre ? 'justify-content:flex-end' : 'justify-content:flex-start'}
     ">
       <div style="
-        background:${m.de === currentUser ? '#00d4aa' : '#1a1a2e'};
-        color:${m.de === currentUser ? '#000' : '#fff'};
+        background:${m.de === userProfile.nombre ? '#00d4aa' : '#1a1a2e'};
+        color:${m.de === userProfile.nombre ? '#000' : '#fff'};
         padding:8px 12px;
         border-radius:12px;
         max-width:70%;

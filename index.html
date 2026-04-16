@@ -1267,6 +1267,11 @@ async function enviarMensaje(){
 
   document.getElementById("msg-texto").value = "";
 
+  cargarMensajes();
+}
+
+  document.getElementById("msg-texto").value = "";
+
   async function cargarMensajes(){
   const { data } = await _sb
     .from("mensajes")

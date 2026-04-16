@@ -1208,7 +1208,7 @@ async function eliminarProyecto(id){
   closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
 }
 
-// ================= CHAT INTERNO =================
+// ================= CHAT SIMPLE FUNCIONAL =================
 
 function renderMensajes(pc){
   pc.innerHTML = `
@@ -1227,20 +1227,17 @@ function renderMensajes(pc){
     </div>
   `;
 
-  initMensajeria();
-  function initMensajeria(){
   cargarUsuariosChat();
   cargarMensajes();
   activarRealtime();
 }
-}
- 
-  async function cargarUsuariosChat(){
+
+// ---------- CARGAR USUARIOS ----------
+async function cargarUsuariosChat(){
   const { data } = await _sb.from("empleados").select("nombre");
 
-  console.log("EMPLEADOS:", data);
-
   const select = document.getElementById("msg-para");
+
   select.innerHTML = `<option value="todos">Todos</option>`;
 
   data.forEach(u => {
@@ -1249,7 +1246,8 @@ function renderMensajes(pc){
     }
   });
 }
-  
+
+// ---------- ENVIAR ----------
 async function enviarMensaje(){
   const texto = document.getElementById("msg-texto").value;
   const para = document.getElementById("msg-para").value;
@@ -1267,9 +1265,10 @@ async function enviarMensaje(){
 
   document.getElementById("msg-texto").value = "";
 
-  cargarMensajes(); // 👈 IMPORTANTE
+  cargarMensajes();
 }
 
+// ---------- CARGAR MENSAJES ----------
 async function cargarMensajes(){
   const { data } = await _sb
     .from("mensajes")
@@ -1285,6 +1284,7 @@ async function cargarMensajes(){
   pintarMensajes(filtrados);
 }
 
+// ---------- PINTAR ----------
 function pintarMensajes(lista){
   const box = document.getElementById("chat-box");
 
@@ -1310,46 +1310,21 @@ function pintarMensajes(lista){
   box.scrollTop = box.scrollHeight;
 }
 
+// ---------- REALTIME ----------
+let chatActivo = false;
+
 function activarRealtime(){
+  if(chatActivo) return;
+  chatActivo = true;
+
   _sb
-    .channel('mensajes-realtime')
+    .channel('mensajes')
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'mensajes'
-      },
-      payload => {
-        añadirMensaje(payload.new);
-      }
+      { event: 'INSERT', schema: 'public', table: 'mensajes' },
+      () => cargarMensajes()
     )
     .subscribe();
-}
-
-function añadirMensaje(m){
-  const box = document.getElementById("chat-box");
-
-  box.innerHTML += `
-    <div style="
-      margin-bottom:8px;
-      display:flex;
-      ${m.de === userProfile.nombre ? 'justify-content:flex-end' : 'justify-content:flex-start'}
-    ">
-      <div style="
-        background:${m.de === userProfile.nombre ? '#00d4aa' : '#1a1a2e'};
-        color:${m.de === userProfile.nombre ? '#000' : '#fff'};
-        padding:8px 12px;
-        border-radius:12px;
-        max-width:70%;
-      ">
-        <small>${m.de}</small><br>
-        ${m.mensaje}
-      </div>
-    </div>
-  `;
-
-  box.scrollTop = box.scrollHeight;
 }
 
 // ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────

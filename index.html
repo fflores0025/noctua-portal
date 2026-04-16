@@ -475,23 +475,30 @@ async function cargarEventos(){
     // Marcar eventos finalizados antes de cargar
     try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}
     const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});
-    DEMO_EVENTOS=(data||[]).map(e=>({
-      id:e.id,nombre:e.nombre,
-      fecha:e.fecha_inicio?e.fecha_inicio.slice(0,10):"",
-      hora_inicio:e.fecha_inicio?e.fecha_inicio.slice(11,16):"",
-      fecha_fin:e.fecha_fin?e.fecha_fin.slice(0,10):"",
-      hora_fin:e.fecha_fin?e.fecha_fin.slice(11,16):"",
-      lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,
-      tipo:e.tipo||"nocturno",estado:e.estado||"borrador",
-      equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",
-      material:e.material||[],
-      ticketTypes:[],
-      artistas:e.artistas||"",vestimenta:e.vestimenta||"",
-      apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,
-      normas:e.normas||"",descripcionEvento:e.descripcion||"",
-      mapsUrl:e.maps_url||"",webEvento:e.web_evento||"",
-      firebase_id:e.firebase_id,slug:e.slug,
-    }));
+    DEMO_EVENTOS=(data||[]).map(e=>{
+      // Leer fecha y hora sin conversión de zona horaria
+      // fecha_inicio viene como "2026-04-16T21:30:00+00:00" o similar
+      // Extraemos directamente los caracteres 0-10 (fecha) y 11-16 (hora)
+      const fi=e.fecha_inicio||"";
+      const ff=e.fecha_fin||"";
+      return {
+        id:e.id,nombre:e.nombre,
+        fecha:fi.slice(0,10),
+        hora_inicio:fi.slice(11,16),
+        fecha_fin:ff.slice(0,10),
+        hora_fin:ff.slice(11,16),
+        lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,
+        tipo:e.tipo||"nocturno",estado:e.estado||"borrador",
+        equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",
+        material:e.material||[],
+        ticketTypes:[],
+        artistas:e.artistas||"",vestimenta:e.vestimenta||"",
+        apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,
+        normas:e.normas||"",descripcionEvento:e.descripcion||"",
+        mapsUrl:e.maps_url||"",webEvento:e.web_evento||"",
+        firebase_id:e.firebase_id,slug:e.slug,
+      };
+    });
   }catch(e){DEMO_EVENTOS=[];}
 }
 
@@ -1385,6 +1392,26 @@ function generarPDFNomina(n){
 
 // ── AUTO-LOGIN (check session) ───────────────────────────────────────────
 (async function checkSession(){
+  // Detectar si venimos de un reset de contraseña
+  const hash=window.location.hash;
+  if(hash&&hash.includes('type=recovery')){
+    // Mostrar pantalla para establecer nueva contraseña
+    document.getElementById("login-screen").style.display="flex";
+    document.getElementById("panel-login").style.display="none";
+    document.getElementById("panel-reset").style.display="none";
+    const loginCard=document.querySelector(".login-card");
+    loginCard.innerHTML=`
+      <div class="login-logo">InOut<span class="logo-dot">.</span></div>
+      <div class="login-sub" style="margin-bottom:20px">Establecer nueva contraseña</div>
+      <div id="newpass-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+      <label class="form-lbl">Nueva contraseña</label>
+      <input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      <label class="form-lbl">Confirmar contraseña</label>
+      <input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>
+    `;
+    return;
+  }
   const{data:{session}}=await _sb.auth.getSession();
   if(session?.user){
     currentUser=session.user;
@@ -1395,6 +1422,30 @@ function generarPDFNomina(n){
     }
   }
 })();
+
+async function guardarNuevaPassword(){
+  const p1=document.getElementById("newpass-1").value;
+  const p2=document.getElementById("newpass-2").value;
+  const msg=document.getElementById("newpass-msg");
+  const showMsg=(text,isError)=>{
+    msg.style.display="block";
+    msg.style.background=isError?"rgba(255,60,172,.1)":"rgba(200,255,0,.08)";
+    msg.style.border=isError?"1px solid rgba(255,60,172,.2)":"1px solid rgba(200,255,0,.2)";
+    msg.style.color=isError?"var(--a2)":"var(--a1)";
+    msg.textContent=text;
+  };
+  if(!p1||!p2){showMsg("⚠️ Rellena ambos campos",true);return;}
+  if(p1!==p2){showMsg("⚠️ Las contraseñas no coinciden",true);return;}
+  if(p1.length<6){showMsg("⚠️ Mínimo 6 caracteres",true);return;}
+  const{error}=await _sb.auth.updateUser({password:p1});
+  if(error){showMsg("Error: "+error.message,true);return;}
+  showMsg("✅ Contraseña actualizada. Redirigiendo...",false);
+  // Limpiar hash y redirigir al portal
+  setTimeout(()=>{
+    window.location.hash="";
+    window.location.reload();
+  },1500);
+}
 </script>
 </body>
 </html>

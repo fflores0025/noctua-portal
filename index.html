@@ -591,21 +591,22 @@ function navigate(page){
   const pc = document.getElementById("page-content");
   pc.scrollTop = 0;
 
-  ({
-    dashboard,
-    perfil: renderPerfil,
-    nominas: renderNominas,
-    retribuciones: renderRetribuciones,
-    calendario: renderCalendario,
-    eventos: renderEventos,
-    produccion: renderProduccion,
-    inventario: renderInventario,
-    incidencias: renderIncidencias,
-    admin: renderAdmin,
-    "admin-irpf": renderAdminIRPF,
-    "admin-nominas": renderAdminNominas,
-    "admin-turnos": renderAdminTurnos
-  }[page] || dashboard)(pc);
+ ({
+  dashboard,
+  perfil: renderPerfil,
+  nominas: renderNominas,
+  retribuciones: renderRetribuciones,
+  calendario: renderCalendario,
+  eventos: renderEventos,
+  produccion: renderProduccion,
+  inventario: renderInventario,
+  incidencias: renderIncidencias,
+  mensajes: renderMensajes,   // 👈 ESTA LÍNEA
+  admin: renderAdmin,
+  "admin-irpf": renderAdminIRPF,
+  "admin-nominas": renderAdminNominas,
+  "admin-turnos": renderAdminTurnos
+}[page] || dashboard)(pc);
 }
 function toggleSidebar(){
   document.getElementById("sidebar").classList.toggle("open");
@@ -1196,6 +1197,130 @@ async function eliminarProyecto(id){
   await _sb.from('proyectos').delete().eq('id',id);
   toast("Proyecto eliminado ✓");
   closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
+}
+
+// ================= CHAT INTERNO =================
+
+const currentUser = userProfile?.nombre || "admin";
+
+function renderMensajes(pc){
+  pc.innerHTML = `
+    <div class="card">
+      <h2>💬 Chat interno</h2>
+
+      <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <select id="msg-para">
+          <option value="todos">📢 Todos</option>
+        </select>
+        <input id="msg-texto" placeholder="Escribe mensaje..." style="flex:1;">
+        <button onclick="enviarMensaje()">Enviar</button>
+      </div>
+
+      <div id="chat-box" style="height:400px; overflow:auto;"></div>
+    </div>
+  `;
+
+  initMensajeria();
+}
+
+function initMensajeria(){
+  cargarMensajes();
+  activarRealtime();
+}
+
+async function enviarMensaje(){
+  const texto = document.getElementById("msg-texto").value;
+  const para = document.getElementById("msg-para").value;
+
+  if(!texto.trim()){
+    alert("Escribe un mensaje");
+    return;
+  }
+
+  await _sb.from("mensajes").insert({
+    de: currentUser,
+    para: para,
+    mensaje: texto
+  });
+
+  document.getElementById("msg-texto").value = "";
+}
+
+async function cargarMensajes(){
+  const { data } = await _sb
+    .from("mensajes")
+    .select("*")
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  pintarMensajes(data);
+}
+
+function pintarMensajes(lista){
+  const box = document.getElementById("chat-box");
+
+  box.innerHTML = lista.map(m => `
+    <div style="
+      margin-bottom:8px;
+      display:flex;
+      ${m.de === currentUser ? 'justify-content:flex-end' : 'justify-content:flex-start'}
+    ">
+      <div style="
+        background:${m.de === currentUser ? '#00d4aa' : '#1a1a2e'};
+        color:${m.de === currentUser ? '#000' : '#fff'};
+        padding:8px 12px;
+        border-radius:12px;
+        max-width:70%;
+      ">
+        <small>${m.de}</small><br>
+        ${m.mensaje}
+      </div>
+    </div>
+  `).join("");
+
+  box.scrollTop = box.scrollHeight;
+}
+
+function activarRealtime(){
+  _sb
+    .channel('mensajes-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'mensajes'
+      },
+      payload => {
+        añadirMensaje(payload.new);
+      }
+    )
+    .subscribe();
+}
+
+function añadirMensaje(m){
+  const box = document.getElementById("chat-box");
+
+  box.innerHTML += `
+    <div style="
+      margin-bottom:8px;
+      display:flex;
+      ${m.de === currentUser ? 'justify-content:flex-end' : 'justify-content:flex-start'}
+    ">
+      <div style="
+        background:${m.de === currentUser ? '#00d4aa' : '#1a1a2e'};
+        color:${m.de === currentUser ? '#000' : '#fff'};
+        padding:8px 12px;
+        border-radius:12px;
+        max-width:70%;
+      ">
+        <small>${m.de}</small><br>
+        ${m.mensaje}
+      </div>
+    </div>
+  `;
+
+  box.scrollTop = box.scrollHeight;
 }
 
 // ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────

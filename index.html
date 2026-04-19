@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>InOut Media · Connect</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
-  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <!-- jsPDF para generar nóminas en PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -84,6 +82,8 @@
     .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);} .btn-g:hover{color:var(--txt);border-color:var(--muted);}
     .btn-danger{background:rgba(255,60,172,.1);color:var(--a2);border:1px solid rgba(255,60,172,.2);}
     .btn-full{width:100%;justify-content:center;}
+    .btn-paid{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.25);}
+    .btn-paid:hover{background:rgba(0,230,118,.2);}
     .t-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04);}
     .t-row:last-child{border-bottom:none;}
     .t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -137,7 +137,6 @@
     .login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;}
     #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:1000;transition:transform .3s;white-space:nowrap;}
     #toast.show{transform:translateX(-50%) translateY(0);}
-    /* ── CHAT STYLES ── */
     .chat-container{display:flex;flex-direction:column;height:calc(100vh - 180px);min-height:400px;max-height:700px;}
     .chat-messages{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:4px;min-height:0;}
     .chat-messages::-webkit-scrollbar{width:3px;}
@@ -288,8 +287,8 @@
       <button class="burger" id="burger-btn" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title" id="topbar-title">Portal</span>
       <div class="topbar-right">
-        <a href="https://inout-check.vercel.app" target="_blank" rel="noopener" title="Abrir taquilla" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a1)'" onmouseout="this.style.borderColor='var(--border)'">🎟️ <span style="display:none;display:inline">Taquilla</span></a>
-        <a href="https://inout-valid.vercel.app" target="_blank" rel="noopener" title="Abrir RFID System" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a3)'" onmouseout="this.style.borderColor='var(--border)'">📡 <span style="display:inline">Valid</span></a>
+        <a href="https://inout-check.vercel.app" target="_blank" rel="noopener" title="Abrir taquilla" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a1)'" onmouseout="this.style.borderColor='var(--border)'">🎟️ <span>Taquilla</span></a>
+        <a href="https://inout-valid.vercel.app" target="_blank" rel="noopener" title="Abrir RFID System" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a3)'" onmouseout="this.style.borderColor='var(--border)'">📡 <span>Valid</span></a>
         <div class="notif-btn" onclick="toast('Sin notificaciones nuevas')">🔔</div>
         <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="navigate('perfil')">--</div>
       </div>
@@ -301,55 +300,36 @@
 <div class="modal-bg" id="modal-bg">
   <div class="modal" id="modal-body"></div>
 </div>
-
 <script>
-// ── SUPABASE INIT ────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://raoxkjnwrccoxjcipfpv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable__-K1pC4bOJHRf8JQ__OOzg_jqLxlGla';
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── ESTADO ──────────────────────────────────────────────────────────────
 let currentUser=null, userProfile=null, currentPage="dashboard";
-let DEMO_NOMINAS=[];
-let DEMO_EVENTOS=[];
-let DEMO_EMPLEADOS=[];
-let DEMO_TURNOS=[];
-let TURNOS_EQUIPO=[];
-let DEMO_PROYECTOS=[];
-let INVENTARIO=[];
-let INCIDENCIAS=[];
+let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_EMPLEADOS=[], DEMO_TURNOS=[], TURNOS_EQUIPO=[], DEMO_PROYECTOS=[], INVENTARIO=[], INCIDENCIAS=[];
 let unreadMsgCount=0;
 
-// ── NAV CONFIG ───────────────────────────────────────────────────────────
 const NAV_CONFIG={
-admin:[
-  {sec:"Principal"},
-  {key:"dashboard",icon:"⚡",label:"Inicio"},
-  {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"},
+  admin:[
+    {sec:"Principal"},
+    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
     {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
   ],
   rrhh:[
-  {key:"dashboard",icon:"⚡",label:"Inicio"},
-  {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"},
+    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
     {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
   ],
   empleado:[
-  {key:"dashboard",icon:"⚡",label:"Inicio"},
-  {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"},
+    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
   ],
   freelance:[
-  {key:"dashboard",icon:"⚡",label:"Inicio"},
-  {key:"perfil",icon:"👤",label:"Mi perfil"},
-  {key:"mensajes", icon:"💬", label:"Mensajes"},
+    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
   ],
@@ -357,7 +337,6 @@ admin:[
 
 const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",mensajes:"Mensajes",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
 
-// ── UTILS ────────────────────────────────────────────────────────────────
 function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
 function canAdmin(){return["admin","rrhh"].includes(userProfile?.role);}
 function canAdminRole(r){return["admin","rrhh"].includes(r);}
@@ -373,15 +352,9 @@ function showModal(h){document.getElementById("modal-body").innerHTML=h;document
 function closeModal(){document.getElementById("modal-bg").classList.remove("show");}
 document.getElementById("modal-bg").addEventListener("click",e=>{if(e.target===document.getElementById("modal-bg"))closeModal();});
 
-// ── AUTH (Supabase) ──────────────────────────────────────────────────────
-function setLoginError(msg){
-  const el=document.getElementById("login-error");
-  el.textContent=msg; el.style.display=msg?"block":"none";
-}
-function setLoginLoading(on){
-  document.getElementById("login-btn").disabled=on;
-  document.getElementById("login-btn").textContent=on?"Entrando…":"Entrar al portal";
-}
+// ── AUTH ─────────────────────────────────────────────────────────────────
+function setLoginError(msg){const el=document.getElementById("login-error");el.textContent=msg;el.style.display=msg?"block":"none";}
+function setLoginLoading(on){document.getElementById("login-btn").disabled=on;document.getElementById("login-btn").textContent=on?"Entrando…":"Entrar al portal";}
 
 async function doLogin(){
   const email=document.getElementById("login-email").value.trim();
@@ -391,38 +364,17 @@ async function doLogin(){
   setLoginLoading(true);
   try{
     const{data,error}=await _sb.auth.signInWithPassword({email,password:pass});
-    if(error) throw error;
+    if(error)throw error;
     currentUser=data.user;
     const{data:perfil,error:perfilErr}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    if(perfilErr||!perfil){
-      setLoginError("Perfil no encontrado. Contacta con el administrador.");
-      await _sb.auth.signOut();
-      setLoginLoading(false);return;
-    }
+    if(perfilErr||!perfil){setLoginError("Perfil no encontrado. Contacta con el administrador.");await _sb.auth.signOut();setLoginLoading(false);return;}
     const{data:lastChange}=await _sb.from('password_history').select('created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).single();
     let diasDesde=0;
-    if(lastChange){
-      diasDesde=Math.floor((Date.now()-new Date(lastChange.created_at).getTime())/(1000*60*60*24));
-    }else{
-      const hashActual=await hashPassword(pass);
-      await _sb.from('password_history').insert({user_id:currentUser.id,password_hash:hashActual});
-      diasDesde=0;
-    }
-    if(diasDesde>=60){
-      setLoginLoading(false);
-      mostrarForzarCambioPass();
-      return;
-    }
-    if(diasDesde>=55){
-      toast(`⚠️ Tu contraseña caduca en ${60-diasDesde} días`,5000);
-    }
-    userProfile={
-      nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",
-      email:perfil.email,irpf:parseFloat(perfil.irpf)||15,
-      salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",
-      tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",
-      estado:perfil.estado||"activo",_supabase_id:perfil.id,
-    };
+    if(lastChange){diasDesde=Math.floor((Date.now()-new Date(lastChange.created_at).getTime())/(1000*60*60*24));}
+    else{const hashActual=await hashPassword(pass);await _sb.from('password_history').insert({user_id:currentUser.id,password_hash:hashActual});diasDesde=0;}
+    if(diasDesde>=60){setLoginLoading(false);mostrarForzarCambioPass();return;}
+    if(diasDesde>=55)toast(`⚠️ Tu contraseña caduca en ${60-diasDesde} días`,5000);
+    userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id};
     enterApp();
   }catch(e){
     setLoginLoading(false);
@@ -432,242 +384,83 @@ async function doLogin(){
 }
 
 function mostrarForzarCambioPass(){
-  const loginCard=document.querySelector(".login-card");
-  loginCard.innerHTML=`
+  document.querySelector(".login-card").innerHTML=`
     <div class="login-logo">InOut<span class="logo-dot">.</span></div>
     <div class="login-sub" style="margin-bottom:20px;color:var(--a2)">⚠️ Tu contraseña ha caducado.<br/>Debes establecer una nueva.</div>
     <div id="newpass-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-    <label class="form-lbl">Nueva contraseña</label>
-    <input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
-    <label class="form-lbl">Confirmar contraseña</label>
-    <input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
-    <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>
-  `;
+    <label class="form-lbl">Nueva contraseña</label><input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    <label class="form-lbl">Confirmar contraseña</label><input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>`;
 }
 
 document.getElementById("login-pass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 
-function mostrarPanelReset(){
-  document.getElementById("panel-login").style.display="none";
-  document.getElementById("panel-reset").style.display="block";
-  document.getElementById("reset-msg").style.display="none";
-  const emailLogin=document.getElementById("login-email").value;
-  if(emailLogin)document.getElementById("reset-email").value=emailLogin;
-}
-function mostrarPanelLogin(){
-  document.getElementById("panel-reset").style.display="none";
-  document.getElementById("panel-login").style.display="block";
-}
+function mostrarPanelReset(){document.getElementById("panel-login").style.display="none";document.getElementById("panel-reset").style.display="block";document.getElementById("reset-msg").style.display="none";const emailLogin=document.getElementById("login-email").value;if(emailLogin)document.getElementById("reset-email").value=emailLogin;}
+function mostrarPanelLogin(){document.getElementById("panel-reset").style.display="none";document.getElementById("panel-login").style.display="block";}
 
 async function enviarResetEmail(){
   const email=document.getElementById("reset-email").value.trim();
   const msg=document.getElementById("reset-msg");
-  if(!email){
-    msg.style.display="block";
-    msg.style.background="rgba(255,60,172,.1)";msg.style.border="1px solid rgba(255,60,172,.2)";msg.style.color="var(--a2)";
-    msg.textContent="⚠️ Introduce tu email";return;
-  }
-  try{
-    await _sb.auth.resetPasswordForEmail(email,{redirectTo:"https://inout-connect.vercel.app"});
-    msg.style.display="block";
-    msg.style.background="rgba(200,255,0,.08)";msg.style.border="1px solid rgba(200,255,0,.2)";msg.style.color="var(--a1)";
-    msg.textContent="✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.";
-  }catch(e){
-    msg.style.display="block";
-    msg.style.background="rgba(200,255,0,.08)";msg.style.border="1px solid rgba(200,255,0,.2)";msg.style.color="var(--a1)";
-    msg.textContent="✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.";
-  }
+  if(!email){msg.style.display="block";msg.style.background="rgba(255,60,172,.1)";msg.style.border="1px solid rgba(255,60,172,.2)";msg.style.color="var(--a2)";msg.textContent="⚠️ Introduce tu email";return;}
+  try{await _sb.auth.resetPasswordForEmail(email,{redirectTo:"https://inout-connect.vercel.app"});}catch(e){}
+  msg.style.display="block";msg.style.background="rgba(200,255,0,.08)";msg.style.border="1px solid rgba(200,255,0,.2)";msg.style.color="var(--a1)";msg.textContent="✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.";
 }
 
 async function doLogout(){
-  await _sb.auth.signOut();
-  currentUser=null;userProfile=null;
-  document.getElementById("app").style.display="none";
-  document.getElementById("login-screen").style.display="flex";
-  document.getElementById("login-email").value="";
-  document.getElementById("login-pass").value="";
-  closeSidebar();
+  await _sb.auth.signOut();currentUser=null;userProfile=null;
+  document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";
+  document.getElementById("login-email").value="";document.getElementById("login-pass").value="";closeSidebar();
 }
 
-// ── ENTER APP & DATA LOADING ─────────────────────────────────────────────
+// ── DATA LOADING ─────────────────────────────────────────────────────────
 async function enterApp(){
-  document.getElementById("login-screen").style.display="none";
-  document.getElementById("app").style.display="flex";
+  document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
   const ini=initials(userProfile.nombre),avc=avatarColor(userProfile.role);
   ["s-avatar","tb-avatar"].forEach(id=>{const el=document.getElementById(id);el.textContent=ini;el.className=`avatar ${avc}`;});
-  document.getElementById("s-name").textContent=userProfile.nombre;
-  document.getElementById("s-role").textContent=userProfile.role;
+  document.getElementById("s-name").textContent=userProfile.nombre;document.getElementById("s-role").textContent=userProfile.role;
   buildNav(userProfile.role);
-  await cargarEventos();
-  await cargarProyectos();
-  await cargarMisNominas();
-  await cargarMisTurnos();
-  cargarInventarioBackground();
-  if(canAdminRole(userProfile.role)){
-    await cargarEmpleados();
-    await cargarTodosLosTurnos();
-  }
-  // Contar mensajes no leídos para badge
-  actualizarBadgeMensajes();
-  // Activar realtime de chat globalmente
-  activarRealtime();
-  const hash = window.location.hash.replace('#', '');
-  navigate(hash || "dashboard");
+  await cargarEventos();await cargarProyectos();await cargarMisNominas();await cargarMisTurnos();cargarInventarioBackground();
+  if(canAdminRole(userProfile.role)){await cargarEmpleados();await cargarTodosLosTurnos();}
+  actualizarBadgeMensajes();activarRealtime();
+  const hash=window.location.hash.replace('#','');navigate(hash||"dashboard");
 }
 
-async function cargarInventarioBackground(){
-  try{
-    const{data}=await _sb.from('inventario').select('*').order('nombre');
-    INVENTARIO=data||[];
-  }catch(e){INVENTARIO=[];}
-}
-
-async function cargarMisNominas(){
-  try{
-    const{data}=await _sb.from('nominas').select('*').eq('empleado_id',userProfile._supabase_id).order('created_at',{ascending:false});
-    DEMO_NOMINAS=(data||[]).map(n=>({id:n.id,empleadoId:n.empleado_id,empleadoNombre:n.empleado_nombre,mes:n.mes,bruto:parseFloat(n.bruto),irpf:parseFloat(n.irpf),retencion:parseFloat(n.retencion),ss:parseFloat(n.ss),neto:parseFloat(n.neto),estado:n.estado,generadoPor:n.generado_por,fechaCreacion:n.created_at}));
-  }catch(e){DEMO_NOMINAS=[];}
-}
-
-async function cargarMisTurnos(){
-  try{
-    const{data}=await _sb.from('turnos').select('*').eq('empleado_id',userProfile._supabase_id).order('fecha');
-    DEMO_TURNOS=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));
-  }catch(e){DEMO_TURNOS=[];}
-}
-
-async function cargarTodosLosTurnos(){
-  try{
-    const{data}=await _sb.from('turnos').select('*').order('fecha');
-    TURNOS_EQUIPO=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));
-  }catch(e){TURNOS_EQUIPO=[];}
-}
-
-async function cargarEventos(){
-  try{
-    try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}
-    const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});
-    DEMO_EVENTOS=(data||[]).map(e=>{
-      const fi=e.fecha_inicio||"";
-      const ff=e.fecha_fin||"";
-      return {
-        id:e.id,nombre:e.nombre,
-        fecha:fi.slice(0,10),
-        hora_inicio:fi.slice(11,16),
-        fecha_fin:ff.slice(0,10),
-        hora_fin:ff.slice(11,16),
-        lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,
-        tipo:e.tipo||"nocturno",estado:e.estado||"borrador",
-        equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",
-        material:e.material||[],
-        ticketTypes:[],
-        artistas:e.artistas||"",vestimenta:e.vestimenta||"",
-        apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,
-        normas:e.normas||"",descripcionEvento:e.descripcion||"",
-        mapsUrl:e.maps_url||"",webEvento:e.web_evento||"",
-        firebase_id:e.firebase_id,slug:e.slug,
-      };
-    });
-  }catch(e){DEMO_EVENTOS=[];}
-}
-
-async function cargarProyectos(){
-  try{
-    const{data}=await _sb.from('proyectos').select('*').order('created_at',{ascending:false});
-    DEMO_PROYECTOS=(data||[]).map(p=>({
-      id:p.id,nombre:p.nombre,cliente:p.cliente||"—",
-      inicio:p.inicio||"—",fin:p.fin||"—",
-      presupuesto:parseFloat(p.presupuesto)||0,
-      estado:p.estado||"activo",progreso:p.progreso||0,
-      creadoPor:p.creado_por,
-    }));
-  }catch(e){DEMO_PROYECTOS=[];}
-}
-
-async function cargarEmpleados(){
-  try{
-    const{data}=await _sb.from('empleados').select('*');
-    DEMO_EMPLEADOS=(data||[]).map(d=>({
-      id:d.id,nombre:d.nombre||"—",email:d.email||"—",
-      role:d.role||"empleado",dept:d.departamento||"—",
-      tipo:d.tipo||"fijo",irpf:parseFloat(d.irpf)||15,
-      salario:parseFloat(d.salario_base)||0,salarioBase:parseFloat(d.salario_base)||0,
-      estado:d.estado||"activo",tlf:d.telefono||"—",
-      fechaAlta:d.fecha_alta||"—",auth_user_id:d.auth_user_id,
-    }));
-  }catch(e){DEMO_EMPLEADOS=[];}
-}
+async function cargarInventarioBackground(){try{const{data}=await _sb.from('inventario').select('*').order('nombre');INVENTARIO=data||[];}catch(e){INVENTARIO=[];}}
+async function cargarMisNominas(){try{const{data}=await _sb.from('nominas').select('*').eq('empleado_id',userProfile._supabase_id).order('created_at',{ascending:false});DEMO_NOMINAS=(data||[]).map(n=>({id:n.id,empleadoId:n.empleado_id,empleadoNombre:n.empleado_nombre,mes:n.mes,bruto:parseFloat(n.bruto),irpf:parseFloat(n.irpf),retencion:parseFloat(n.retencion),ss:parseFloat(n.ss),neto:parseFloat(n.neto),estado:n.estado,generadoPor:n.generado_por,fechaCreacion:n.created_at}));}catch(e){DEMO_NOMINAS=[];}}
+async function cargarMisTurnos(){try{const{data}=await _sb.from('turnos').select('*').eq('empleado_id',userProfile._supabase_id).order('fecha');DEMO_TURNOS=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));}catch(e){DEMO_TURNOS=[];}}
+async function cargarTodosLosTurnos(){try{const{data}=await _sb.from('turnos').select('*').order('fecha');TURNOS_EQUIPO=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));}catch(e){TURNOS_EQUIPO=[];}}
+async function cargarEventos(){try{try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});DEMO_EVENTOS=(data||[]).map(e=>{const fi=e.fecha_inicio||"",ff=e.fecha_fin||"";return{id:e.id,nombre:e.nombre,fecha:fi.slice(0,10),hora_inicio:fi.slice(11,16),fecha_fin:ff.slice(0,10),hora_fin:ff.slice(11,16),lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,tipo:e.tipo||"nocturno",estado:e.estado||"borrador",equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",material:e.material||[],ticketTypes:[],artistas:e.artistas||"",vestimenta:e.vestimenta||"",apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,normas:e.normas||"",descripcionEvento:e.descripcion||"",mapsUrl:e.maps_url||"",webEvento:e.web_evento||"",firebase_id:e.firebase_id,slug:e.slug};})}catch(e){DEMO_EVENTOS=[];}}
+async function cargarProyectos(){try{const{data}=await _sb.from('proyectos').select('*').order('created_at',{ascending:false});DEMO_PROYECTOS=(data||[]).map(p=>({id:p.id,nombre:p.nombre,cliente:p.cliente||"—",inicio:p.inicio||"—",fin:p.fin||"—",presupuesto:parseFloat(p.presupuesto)||0,estado:p.estado||"activo",progreso:p.progreso||0,creadoPor:p.creado_por}));}catch(e){DEMO_PROYECTOS=[];}}
+async function cargarEmpleados(){try{const{data}=await _sb.from('empleados').select('*');DEMO_EMPLEADOS=(data||[]).map(d=>({id:d.id,nombre:d.nombre||"—",email:d.email||"—",role:d.role||"empleado",dept:d.departamento||"—",tipo:d.tipo||"fijo",irpf:parseFloat(d.irpf)||15,salario:parseFloat(d.salario_base)||0,salarioBase:parseFloat(d.salario_base)||0,estado:d.estado||"activo",tlf:d.telefono||"—",fechaAlta:d.fecha_alta||"—",auth_user_id:d.auth_user_id}));}catch(e){DEMO_EMPLEADOS=[];}}
 
 // ── NAV ──────────────────────────────────────────────────────────────────
 function buildNav(role){
   const items=NAV_CONFIG[role]||NAV_CONFIG.empleado;
   document.getElementById("nav-items").innerHTML=items.map(i=>{
-    if(i.sec) return`<div class="nav-sec">${i.sec}</div>`;
-    const badgeHtml = i.key==="mensajes" && unreadMsgCount>0 ? `<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>` : "";
+    if(i.sec)return`<div class="nav-sec">${i.sec}</div>`;
+    const badgeHtml=i.key==="mensajes"&&unreadMsgCount>0?`<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>`:"";
     return`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span>${badgeHtml}</div>`;
   }).join("");
 }
 
 function navigate(page){
-  const adminPages = ["admin","admin-irpf","admin-nominas","admin-turnos"];
-
-  if(adminPages.includes(page) && !canAdmin()){
-    toast("⛔ Sin acceso");
-    page = "dashboard";
-  }
-
-  currentPage = page;
-  window.location.hash = page;
-
-  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+  const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
+  if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
+  currentPage=page;window.location.hash=page;
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
   document.getElementById(`nav-${page}`)?.classList.add("active");
-  document.getElementById("topbar-title").textContent = PAGE_TITLE[page] || page;
-
+  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
   closeSidebar();
-
-  const pc = document.getElementById("page-content");
-  pc.scrollTop = 0;
-
-  ({
-    dashboard,
-    perfil: renderPerfil,
-    nominas: renderNominas,
-    retribuciones: renderRetribuciones,
-    calendario: renderCalendario,
-    eventos: renderEventos,
-    produccion: renderProduccion,
-    inventario: renderInventario,
-    incidencias: renderIncidencias,
-    mensajes: renderMensajes,
-    admin: renderAdmin,
-    "admin-irpf": renderAdminIRPF,
-    "admin-nominas": renderAdminNominas,
-    "admin-turnos": renderAdminTurnos
-  }[page] || dashboard)(pc);
+  const pc=document.getElementById("page-content");pc.scrollTop=0;
+  ({dashboard,perfil:renderPerfil,nominas:renderNominas,retribuciones:renderRetribuciones,calendario:renderCalendario,eventos:renderEventos,produccion:renderProduccion,inventario:renderInventario,incidencias:renderIncidencias,mensajes:renderMensajes,admin:renderAdmin,"admin-irpf":renderAdminIRPF,"admin-nominas":renderAdminNominas,"admin-turnos":renderAdminTurnos}[page]||dashboard)(pc);
 }
 
-// ── HASH ROUTING: botón atrás/adelante del navegador ─────────────────────
-window.addEventListener("hashchange", () => {
-  const hash = window.location.hash.replace("#", "");
-  if(hash && hash !== currentPage && userProfile){
-    navigate(hash);
-  }
-});
-
-function toggleSidebar(){
-  document.getElementById("sidebar").classList.toggle("open");
-  document.getElementById("overlay").classList.toggle("show");
-}
-
-function closeSidebar(){
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-}
-
+window.addEventListener("hashchange",()=>{const hash=window.location.hash.replace("#","");if(hash&&hash!==currentPage&&userProfile)navigate(hash);});
+function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
+function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 function dashboard(pc){
-  const p=userProfile;
-  const hoy=new Date().toISOString().slice(0,10);
+  const p=userProfile;const hoy=new Date().toISOString().slice(0,10);
   const prox=DEMO_TURNOS.length>0?(DEMO_TURNOS.find(t=>t.fecha>=hoy&&t.tipo!=="libre")||DEMO_TURNOS[0]):null;
   const ultimaNomina=DEMO_NOMINAS[0]||{neto:0,estado:"pendiente"};
   pc.innerHTML=`
@@ -681,15 +474,7 @@ function dashboard(pc){
     <div class="g2 mb16">
       <div class="card">
         <div class="card-title">Tus próximos turnos</div>
-        ${DEMO_TURNOS.length===0
-          ?`<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`
-          :DEMO_TURNOS.slice(0,5).map(t=>{
-            const d=new Date((t.fecha||"2025-01-01")+"T12:00:00");
-            const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-            const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-            return`<div class="t-row"><span class="t-dia">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}</span><span class="t-lug">${t.lugar||"—"}</span></div>`;
-          }).join("")
-        }
+        ${DEMO_TURNOS.length===0?`<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`:DEMO_TURNOS.slice(0,5).map(t=>{const d=new Date((t.fecha||"2025-01-01")+"T12:00:00");const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];return`<div class="t-row"><span class="t-dia">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span><span class="t-dot d-${t.tipo}"></span><span class="t-hrs">${t.tipo==="libre"?"Libre":`${t.entrada||""}–${t.salida||""}`}</span><span class="t-lug">${t.lugar||"—"}</span></div>`;}).join("")}
       </div>
       <div class="card">
         <div class="card-title">Próximos eventos</div>
@@ -734,14 +519,8 @@ function renderPerfil(pc){
             <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€</span></div>
             <div class="nom-row"><span>IRPF (${p.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
             <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
-            <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
-              <span style="font-size:12px;color:var(--muted)">Neto mensual</span>
-              <span class="nom-total">${neto.toLocaleString()}€</span>
-            </div>
-            <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:9px;text-align:center">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Neto anual estimado</div>
-              <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:700;color:var(--a1)">${(neto*12).toLocaleString()}€</div>
-            </div>
+            <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Neto mensual</span><span class="nom-total">${neto.toLocaleString()}€</span></div>
+            <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Neto anual estimado</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:700;color:var(--a1)">${(neto*12).toLocaleString()}€</div></div>
           `:`<div style="color:var(--muted);font-size:13px">Retribución por caché / proyecto</div>`}
         </div>
         <div class="card">
@@ -769,11 +548,9 @@ async function guardarPerfil(){
   const tlf=document.getElementById("ep-tlf").value||userProfile.tlf;
   await _sb.from('empleados').update({nombre,email,telefono:tlf}).eq('id',userProfile._supabase_id);
   userProfile.nombre=nombre;userProfile.email=email;userProfile.tlf=tlf;
-  const ini=initials(userProfile.nombre);
-  ["s-avatar","tb-avatar"].forEach(id=>document.getElementById(id).textContent=ini);
+  const ini=initials(userProfile.nombre);["s-avatar","tb-avatar"].forEach(id=>document.getElementById(id).textContent=ini);
   document.getElementById("s-name").textContent=userProfile.nombre;
-  toast("Perfil actualizado ✓");closeModal();
-  renderPerfil(document.getElementById("page-content"));
+  toast("Perfil actualizado ✓");closeModal();renderPerfil(document.getElementById("page-content"));
 }
 
 function cambiarPassword(){
@@ -807,9 +584,11 @@ async function renderNominas(pc){
       <div class="card" id="nomina-detail"><div class="card-title">Detalle</div><div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona una nómina para ver el detalle.</div></div>
     </div>`;
 }
+
 function verNomina(id){
   const n=DEMO_NOMINAS.find(x=>x.id===id);if(!n)return;
   const bruto=n.bruto||0,irpf=n.irpf||15,ss=n.ss||160,ret=Math.round(bruto*irpf/100),neto=n.neto||(bruto-ret-ss);
+  const esPagada=n.estado==="pagada";
   document.getElementById("nomina-detail").innerHTML=`
     <div class="card-title">${n.mes||"—"}</div>
     <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
@@ -819,7 +598,32 @@ function verNomina(id){
       <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto</span>
       <span class="nom-total">${neto.toLocaleString()}€</span>
     </div>
-    <div style="margin-top:18px"><button class="btn btn-p" onclick="generarPDFNomina(DEMO_NOMINAS.find(x=>x.id==='${id}'))">⬇ Descargar PDF</button></div>`;
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-p" onclick="generarPDFNomina(DEMO_NOMINAS.find(x=>x.id==='${n.id}'))">⬇ Descargar PDF</button>
+      ${canAdmin()
+        ? esPagada
+          ? `<span class="badge b-green" style="padding:8px 14px;font-size:12px">✓ Pagada</span>`
+          : `<button class="btn btn-paid" onclick="marcarNominaPagada('${n.id}')">✓ Marcar como pagada</button>`
+        : esPagada
+          ? `<span class="badge b-green" style="padding:8px 14px;font-size:12px">✓ Pagada</span>`
+          : ``
+      }
+    </div>`;
+}
+
+// ── FIX NUEVO: Marcar nómina pagada manualmente ───────────────────────
+async function marcarNominaPagada(id){
+  const btn=event.target;
+  btn.disabled=true;btn.textContent="Guardando…";
+  const{error}=await _sb.from('nominas').update({estado:'pagada'}).eq('id',id);
+  if(error){toast("Error: "+error.message);btn.disabled=false;btn.textContent="✓ Marcar como pagada";return;}
+  // Actualizar en memoria
+  const idx=DEMO_NOMINAS.findIndex(n=>n.id===id);
+  if(idx>-1) DEMO_NOMINAS[idx].estado='pagada';
+  toast("Nómina marcada como pagada ✓");
+  // Refrescar: re-renderizar la página actual
+  if(currentPage==="admin-nominas") renderAdminNominas(document.getElementById("page-content"));
+  else renderNominas(document.getElementById("page-content"));
 }
 
 // ── RETRIBUCIONES ─────────────────────────────────────────────────────────
@@ -848,17 +652,13 @@ function renderRetribuciones(pc){
   updateIRPF(userProfile.irpf);
 }
 function updateIRPF(val){
-  const v=parseInt(val);
-  document.getElementById("irpf-display").textContent=v+"%";
+  const v=parseInt(val);document.getElementById("irpf-display").textContent=v+"%";
   const bruto=userProfile.salarioBase||0,ss=160,ret=Math.round(bruto*v/100),neto=bruto-ret-ss;
   document.getElementById("sim-content").innerHTML=`
     <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
     <div class="nom-row"><span>IRPF (${v}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
     <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
-    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto mensual</span>
-      <span class="nom-total" style="font-size:24px">${neto.toLocaleString()}€</span>
-    </div>`;
+    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto mensual</span><span class="nom-total" style="font-size:24px">${neto.toLocaleString()}€</span></div>`;
   document.getElementById("anual-content").innerHTML=`
     <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Bruto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px">${(bruto*12).toLocaleString()}€</div></div>
     <div style="text-align:center;padding:14px;background:var(--bg);border-radius:9px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Neto anual</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:var(--a1)">${(neto*12).toLocaleString()}€</div></div>`;
@@ -870,7 +670,6 @@ async function solicitarIRPF(){
     <p style="color:var(--muted);font-size:14px;line-height:1.6">Tu solicitud de cambio de IRPF al <strong style="color:var(--a1)">${v}%</strong> ha sido enviada a RRHH.</p>
     <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Entendido</button></div>`);
 }
-
 // ── CALENDARIO ───────────────────────────────────────────────────────────
 function renderCalendario(pc){
   const dias=["L","M","X","J","V","S","D"];
@@ -921,8 +720,7 @@ function renderEventos(pc){
 
 function verEvento(id){
   const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
-  const horaInicio=ev.hora_inicio||"";
-  const fechaFinStr=ev.fecha_fin&&ev.fecha_fin!==ev.fecha?`${ev.fecha_fin}${ev.hora_fin?" "+ev.hora_fin:""}`:(ev.hora_fin?ev.hora_fin:"");
+  const horaInicio=ev.hora_inicio||"";const fechaFinStr=ev.fecha_fin&&ev.fecha_fin!==ev.fecha?`${ev.fecha_fin}${ev.hora_fin?" "+ev.hora_fin:""}`:(ev.hora_fin?ev.hora_fin:"");
   showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${ev.nombre}</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap"><span class="badge b-gray">${ev.tipo}</span>${badge(ev.estado)}</div>
     <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
@@ -939,7 +737,6 @@ function verEvento(id){
 }
 
 let _ticketRowCount=0;
-
 function addTicketRow(){
   const list=document.getElementById("ticket-types-list");if(!list)return;
   const empty=document.getElementById("ticket-empty-msg");if(empty)empty.remove();
@@ -951,35 +748,23 @@ function addTicketRow(){
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label class="form-lbl">Precio (€)</label><input class="form-input tt-precio" type="number" min="0" step="0.01" placeholder="0.00" style="margin-bottom:0"/></div><div><label class="form-lbl">Stock</label><input class="form-input tt-stock" type="number" min="1" placeholder="100" style="margin-bottom:0"/></div><div><label class="form-lbl">Máx/persona</label><input class="form-input tt-max" type="number" min="1" value="4" style="margin-bottom:0"/></div></div>`;
   list.appendChild(row);
 }
-
 function getTicketTypes(){
   const rows=document.querySelectorAll("#ticket-types-list [id^='tt-row-']");const types=[];
   rows.forEach(row=>{const nombre=row.querySelector(".tt-nombre").value.trim();const zona=row.querySelector(".tt-zona").value;const precio=parseFloat(row.querySelector(".tt-precio").value)||0;const stock=parseInt(row.querySelector(".tt-stock").value)||0;const max=parseInt(row.querySelector(".tt-max").value)||4;if(nombre)types.push({nombre,zona,precio,stock_total:stock,stock_disponible:stock,max_por_persona:max});});
   return types;
 }
-
 function toSlug(text){return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
 
 function nuevoEvento(){
-  closeModal();
-  setTimeout(()=>{_ticketRowCount=0;
+  closeModal();setTimeout(()=>{_ticketRowCount=0;
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Nuevo evento</div>
     <label class="form-lbl">Nombre</label><input class="form-input" id="ev-nombre" placeholder="Ej: Festival BeachClub"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ev-fecha" type="date"/></div>
-      <div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ev-hora-inicio" type="time" value="22:00"/></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ev-fecha-fin" type="date"/></div>
-      <div><label class="form-lbl">Hora fin</label><input class="form-input" id="ev-hora-fin" type="time" value="06:00"/></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin:-8px 0 14px">💡 Para discotecas: fecha fin = día siguiente (ej: inicio 15/04 22:00, fin 16/04 06:00)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ev-fecha" type="date"/></div><div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ev-hora-inicio" type="time" value="22:00"/></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ev-fecha-fin" type="date"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ev-hora-fin" type="time" value="06:00"/></div></div>
+    <div style="font-size:11px;color:var(--muted);margin:-8px 0 14px">💡 Para discotecas: fecha fin = día siguiente</div>
     <label class="form-lbl">Lugar (Sala, Ciudad)</label><input class="form-input" id="ev-lugar" placeholder="Sala, Ciudad"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Tipo</label><select class="form-select" id="ev-tipo"><option value="festival">Festival</option><option value="corporativo">Corporativo</option><option value="nocturno">Nocturno</option><option value="concierto">Concierto</option></select></div>
-      <div><label class="form-lbl">Estado</label><select class="form-select" id="ev-estado"><option value="borrador">Borrador</option><option value="publicado">Publicado</option></select></div>
-    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="ev-tipo"><option value="festival">Festival</option><option value="corporativo">Corporativo</option><option value="nocturno">Nocturno</option><option value="concierto">Concierto</option></select></div><div><label class="form-lbl">Estado</label><select class="form-select" id="ev-estado"><option value="borrador">Borrador</option><option value="publicado">Publicado</option></select></div></div>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ev-notas" placeholder="Detalles…"></textarea>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><label class="form-lbl" style="margin-bottom:0">🎟️ Tipos de entrada</label><button class="btn btn-g" style="padding:4px 10px;font-size:12px" onclick="addTicketRow()">+ Añadir tipo</button></div>
     <div id="ticket-types-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><div style="color:var(--muted);font-size:12px;text-align:center;padding:8px" id="ticket-empty-msg">Sin tipos de entrada.</div></div>
@@ -998,52 +783,32 @@ function nuevoEvento(){
 }
 
 async function guardarEvento(){
-  const nombre=document.getElementById("ev-nombre").value.trim();
-  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
+  const nombre=document.getElementById("ev-nombre").value.trim();if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
   const fecha=document.getElementById("ev-fecha").value||new Date().toISOString().slice(0,10);
-  const horaInicio=document.getElementById("ev-hora-inicio").value||"22:00";
-  const fechaFin=document.getElementById("ev-fecha-fin").value||fecha;
-  const horaFin=document.getElementById("ev-hora-fin").value||"06:00";
-  const lugar=document.getElementById("ev-lugar").value||"Por confirmar";
-  const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"Por confirmar";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
-  const ticketTypes=getTicketTypes();
-  const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
+  const horaInicio=document.getElementById("ev-hora-inicio").value||"22:00";const fechaFin=document.getElementById("ev-fecha-fin").value||fecha;const horaFin=document.getElementById("ev-hora-fin").value||"06:00";
+  const lugar=document.getElementById("ev-lugar").value||"Por confirmar";const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"Por confirmar";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
+  const ticketTypes=getTicketTypes();const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   const slug=toSlug(nombre)+"-"+Date.now();
-  const fechaInicioLocal=`${fecha}T${horaInicio}:00`;
-  const fechaFinLocal=`${fechaFin}T${horaFin}:00`;
-  const campos={slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:fechaInicioLocal,fecha_fin:fechaFinLocal,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre};
   try{
-    const{data:ev,error}=await _sb.from('events').insert(campos).select().single();
+    const{data:ev,error}=await _sb.from('events').insert({slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:`${fecha}T${horaInicio}:00`,fecha_fin:`${fechaFin}T${horaFin}:00`,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre}).select().single();
     if(error)throw error;
-    if(ticketTypes.length>0){
-      const rows=ticketTypes.map(t=>({event_id:ev.id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true}));
-      await _sb.from('ticket_types').insert(rows);
-    }
+    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:ev.id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true})));
     toast(`Evento "${nombre}" guardado ✓`);
   }catch(e){toast("Error: "+e.message);return;}
-  _ticketRowCount=0;closeModal();await cargarEventos();
-  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  _ticketRowCount=0;closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
 }
 
 function editEvento(id){
-  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;
-  closeModal();
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;closeModal();
   setTimeout(async()=>{
     const{data:tts}=await _sb.from('ticket_types').select('*').eq('event_id',id);
     const existingTickets=(tts||[]).map(t=>({nombre:t.nombre,zona:t.tipo_zona,precio:parseFloat(t.precio),stock_total:t.stock_total,max_por_persona:t.max_por_persona}));
-    _ticketRowCount=0;
-    const zonas=["general","vip","backstage","pista","grada","palco"];
+    _ticketRowCount=0;const zonas=["general","vip","backstage","pista","grada","palco"];
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Editar evento</div>
     <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/></div>
-      <div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="date" value="${ev.fecha_fin||ev.fecha}"/></div>
-      <div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div>
-    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/></div><div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="date" value="${ev.fecha_fin||ev.fecha}"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div></div>
     <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
     <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["borrador","publicado","agotado","cancelado","finalizado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas||""}</textarea>
@@ -1054,7 +819,7 @@ function editEvento(id){
     <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:14px">
       <label class="form-lbl">🎵 Artistas</label><input class="form-input" id="ee-artistas" value="${ev.artistas||""}"/>
       <label class="form-lbl">👔 Vestimenta</label><input class="form-input" id="ee-vestimenta" value="${ev.vestimenta||""}"/>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura puertas</label><input class="form-input" id="ee-apertura" type="time" value="${ev.apertura||""}"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ee-edad" type="number" value="${ev.edadMinima||""}" placeholder="18"/></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">🚪 Apertura</label><input class="form-input" id="ee-apertura" type="time" value="${ev.apertura||""}"/></div><div><label class="form-lbl">🔞 Edad mín.</label><input class="form-input" id="ee-edad" type="number" value="${ev.edadMinima||""}" placeholder="18"/></div></div>
       <label class="form-lbl">📋 Normas</label><textarea class="form-textarea" id="ee-normas" style="min-height:60px">${ev.normas||""}</textarea>
       <label class="form-lbl">🎤 Descripción</label><textarea class="form-textarea" id="ee-descripcion" style="min-height:80px">${ev.descripcionEvento||""}</textarea>
       <label class="form-lbl">📍 Maps</label><input class="form-input" id="ee-maps" value="${ev.mapsUrl||""}"/>
@@ -1069,331 +834,79 @@ function editEvento(id){
 }
 
 async function actualizarEvento(id){
-  const lugar=document.getElementById("ee-lugar").value||"";
-  const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
-  const fecha=document.getElementById("ee-fecha").value;
-  const horaInicio=document.getElementById("ee-hora-inicio").value||"22:00";
-  const fechaFin=document.getElementById("ee-fecha-fin").value||fecha;
-  const horaFin=document.getElementById("ee-hora-fin").value||"06:00";
-  const ticketTypes=getTicketTypes();
-  const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
-  const fechaInicioLocal=fecha?`${fecha}T${horaInicio}:00`:undefined;
-  const fechaFinLocal=fechaFin?`${fechaFin}T${horaFin}:00`:undefined;
-  const campos={nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fechaInicioLocal,fecha_fin:fechaFinLocal,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null};
+  const lugar=document.getElementById("ee-lugar").value||"";const lugarParts=lugar.split(",");const venue_nombre=lugarParts[0]?.trim()||"";const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
+  const fecha=document.getElementById("ee-fecha").value;const horaInicio=document.getElementById("ee-hora-inicio").value||"22:00";const fechaFin=document.getElementById("ee-fecha-fin").value||fecha;const horaFin=document.getElementById("ee-hora-fin").value||"06:00";
+  const ticketTypes=getTicketTypes();const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   try{
-    await _sb.from('events').update(campos).eq('id',id);
+    await _sb.from('events').update({nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fecha?`${fecha}T${horaInicio}:00`:undefined,fecha_fin:fechaFin?`${fechaFin}T${horaFin}:00`:undefined,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null}).eq('id',id);
     await _sb.from('ticket_types').delete().eq('event_id',id);
-    if(ticketTypes.length>0){
-      const rows=ticketTypes.map(t=>({event_id:id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true}));
-      await _sb.from('ticket_types').insert(rows);
-    }
+    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true})));
     toast("Evento actualizado ✓");
   }catch(e){toast("Error: "+e.message);}
-  _ticketRowCount=0;closeModal();await cargarEventos();
-  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
-  if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
+  _ticketRowCount=0;closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));
 }
 
 async function eliminarEvento(id){
   const{data:tks}=await _sb.from('tickets').select('id').eq('event_id',id);
-  if(tks&&tks.length>0){
-    const ticketIds=tks.map(t=>t.id);
-    await _sb.from('validation_log').delete().in('ticket_id',ticketIds);
-  }
+  if(tks&&tks.length>0){const ticketIds=tks.map(t=>t.id);await _sb.from('validation_log').delete().in('ticket_id',ticketIds);}
   const{data:ords}=await _sb.from('orders').select('id').eq('event_id',id);
-  if(ords&&ords.length>0){
-    const orderIds=ords.map(o=>o.id);
-    await _sb.from('order_items').delete().in('order_id',orderIds);
-  }
-  await _sb.from('tickets').delete().eq('event_id',id);
-  await _sb.from('orders').delete().eq('event_id',id);
-  await _sb.from('ticket_types').delete().eq('event_id',id);
+  if(ords&&ords.length>0){const orderIds=ords.map(o=>o.id);await _sb.from('order_items').delete().in('order_id',orderIds);}
+  await _sb.from('tickets').delete().eq('event_id',id);await _sb.from('orders').delete().eq('event_id',id);await _sb.from('ticket_types').delete().eq('event_id',id);
   const{error}=await _sb.from('events').delete().eq('id',id);
   if(error){toast("Error: "+error.message);return;}
-  toast("Evento eliminado ✓");closeModal();await cargarEventos();
-  if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
+  toast("Evento eliminado ✓");closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
 }
-
 // ── PRODUCCIÓN ───────────────────────────────────────────────────────────
 function renderProduccion(pc){
   pc.innerHTML=`
     <div class="page-hd"><div><div class="page-title">Producción Audiovisual</div><div class="page-sub">${DEMO_PROYECTOS.length} proyectos</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoProyecto()">+ Nuevo proyecto</button>`:""}</div>
-    ${DEMO_PROYECTOS.length===0?`
-      <div class="card" style="text-align:center;padding:40px">
-        <div style="font-size:36px;margin-bottom:12px">🎬</div>
-        <div style="color:var(--muted);font-size:14px">No hay proyectos registrados aún</div>
-        ${canAdmin()?`<button class="btn btn-p" style="margin-top:16px" onclick="nuevoProyecto()">+ Crear primer proyecto</button>`:""}
-      </div>`:
-    `<div class="g2">${DEMO_PROYECTOS.map(p=>`<div class="proy-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="proy-nom">${p.nombre}</div>${badge(p.estado)}</div>
-        <div class="proy-cli">${p.cliente}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-          <div><div style="font-size:11px;color:var(--muted)">Inicio</div><div style="font-size:12px;margin-top:2px">${p.inicio}</div></div>
-          <div><div style="font-size:11px;color:var(--muted)">Fin</div><div style="font-size:12px;margin-top:2px">${p.fin}</div></div>
-          <div><div style="font-size:11px;color:var(--muted)">Presupuesto</div><div style="font-size:12px;margin-top:2px;font-weight:600">${p.presupuesto.toLocaleString()}€</div></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Progreso</span><span style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</span></div>
-        <div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div>
-        <div style="margin-top:12px;display:flex;gap:8px">
-          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="verProyecto('${p.id}')">Detalle</button>
-          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="editarProyecto('${p.id}')">Editar</button>`:""}
-          ${canAdmin()?`<button class="btn btn-danger" style="flex:1;justify-content:center;font-size:12px" onclick="eliminarProyecto('${p.id}')">✕</button>`:""}
-        </div></div>`).join("")}</div>`}`;
+    ${DEMO_PROYECTOS.length===0?`<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">🎬</div><div style="color:var(--muted);font-size:14px">No hay proyectos registrados aún</div>${canAdmin()?`<button class="btn btn-p" style="margin-top:16px" onclick="nuevoProyecto()">+ Crear primer proyecto</button>`:""}</div>`:`<div class="g2">${DEMO_PROYECTOS.map(p=>`<div class="proy-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="proy-nom">${p.nombre}</div>${badge(p.estado)}</div><div class="proy-cli">${p.cliente}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div><div style="font-size:11px;color:var(--muted)">Inicio</div><div style="font-size:12px;margin-top:2px">${p.inicio}</div></div><div><div style="font-size:11px;color:var(--muted)">Fin</div><div style="font-size:12px;margin-top:2px">${p.fin}</div></div><div><div style="font-size:11px;color:var(--muted)">Presupuesto</div><div style="font-size:12px;margin-top:2px;font-weight:600">${p.presupuesto.toLocaleString()}€</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Progreso</span><span style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</span></div><div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="verProyecto('${p.id}')">Detalle</button>${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="editarProyecto('${p.id}')">Editar</button><button class="btn btn-danger" style="flex:1;justify-content:center;font-size:12px" onclick="eliminarProyecto('${p.id}')">✕</button>`:""}</div></div>`).join("")}</div>`}`;
 }
+function verProyecto(id){const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${p.nombre}</div>${badge(p.estado)}<div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px"><div><span style="color:var(--muted)">Cliente:</span> ${p.cliente}</div><div><span style="color:var(--muted)">Periodo:</span> ${p.inicio} → ${p.fin}</div><div><span style="color:var(--muted)">Presupuesto:</span> <strong>${p.presupuesto.toLocaleString()}€</strong></div><div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:var(--muted)">Progreso</span><strong style="color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</strong></div><div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div></div></div><div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Cerrar</button></div>`);}
+function nuevoProyecto(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Nuevo proyecto AV</div><label class="form-lbl">Nombre</label><input class="form-input" id="proy-nombre" placeholder="Ej: Spot Mahou Verano"/><label class="form-lbl">Cliente</label><input class="form-input" id="proy-cliente" placeholder="Empresa o nombre"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Inicio</label><input class="form-input" id="proy-inicio" type="date"/></div><div><label class="form-lbl">Fin</label><input class="form-input" id="proy-fin" type="date"/></div></div><label class="form-lbl">Presupuesto (€)</label><input class="form-input" id="proy-pres" type="number" placeholder="15000"/><label class="form-lbl">Estado</label><select class="form-select" id="proy-estado"><option value="activo">Activo</option><option value="preproduccion">Preproducción</option><option value="cerrado">Cerrado</option></select><button class="btn btn-p btn-full" onclick="guardarProyecto()">Guardar proyecto</button>`);}
+async function guardarProyecto(){const nombre=document.getElementById("proy-nombre").value.trim();if(!nombre){toast("⚠️ El nombre es obligatorio");return;}const{error}=await _sb.from('proyectos').insert({nombre,cliente:document.getElementById("proy-cliente").value||null,inicio:document.getElementById("proy-inicio").value||null,fin:document.getElementById("proy-fin").value||null,presupuesto:parseFloat(document.getElementById("proy-pres").value)||0,estado:document.getElementById("proy-estado").value,progreso:0,creado_por:userProfile.nombre});if(error){toast("Error: "+error.message);return;}toast(`Proyecto "${nombre}" creado ✓`);closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));}
+function editarProyecto(id){const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar proyecto</div><label class="form-lbl">Nombre</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/><label class="form-lbl">Cliente</label><input class="form-input" id="ep-cliente" value="${p.cliente||""}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Inicio</label><input class="form-input" id="ep-inicio" type="date" value="${p.inicio&&p.inicio!=="—"?p.inicio:""}"/></div><div><label class="form-lbl">Fin</label><input class="form-input" id="ep-fin" type="date" value="${p.fin&&p.fin!=="—"?p.fin:""}"/></div></div><label class="form-lbl">Estado</label><select class="form-select" id="ep-estado">${["activo","preproduccion","cerrado"].map(s=>`<option value="${s}" ${p.estado===s?"selected":""}>${s}</option>`).join("")}</select><label class="form-lbl">Progreso (%)</label><input class="form-input" id="ep-progreso" type="number" min="0" max="100" value="${p.progreso}"/><label class="form-lbl">Presupuesto (€)</label><input class="form-input" id="ep-pres" type="number" value="${p.presupuesto}"/><div style="display:flex;gap:8px"><button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarProyecto('${p.id}')">Guardar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarProyecto('${p.id}')">Eliminar</button></div>`),100);}
+async function actualizarProyecto(id){await _sb.from('proyectos').update({nombre:document.getElementById("ep-nombre").value.trim(),cliente:document.getElementById("ep-cliente").value||null,inicio:document.getElementById("ep-inicio").value||null,fin:document.getElementById("ep-fin").value||null,estado:document.getElementById("ep-estado").value,progreso:parseInt(document.getElementById("ep-progreso").value)||0,presupuesto:parseFloat(document.getElementById("ep-pres").value)||0}).eq('id',id);toast("Proyecto actualizado ✓");closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));}
+async function eliminarProyecto(id){await _sb.from('proyectos').delete().eq('id',id);toast("Proyecto eliminado ✓");closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));}
 
-function verProyecto(id){
-  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">${p.nombre}</div>${badge(p.estado)}
-    <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px">
-      <div><span style="color:var(--muted)">Cliente:</span> ${p.cliente}</div>
-      <div><span style="color:var(--muted)">Periodo:</span> ${p.inicio} → ${p.fin}</div>
-      <div><span style="color:var(--muted)">Presupuesto:</span> <strong>${p.presupuesto.toLocaleString()}€</strong></div>
-      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:var(--muted)">Progreso</span><strong style="color:${p.progreso===100?"var(--a1)":"var(--txt)"}">${p.progreso}%</strong></div><div class="prog"><div class="prog-fill ${p.progreso<100?"blue":""}" style="width:${p.progreso}%"></div></div></div>
-    </div>
-    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Cerrar</button></div>`);
-}
-
-function nuevoProyecto(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Nuevo proyecto AV</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="proy-nombre" placeholder="Ej: Spot Mahou Verano"/>
-    <label class="form-lbl">Cliente</label><input class="form-input" id="proy-cliente" placeholder="Empresa o nombre"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Inicio</label><input class="form-input" id="proy-inicio" type="date"/></div>
-      <div><label class="form-lbl">Fin</label><input class="form-input" id="proy-fin" type="date"/></div>
-    </div>
-    <label class="form-lbl">Presupuesto (€)</label><input class="form-input" id="proy-pres" type="number" placeholder="15000"/>
-    <label class="form-lbl">Estado</label><select class="form-select" id="proy-estado"><option value="activo">Activo</option><option value="preproduccion">Preproducción</option><option value="cerrado">Cerrado</option></select>
-    <button class="btn btn-p btn-full" onclick="guardarProyecto()">Guardar proyecto</button>`);
-}
-
-async function guardarProyecto(){
-  const nombre=document.getElementById("proy-nombre").value.trim();
-  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
-  const proy={nombre,cliente:document.getElementById("proy-cliente").value||null,inicio:document.getElementById("proy-inicio").value||null,fin:document.getElementById("proy-fin").value||null,presupuesto:parseFloat(document.getElementById("proy-pres").value)||0,estado:document.getElementById("proy-estado").value,progreso:0,creado_por:userProfile.nombre};
-  const{error}=await _sb.from('proyectos').insert(proy);
-  if(error){toast("Error: "+error.message);return;}
-  toast(`Proyecto "${nombre}" creado ✓`);
-  closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
-}
-
-function editarProyecto(id){
-  const p=DEMO_PROYECTOS.find(x=>x.id===id);if(!p)return;
-  closeModal();
-  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Editar proyecto</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
-    <label class="form-lbl">Cliente</label><input class="form-input" id="ep-cliente" value="${p.cliente||""}"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="form-lbl">Inicio</label><input class="form-input" id="ep-inicio" type="date" value="${p.inicio&&p.inicio!=="—"?p.inicio:""}"/></div>
-      <div><label class="form-lbl">Fin</label><input class="form-input" id="ep-fin" type="date" value="${p.fin&&p.fin!=="—"?p.fin:""}"/></div>
-    </div>
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="ep-estado">
-      ${["activo","preproduccion","cerrado"].map(s=>`<option value="${s}" ${p.estado===s?"selected":""}>${s}</option>`).join("")}
-    </select>
-    <label class="form-lbl">Progreso (%)</label>
-    <input class="form-input" id="ep-progreso" type="number" min="0" max="100" value="${p.progreso}"/>
-    <label class="form-lbl">Presupuesto (€)</label>
-    <input class="form-input" id="ep-pres" type="number" value="${p.presupuesto}"/>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarProyecto('${p.id}')">Guardar</button>
-      <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarProyecto('${p.id}')">Eliminar</button>
-    </div>`),100);
-}
-
-async function actualizarProyecto(id){
-  const campos={nombre:document.getElementById("ep-nombre").value.trim(),cliente:document.getElementById("ep-cliente").value||null,inicio:document.getElementById("ep-inicio").value||null,fin:document.getElementById("ep-fin").value||null,estado:document.getElementById("ep-estado").value,progreso:parseInt(document.getElementById("ep-progreso").value)||0,presupuesto:parseFloat(document.getElementById("ep-pres").value)||0};
-  const{error}=await _sb.from('proyectos').update(campos).eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Proyecto actualizado ✓");
-  closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
-}
-
-async function eliminarProyecto(id){
-  await _sb.from('proyectos').delete().eq('id',id);
-  toast("Proyecto eliminado ✓");
-  closeModal();await cargarProyectos();renderProduccion(document.getElementById("page-content"));
-}
-
-// ================= CHAT / MENSAJERÍA =================
-
+// ── CHAT ─────────────────────────────────────────────────────────────────
 function renderMensajes(pc){
-  // Reset unread count when entering chat
-  unreadMsgCount = 0;
-  const badgeEl = document.getElementById("nav-badge-msg");
-  if(badgeEl) badgeEl.remove();
-
-  pc.innerHTML = `
-    <div class="page-hd"><div><div class="page-title">Mensajes</div><div class="page-sub">Chat interno del equipo</div></div></div>
-    <div class="card">
-      <div class="chat-container">
-        <div class="chat-messages" id="chat-box">
-          <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">Cargando mensajes...</div>
-        </div>
-        <div class="chat-input-bar">
-          <select id="msg-para">
-            <option value="todos">📢 Todos</option>
-          </select>
-          <input id="msg-texto" placeholder="Escribe un mensaje..." autocomplete="off"/>
-          <button onclick="enviarMensaje()">Enviar</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Enter key to send
-  setTimeout(() => {
-    const input = document.getElementById("msg-texto");
-    if(input) input.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensaje(); } });
-  }, 50);
-
-  cargarUsuariosChat();
-  cargarMensajes();
+  unreadMsgCount=0;const badgeEl=document.getElementById("nav-badge-msg");if(badgeEl)badgeEl.remove();
+  pc.innerHTML=`<div class="page-hd"><div><div class="page-title">Mensajes</div><div class="page-sub">Chat interno del equipo</div></div></div>
+    <div class="card"><div class="chat-container"><div class="chat-messages" id="chat-box"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">Cargando mensajes...</div></div>
+    <div class="chat-input-bar"><select id="msg-para"><option value="todos">📢 Todos</option></select><input id="msg-texto" placeholder="Escribe un mensaje..." autocomplete="off"/><button onclick="enviarMensaje()">Enviar</button></div></div></div>`;
+  setTimeout(()=>{const input=document.getElementById("msg-texto");if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviarMensaje();}});},50);
+  cargarUsuariosChat();cargarMensajes();
 }
-
-async function cargarUsuariosChat(){
-  try {
-    const { data } = await _sb.from("empleados").select("nombre").eq("estado","activo");
-    const select = document.getElementById("msg-para");
-    if(!select || !data) return;
-    select.innerHTML = `<option value="todos">📢 Todos</option>`;
-    data.forEach(u => {
-      if(u.nombre !== userProfile.nombre){
-        select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
-      }
-    });
-  } catch(e) { console.error("Error cargando usuarios chat:", e); }
-}
-
-async function enviarMensaje(){
-  const input = document.getElementById("msg-texto");
-  const texto = input?.value?.trim();
-  const para = document.getElementById("msg-para")?.value;
-  if(!texto) return;
-
-  input.value = "";
-  input.focus();
-
-  try {
-    await _sb.from("mensajes").insert({
-      de: userProfile.nombre,
-      para: para,
-      mensaje: texto
-    });
-  } catch(e) {
-    toast("Error al enviar mensaje");
-    console.error(e);
-  }
-}
-
-async function cargarMensajes(){
-  try {
-    const { data } = await _sb
-      .from("mensajes")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if(!data) return;
-
-    const filtrados = data.filter(m =>
-      m.para === "todos" ||
-      m.para === userProfile.nombre ||
-      m.de === userProfile.nombre
-    );
-
-    pintarMensajes(filtrados);
-  } catch(e) { console.error("Error cargando mensajes:", e); }
-}
-
+async function cargarUsuariosChat(){try{const{data}=await _sb.from("empleados").select("nombre").eq("estado","activo");const select=document.getElementById("msg-para");if(!select||!data)return;select.innerHTML=`<option value="todos">📢 Todos</option>`;data.forEach(u=>{if(u.nombre!==userProfile.nombre)select.innerHTML+=`<option value="${u.nombre}">${u.nombre}</option>`;});}catch(e){}}
+async function enviarMensaje(){const input=document.getElementById("msg-texto");const texto=input?.value?.trim();const para=document.getElementById("msg-para")?.value;if(!texto)return;input.value="";input.focus();try{await _sb.from("mensajes").insert({de:userProfile.nombre,para,mensaje:texto});}catch(e){toast("Error al enviar mensaje");}}
+async function cargarMensajes(){try{const{data}=await _sb.from("mensajes").select("*").order("created_at",{ascending:true});if(!data)return;const filtrados=data.filter(m=>m.para==="todos"||m.para===userProfile.nombre||m.de===userProfile.nombre);pintarMensajes(filtrados);}catch(e){}}
 function pintarMensajes(lista){
-  const box = document.getElementById("chat-box");
-  if(!box) return;
-
-  if(lista.length === 0){
-    box.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted)">
-      <div style="font-size:32px;margin-bottom:8px">💬</div>
-      <div style="font-size:13px">Sin mensajes aún. ¡Envía el primero!</div>
-    </div>`;
-    return;
-  }
-
-  let html = "";
-  let lastDate = "";
-
-  lista.forEach(m => {
-    const isMine = m.de === userProfile.nombre;
-    const date = new Date(m.created_at);
-    const dateStr = date.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
-    const timeStr = date.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
-
-    // Date separator
-    if(dateStr !== lastDate){
-      html += `<div class="chat-date-sep">${dateStr}</div>`;
-      lastDate = dateStr;
-    }
-
-    const ini = initials(m.de);
-    const destLabel = m.para === "todos" ? "todos" : m.para;
-
-    html += `
-      <div class="chat-bubble-wrap ${isMine ? "mine" : ""}">
-        <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${ini}</div>
-        <div class="chat-bubble ${isMine ? "mine" : "theirs"}">
-          <div class="chat-sender">${m.de}</div>
-          <div>${m.mensaje.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
-          <div class="chat-meta">
-            <span class="chat-dest">→ ${destLabel}</span>
-            <span>${timeStr}</span>
-          </div>
-        </div>
-      </div>`;
+  const box=document.getElementById("chat-box");if(!box)return;
+  if(lista.length===0){box.innerHTML=`<div style="text-align:center;padding:60px 0;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">💬</div><div style="font-size:13px">Sin mensajes aún. ¡Envía el primero!</div></div>`;return;}
+  let html="",lastDate="";
+  lista.forEach(m=>{
+    const isMine=m.de===userProfile.nombre;const date=new Date(m.created_at);
+    const dateStr=date.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});const timeStr=date.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+    if(dateStr!==lastDate){html+=`<div class="chat-date-sep">${dateStr}</div>`;lastDate=dateStr;}
+    html+=`<div class="chat-bubble-wrap ${isMine?"mine":""}"><div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${initials(m.de)}</div><div class="chat-bubble ${isMine?"mine":"theirs"}"><div class="chat-sender">${m.de}</div><div>${m.mensaje.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div><div class="chat-meta"><span class="chat-dest">→ ${m.para==="todos"?"todos":m.para}</span><span>${timeStr}</span></div></div></div>`;
   });
-
-  box.innerHTML = html;
-  box.scrollTop = box.scrollHeight;
+  box.innerHTML=html;box.scrollTop=box.scrollHeight;
 }
-
-// Realtime subscription (activado una sola vez al entrar a la app)
-let chatActivo = false;
-
+let chatActivo=false;
 function activarRealtime(){
-  if(chatActivo) return;
-  chatActivo = true;
-
-  _sb
-    .channel('mensajes-realtime')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'mensajes' },
-      (payload) => {
-        const msg = payload.new;
-        // Si estamos en la sección de mensajes, recargar
-        if(currentPage === "mensajes"){
-          cargarMensajes();
-        } else {
-          // Si no estamos en mensajes y el mensaje es para nosotros, mostrar badge
-          if(msg.de !== userProfile.nombre && (msg.para === "todos" || msg.para === userProfile.nombre)){
-            unreadMsgCount++;
-            const navItem = document.getElementById("nav-mensajes");
-            const existingBadge = document.getElementById("nav-badge-msg");
-            if(existingBadge){
-              existingBadge.textContent = unreadMsgCount;
-            } else if(navItem){
-              navItem.insertAdjacentHTML("beforeend", `<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>`);
-            }
-            toast(`💬 ${msg.de}: ${msg.mensaje.substring(0,40)}${msg.mensaje.length>40?"…":""}`);
-          }
-        }
-      }
-    )
-    .subscribe();
+  if(chatActivo)return;chatActivo=true;
+  _sb.channel('mensajes-realtime').on('postgres_changes',{event:'INSERT',schema:'public',table:'mensajes'},(payload)=>{
+    const msg=payload.new;
+    if(currentPage==="mensajes"){cargarMensajes();}
+    else if(msg.de!==userProfile.nombre&&(msg.para==="todos"||msg.para===userProfile.nombre)){
+      unreadMsgCount++;const navItem=document.getElementById("nav-mensajes");const existingBadge=document.getElementById("nav-badge-msg");
+      if(existingBadge)existingBadge.textContent=unreadMsgCount;else if(navItem)navItem.insertAdjacentHTML("beforeend",`<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>`);
+      toast(`💬 ${msg.de}: ${msg.mensaje.substring(0,40)}${msg.mensaje.length>40?"…":""}`);
+    }
+  }).subscribe();
 }
-
-async function actualizarBadgeMensajes(){
-  // Simple: no contamos no leídos en la primera carga (no hay campo "leido" aún)
-  // El badge solo se activa con mensajes nuevos en tiempo real
-  unreadMsgCount = 0;
-}
+async function actualizarBadgeMensajes(){unreadMsgCount=0;}
 
 // ── ADMIN: EMPLEADOS ──────────────────────────────────────────────────────
 function renderAdmin(pc){
@@ -1407,99 +920,28 @@ function renderAdmin(pc){
     </div>
     <div class="card"><div class="tbl-wrap"><table>
       <thead><tr><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>IRPF</th><th>Salario</th><th>Estado</th><th></th></tr></thead>
-      <tbody>${DEMO_EMPLEADOS.map(e=>`<tr>
-          <td style="font-weight:500">${e.nombre}</td><td>${tipoBadge(e.tipo)}</td><td style="color:var(--muted)">${e.dept}</td><td style="color:var(--a1)">${e.irpf}%</td><td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td><td>${badge(e.estado)}</td>
-          <td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="confirmarEliminarEmpleado('${e.id}')">✕</button></div></td>
-        </tr>`).join("")}</tbody>
+      <tbody>${DEMO_EMPLEADOS.map(e=>`<tr><td style="font-weight:500">${e.nombre}</td><td>${tipoBadge(e.tipo)}</td><td style="color:var(--muted)">${e.dept}</td><td style="color:var(--a1)">${e.irpf}%</td><td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td><td>${badge(e.estado)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="confirmarEliminarEmpleado('${e.id}')">✕</button></div></td></tr>`).join("")}</tbody>
     </table></div></div>`;
 }
-
-function nuevoEmpleado(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir empleado</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="emp-nombre" placeholder="Nombre Apellidos"/>
-    <label class="form-lbl">Email</label><input class="form-input" id="emp-email" type="email" placeholder="email@noctua.es"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="emp-tipo"><option value="fijo">Fijo</option><option value="freelance">Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="emp-role"><option value="empleado">Empleado</option><option value="freelance">Freelance</option><option value="rrhh">RRHH</option><option value="admin">Admin</option></select></div></div>
-    <label class="form-lbl">Departamento</label><select class="form-select" id="emp-dept"><option>Dirección</option><option>RRHH</option><option>Producción AV</option><option>Eventos</option><option>Comunicación</option><option>Audiovisual</option></select>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="emp-salario" type="number" placeholder="0"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="emp-irpf" type="number" value="15" min="2" max="45"/></div></div>
-    <button class="btn btn-p btn-full" onclick="guardarEmpleado()">Crear empleado</button>`);
-}
-
-async function guardarEmpleado(){
-  const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();
-  if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}
-  try{
-    const res=await fetch("/api/create-employee",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,nombre,departamento:document.getElementById("emp-dept").value,role:document.getElementById("emp-role").value,tipo:document.getElementById("emp-tipo").value,salario_base:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15})});
-    const data=await res.json();
-    if(res.ok)toast(`✅ "${nombre}" creado. Email de acceso enviado.`);
-    else toast("Error: "+(data.error||"desconocido"));
-  }catch(e){toast("Error: "+e.message);}
-  closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));
-}
-
-function editEmpleado(id){
-  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
-  closeModal();
-  setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Editar: ${e.nombre}</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${e.nombre}"/>
-    <label class="form-lbl">Email</label><input class="form-input" id="ee-email" type="email" value="${e.email}"/>
-    <label class="form-lbl">Teléfono</label><input class="form-input" id="ee-tlf" value="${e.tlf||""}"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="ee-tipo"><option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option><option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="ee-role">${["empleado","freelance","rrhh","admin"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r}</option>`).join("")}</select></div></div>
-    <label class="form-lbl">Departamento</label><select class="form-select" id="ee-dept">${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}</select>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="ee-salario" type="number" value="${e.salario||0}"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="ee-irpf" type="number" min="2" max="45" value="${e.irpf||15}"/></div></div>
-    <label class="form-lbl">Estado</label><select class="form-select" id="ee-status"><option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option><option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option></select>
-    <button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>`),100);
-}
-
-async function actualizarEmpleado(id){
-  const campos={nombre:document.getElementById("ee-nombre").value.trim(),email:document.getElementById("ee-email").value.trim(),telefono:document.getElementById("ee-tlf").value,tipo:document.getElementById("ee-tipo").value,role:document.getElementById("ee-role").value,departamento:document.getElementById("ee-dept").value,salario_base:parseInt(document.getElementById("ee-salario").value)||0,irpf:parseInt(document.getElementById("ee-irpf").value)||15,estado:document.getElementById("ee-status").value};
-  await _sb.from('empleados').update(campos).eq('id',id);
-  toast("Empleado actualizado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));
-}
-
-function confirmarEliminarEmpleado(id){
-  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">¿Eliminar empleado?</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">Vas a eliminar a <strong style="color:var(--txt)">${e.nombre}</strong>. No se puede deshacer.</p>
-    <div style="display:flex;gap:8px"><button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal()">Cancelar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEmpleadoDB('${e.id}')">Sí, eliminar</button></div>`);
-}
-async function eliminarEmpleadoDB(id){
-  await _sb.from('empleados').delete().eq('id',id);
-  toast("Empleado eliminado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));
-}
+function nuevoEmpleado(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir empleado</div><label class="form-lbl">Nombre</label><input class="form-input" id="emp-nombre" placeholder="Nombre Apellidos"/><label class="form-lbl">Email</label><input class="form-input" id="emp-email" type="email" placeholder="email@noctua.es"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="emp-tipo"><option value="fijo">Fijo</option><option value="freelance">Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="emp-role"><option value="empleado">Empleado</option><option value="freelance">Freelance</option><option value="rrhh">RRHH</option><option value="admin">Admin</option></select></div></div><label class="form-lbl">Departamento</label><select class="form-select" id="emp-dept"><option>Dirección</option><option>RRHH</option><option>Producción AV</option><option>Eventos</option><option>Comunicación</option><option>Audiovisual</option></select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="emp-salario" type="number" placeholder="0"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="emp-irpf" type="number" value="15" min="2" max="45"/></div></div><button class="btn btn-p btn-full" onclick="guardarEmpleado()">Crear empleado</button>`);}
+async function guardarEmpleado(){const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}try{const res=await fetch("/api/create-employee",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,nombre,departamento:document.getElementById("emp-dept").value,role:document.getElementById("emp-role").value,tipo:document.getElementById("emp-tipo").value,salario_base:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15})});const data=await res.json();if(res.ok)toast(`✅ "${nombre}" creado. Email de acceso enviado.`);else toast("Error: "+(data.error||"desconocido"));}catch(e){toast("Error: "+e.message);}closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
+function editEmpleado(id){const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar: ${e.nombre}</div><label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${e.nombre}"/><label class="form-lbl">Email</label><input class="form-input" id="ee-email" type="email" value="${e.email}"/><label class="form-lbl">Teléfono</label><input class="form-input" id="ee-tlf" value="${e.tlf||""}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="ee-tipo"><option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option><option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="ee-role">${["empleado","freelance","rrhh","admin"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r}</option>`).join("")}</select></div></div><label class="form-lbl">Departamento</label><select class="form-select" id="ee-dept">${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}</select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="ee-salario" type="number" value="${e.salario||0}"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="ee-irpf" type="number" min="2" max="45" value="${e.irpf||15}"/></div></div><label class="form-lbl">Estado</label><select class="form-select" id="ee-status"><option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option><option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option></select><button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>`),100);}
+async function actualizarEmpleado(id){await _sb.from('empleados').update({nombre:document.getElementById("ee-nombre").value.trim(),email:document.getElementById("ee-email").value.trim(),telefono:document.getElementById("ee-tlf").value,tipo:document.getElementById("ee-tipo").value,role:document.getElementById("ee-role").value,departamento:document.getElementById("ee-dept").value,salario_base:parseInt(document.getElementById("ee-salario").value)||0,irpf:parseInt(document.getElementById("ee-irpf").value)||15,estado:document.getElementById("ee-status").value}).eq('id',id);toast("Empleado actualizado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
+function confirmarEliminarEmpleado(id){const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">¿Eliminar empleado?</div><p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">Vas a eliminar a <strong style="color:var(--txt)">${e.nombre}</strong>. No se puede deshacer.</p><div style="display:flex;gap:8px"><button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal()">Cancelar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEmpleadoDB('${e.id}')">Sí, eliminar</button></div>`);}
+async function eliminarEmpleadoDB(id){await _sb.from('empleados').delete().eq('id',id);toast("Empleado eliminado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
 
 // ── ADMIN: IRPF ──────────────────────────────────────────────────────────
 async function renderAdminIRPF(pc){
-  pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Cambiar IRPF del equipo</div></div>
-    <div class="card"><div class="tbl-wrap"><table>
-      <thead><tr><th>Empleado</th><th>Dept.</th><th>IRPF actual</th><th>Nuevo</th><th></th></tr></thead>
-      <tbody>${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<tr><td style="font-weight:500">${e.nombre}</td><td style="color:var(--muted)">${e.dept}</td><td style="color:var(--a1);font-weight:600">${e.irpf}%</td><td><div style="display:flex;align-items:center;gap:8px"><input type="range" min="2" max="45" value="${e.irpf}" id="irpf-r-${e.id}" oninput="document.getElementById('irpf-v-${e.id}').textContent=this.value+'%'" style="width:100px;height:3px"/><span id="irpf-v-${e.id}" style="font-size:13px;font-weight:600;width:36px;color:var(--a1)">${e.irpf}%</span></div></td><td><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aplicarIRPF('${e.id}')">Aplicar</button></td></tr>`).join("")}</tbody>
-    </table></div></div>
+  pc.innerHTML=`<div class="page-hd"><div class="page-title">Cambiar IRPF del equipo</div></div>
+    <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Empleado</th><th>Dept.</th><th>IRPF actual</th><th>Nuevo</th><th></th></tr></thead>
+    <tbody>${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<tr><td style="font-weight:500">${e.nombre}</td><td style="color:var(--muted)">${e.dept}</td><td style="color:var(--a1);font-weight:600">${e.irpf}%</td><td><div style="display:flex;align-items:center;gap:8px"><input type="range" min="2" max="45" value="${e.irpf}" id="irpf-r-${e.id}" oninput="document.getElementById('irpf-v-${e.id}').textContent=this.value+'%'" style="width:100px;height:3px"/><span id="irpf-v-${e.id}" style="font-size:13px;font-weight:600;width:36px;color:var(--a1)">${e.irpf}%</span></div></td><td><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aplicarIRPF('${e.id}')">Aplicar</button></td></tr>`).join("")}</tbody></table></div></div>
     <div class="card" style="margin-top:16px"><div class="card-title">Solicitudes pendientes</div><div id="solicitudes-irpf-list"><div style="color:var(--muted);font-size:13px">Cargando…</div></div></div>`;
-  try{
-    const{data}=await _sb.from('solicitudes_irpf').select('*').eq('estado','pendiente');
-    const el=document.getElementById("solicitudes-irpf-list");if(!el)return;
-    if(!data||data.length===0){el.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px">Sin solicitudes pendientes</div>';return;}
-    el.innerHTML=data.map(s=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;gap:8px"><div><div style="font-weight:500">${s.empleado_nombre}</div><div style="font-size:12px;color:var(--muted)">${s.irpf_actual}% → <strong style="color:var(--a1)">${s.irpf_solicitado}%</strong></div></div><div style="display:flex;gap:8px"><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aprobarSolicitudIRPF('${s.id}','${s.empleado_id}',${s.irpf_solicitado})">Aprobar</button><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="rechazarSolicitudIRPF('${s.id}')">Rechazar</button></div></div>`).join("");
-  }catch(e){}
+  try{const{data}=await _sb.from('solicitudes_irpf').select('*').eq('estado','pendiente');const el=document.getElementById("solicitudes-irpf-list");if(!el)return;if(!data||data.length===0){el.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px">Sin solicitudes pendientes</div>';return;}el.innerHTML=data.map(s=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;gap:8px"><div><div style="font-weight:500">${s.empleado_nombre}</div><div style="font-size:12px;color:var(--muted)">${s.irpf_actual}% → <strong style="color:var(--a1)">${s.irpf_solicitado}%</strong></div></div><div style="display:flex;gap:8px"><button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="aprobarSolicitudIRPF('${s.id}','${s.empleado_id}',${s.irpf_solicitado})">Aprobar</button><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="rechazarSolicitudIRPF('${s.id}')">Rechazar</button></div></div>`).join("");}catch(e){}
 }
-async function aplicarIRPF(id){
-  const nv=parseInt(document.getElementById(`irpf-r-${id}`).value);
-  await _sb.from('empleados').update({irpf:nv}).eq('id',id);
-  toast("IRPF actualizado ✓");await cargarEmpleados();renderAdminIRPF(document.getElementById("page-content"));
-}
-async function aprobarSolicitudIRPF(solicitudId,empleadoId,nuevoIRPF){
-  await _sb.from('empleados').update({irpf:nuevoIRPF}).eq('id',empleadoId);
-  await _sb.from('solicitudes_irpf').update({estado:'aprobada'}).eq('id',solicitudId);
-  toast("IRPF actualizado y solicitud aprobada ✓");await cargarEmpleados();renderAdminIRPF(document.getElementById("page-content"));
-}
-async function rechazarSolicitudIRPF(solicitudId){
-  await _sb.from('solicitudes_irpf').update({estado:'rechazada'}).eq('id',solicitudId);
-  toast("Solicitud rechazada");renderAdminIRPF(document.getElementById("page-content"));
-}
-
-// ── ADMIN: NÓMINAS ───────────────────────────────────────────────────────
+async function aplicarIRPF(id){const nv=parseInt(document.getElementById(`irpf-r-${id}`).value);await _sb.from('empleados').update({irpf:nv}).eq('id',id);toast("IRPF actualizado ✓");await cargarEmpleados();renderAdminIRPF(document.getElementById("page-content"));}
+async function aprobarSolicitudIRPF(solicitudId,empleadoId,nuevoIRPF){await _sb.from('empleados').update({irpf:nuevoIRPF}).eq('id',empleadoId);await _sb.from('solicitudes_irpf').update({estado:'aprobada'}).eq('id',solicitudId);toast("IRPF actualizado y solicitud aprobada ✓");await cargarEmpleados();renderAdminIRPF(document.getElementById("page-content"));}
+async function rechazarSolicitudIRPF(solicitudId){await _sb.from('solicitudes_irpf').update({estado:'rechazada'}).eq('id',solicitudId);toast("Solicitud rechazada");renderAdminIRPF(document.getElementById("page-content"));}
+// ── ADMIN: NÓMINAS CON BOTÓN "MARCAR PAGADA" POR NÓMINA ──────────────────
 async function renderAdminNominas(pc){
   await cargarEmpleados();
   const ahora=new Date();const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -1509,16 +951,40 @@ async function renderAdminNominas(pc){
   const{data:nominasGen}=await _sb.from('nominas').select('*').eq('mes',mesActual);
   const nominasGeneradas=nominasGen||[];
   const yaGenerado=(empId)=>nominasGeneradas.find(n=>n.empleado_id===empId);
+  const pagadas=nominasGeneradas.filter(n=>n.estado==='pagada').length;
   pc.innerHTML=`
     <div class="page-hd"><div><div class="page-title">Nóminas del equipo</div><div class="page-sub">${mesActual}</div></div><button class="btn btn-p" onclick="generarTodasNominas('${mesActual}')">⚡ Generar todas</button></div>
-    <div class="g3 mb16">
+    <div class="g4 mb16">
       <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total bruto</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px">${totalBruto.toLocaleString()}€</div></div>
       <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Empleados fijos</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a3)">${empleadosFijos.length}</div></div>
       <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Generadas</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a2)">${nominasGeneradas.length}/${empleadosFijos.length}</div></div>
+      <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Pagadas</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--a1)">${pagadas}/${nominasGeneradas.length||0}</div></div>
     </div>
     <div class="card"><div class="tbl-wrap"><table>
-      <thead><tr><th>Empleado</th><th>Bruto</th><th>IRPF</th><th>Neto est.</th><th>Estado</th><th></th></tr></thead>
-      <tbody>${DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.salario>0).map(e=>{const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;const gen=yaGenerado(e.id);return`<tr><td style="font-weight:500">${e.nombre}</td><td>${e.salario.toLocaleString()}€</td><td>${e.irpf}%</td><td style="color:var(--a1);font-weight:600">${neto.toLocaleString()}€</td><td>${gen?badge("pagada"):badge("pendiente")}</td><td><button class="btn btn-p" style="padding:4px 10px;font-size:11px" onclick="generarNominaEmp('${e.id}','${mesActual}')">${gen?"Regenerar":"Generar"}</button></td></tr>`;}).join("")}</tbody>
+      <thead><tr><th>Empleado</th><th>Bruto</th><th>IRPF</th><th>Neto est.</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>${DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.salario>0).map(e=>{
+        const ss=160,ret=Math.round(e.salario*(e.irpf||15)/100),neto=e.salario-ret-ss;
+        const gen=yaGenerado(e.id);
+        const esPagada=gen&&gen.estado==='pagada';
+        return`<tr>
+          <td style="font-weight:500">${e.nombre}</td>
+          <td>${e.salario.toLocaleString()}€</td>
+          <td>${e.irpf}%</td>
+          <td style="color:var(--a1);font-weight:600">${neto.toLocaleString()}€</td>
+          <td>${gen?badge(gen.estado):badge("pendiente")}</td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-p" style="padding:4px 10px;font-size:11px" onclick="generarNominaEmp('${e.id}','${mesActual}')">${gen?"Regenerar":"Generar"}</button>
+              ${gen && !esPagada
+                ? `<button class="btn btn-paid" style="padding:4px 10px;font-size:11px" onclick="marcarNominaPagada('${gen.id}')">✓ Marcar pagada</button>`
+                : gen && esPagada
+                  ? `<span class="badge b-green" style="font-size:10px">✓ Pagada</span>`
+                  : ``
+              }
+            </div>
+          </td>
+        </tr>`;
+      }).join("")}</tbody>
     </table></div></div>`;
 }
 
@@ -1559,322 +1025,114 @@ async function renderAdminTurnos(pc){
 function abrirNuevoTurno(){document.getElementById("form-turno-card").style.display="block";document.getElementById("form-turno-title").textContent="Asignar turno";document.getElementById("turno-edit-id").value="";document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});}
 function cerrarFormTurno(){document.getElementById("form-turno-card").style.display="none";}
 function toggleLibre(){const tipo=document.getElementById("turno-tipo").value;document.getElementById("turno-horario-div").style.opacity=tipo==="libre"?"0.3":"1";document.getElementById("turno-horario-div").style.pointerEvents=tipo==="libre"?"none":"auto";}
-
-async function guardarTurno(){
-  const empleadoId=document.getElementById("turno-empleado").value;
-  const emp=DEMO_EMPLEADOS.find(e=>e.id===empleadoId);
-  const editId=document.getElementById("turno-edit-id").value;
-  const tipo=document.getElementById("turno-tipo").value;
-  const turno={empleado_id:empleadoId,empleado_nombre:emp?emp.nombre:"—",fecha:document.getElementById("turno-fecha").value,tipo,hora_inicio:tipo==="libre"?null:document.getElementById("turno-entrada").value,hora_fin:tipo==="libre"?null:document.getElementById("turno-salida").value,notas:tipo==="libre"?"Libre":document.getElementById("turno-lugar").value||"—"};
-  if(!turno.fecha){toast("⚠️ Selecciona fecha");return;}
-  if(editId){await _sb.from('turnos').update(turno).eq('id',editId);toast("Turno actualizado ✓");}
-  else{await _sb.from('turnos').insert(turno);toast(`Turno asignado ✓`);}
-  cerrarFormTurno();await cargarTodosLosTurnos();renderAdminTurnos(document.getElementById("page-content"));
-}
-function editarTurno(id){
-  const t=TURNOS_EQUIPO.find(x=>x.id===id);if(!t)return;
-  document.getElementById("form-turno-card").style.display="block";document.getElementById("form-turno-title").textContent="Editar turno";document.getElementById("turno-edit-id").value=id;document.getElementById("turno-empleado").value=t.empleadoId;document.getElementById("turno-fecha").value=t.fecha;document.getElementById("turno-tipo").value=t.tipo;document.getElementById("turno-entrada").value=t.entrada||"09:00";document.getElementById("turno-salida").value=t.salida||"17:00";document.getElementById("turno-lugar").value=t.lugar||"";toggleLibre();document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});
-}
+async function guardarTurno(){const empleadoId=document.getElementById("turno-empleado").value;const emp=DEMO_EMPLEADOS.find(e=>e.id===empleadoId);const editId=document.getElementById("turno-edit-id").value;const tipo=document.getElementById("turno-tipo").value;const turno={empleado_id:empleadoId,empleado_nombre:emp?emp.nombre:"—",fecha:document.getElementById("turno-fecha").value,tipo,hora_inicio:tipo==="libre"?null:document.getElementById("turno-entrada").value,hora_fin:tipo==="libre"?null:document.getElementById("turno-salida").value,notas:tipo==="libre"?"Libre":document.getElementById("turno-lugar").value||"—"};if(!turno.fecha){toast("⚠️ Selecciona fecha");return;}if(editId){await _sb.from('turnos').update(turno).eq('id',editId);toast("Turno actualizado ✓");}else{await _sb.from('turnos').insert(turno);toast(`Turno asignado ✓`);}cerrarFormTurno();await cargarTodosLosTurnos();renderAdminTurnos(document.getElementById("page-content"));}
+function editarTurno(id){const t=TURNOS_EQUIPO.find(x=>x.id===id);if(!t)return;document.getElementById("form-turno-card").style.display="block";document.getElementById("form-turno-title").textContent="Editar turno";document.getElementById("turno-edit-id").value=id;document.getElementById("turno-empleado").value=t.empleadoId;document.getElementById("turno-fecha").value=t.fecha;document.getElementById("turno-tipo").value=t.tipo;document.getElementById("turno-entrada").value=t.entrada||"09:00";document.getElementById("turno-salida").value=t.salida||"17:00";document.getElementById("turno-lugar").value=t.lugar||"";toggleLibre();document.getElementById("form-turno-card").scrollIntoView({behavior:"smooth"});}
 async function eliminarTurno(id){await _sb.from('turnos').delete().eq('id',id);toast("Turno eliminado ✓");await cargarTodosLosTurnos();renderAdminTurnos(document.getElementById("page-content"));}
 
 // ── INVENTARIO ────────────────────────────────────────────────────────────
 async function renderInventario(pc){
   await cargarInventarioBackground();
   const estadoColor={disponible:"b-green",en_uso:"b-blue",mantenimiento:"b-orange",baja:"b-pink"};
-  pc.innerHTML=`
-    <div class="page-hd"><div><div class="page-title">Inventario</div><div class="page-sub">${INVENTARIO.length} elementos</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoMaterial()">+ Añadir</button>`:""}</div>
-    ${INVENTARIO.length===0?`<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="color:var(--muted)">Sin material registrado</div></div>`:`
-    <div class="card"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Nombre</th><th>Cat.</th><th>Cant.</th><th>Estado</th><th>Ubicación</th>${canAdmin()?`<th></th>`:""}</tr></thead><tbody>${INVENTARIO.map(m=>`<tr><td style="color:var(--a1);font-weight:700;font-size:12px">${m.codigo||"—"}</td><td style="font-weight:500">${m.nombre||"—"}</td><td><span class="badge b-gray">${m.categoria||"—"}</span></td><td style="text-align:center">${m.cantidad||0}</td><td><span class="badge ${estadoColor[m.estado]||"b-gray"}">${(m.estado||"").replace("_"," ")}</span></td><td style="color:var(--muted)">${m.ubicacion||"—"}</td>${canAdmin()?`<td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarMaterial('${m.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarMaterial('${m.id}')">✕</button></div></td>`:""}</tr>`).join("")}</tbody></table></div></div>`}`;
+  pc.innerHTML=`<div class="page-hd"><div><div class="page-title">Inventario</div><div class="page-sub">${INVENTARIO.length} elementos</div></div>${canAdmin()?`<button class="btn btn-p" onclick="nuevoMaterial()">+ Añadir</button>`:""}</div>
+    ${INVENTARIO.length===0?`<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="color:var(--muted)">Sin material registrado</div></div>`:`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Nombre</th><th>Cat.</th><th>Cant.</th><th>Estado</th><th>Ubicación</th>${canAdmin()?`<th></th>`:""}</tr></thead><tbody>${INVENTARIO.map(m=>`<tr><td style="color:var(--a1);font-weight:700;font-size:12px">${m.codigo||"—"}</td><td style="font-weight:500">${m.nombre||"—"}</td><td><span class="badge b-gray">${m.categoria||"—"}</span></td><td style="text-align:center">${m.cantidad||0}</td><td><span class="badge ${estadoColor[m.estado]||"b-gray"}">${(m.estado||"").replace("_"," ")}</span></td><td style="color:var(--muted)">${m.ubicacion||"—"}</td>${canAdmin()?`<td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarMaterial('${m.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarMaterial('${m.id}')">✕</button></div></td>`:""}</tr>`).join("")}</tbody></table></div></div>`}`;
 }
-
-function nuevoMaterial(){
-  const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir material</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="mat-nombre" placeholder="Micrófono Shure SM58"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Código</label><input class="form-input" id="mat-codigo" placeholder="001"/></div><div><label class="form-lbl">Categoría</label><select class="form-select" id="mat-cat">${cats.map(c=>`<option>${c}</option>`).join("")}</select></div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Cantidad</label><input class="form-input" id="mat-cant" type="number" value="1"/></div><div><label class="form-lbl">Estado</label><select class="form-select" id="mat-estado"><option value="disponible">Disponible</option><option value="en_uso">En uso</option><option value="mantenimiento">Mantenimiento</option><option value="baja">Baja</option></select></div></div>
-    <label class="form-lbl">Ubicación</label><input class="form-input" id="mat-ubic" placeholder="Almacén principal"/>
-    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="mat-notas"></textarea>
-    <button class="btn btn-p btn-full" onclick="guardarMaterial()">Guardar</button>`);
-}
-async function guardarMaterial(){
-  const nombre=document.getElementById("mat-nombre").value.trim();if(!nombre){toast("⚠️ Nombre obligatorio");return;}
-  await _sb.from('inventario').insert({nombre,codigo:document.getElementById("mat-codigo").value,categoria:document.getElementById("mat-cat").value,cantidad:parseInt(document.getElementById("mat-cant").value)||1,estado:document.getElementById("mat-estado").value,ubicacion:document.getElementById("mat-ubic").value||"—",notas:document.getElementById("mat-notas").value,creado_por:userProfile.nombre});
-  toast(`"${nombre}" añadido ✓`);closeModal();renderInventario(document.getElementById("page-content"));
-}
-function editarMaterial(id){
-  const m=INVENTARIO.find(x=>x.id===id);if(!m)return;const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];
-  closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar: ${m.nombre}</div>
-    <label class="form-lbl">Nombre</label><input class="form-input" id="em-nombre" value="${m.nombre}"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Categoría</label><select class="form-select" id="em-cat">${cats.map(c=>`<option ${m.categoria===c?"selected":""}>${c}</option>`).join("")}</select></div><div><label class="form-lbl">Cantidad</label><input class="form-input" id="em-cant" type="number" value="${m.cantidad||1}"/></div></div>
-    <label class="form-lbl">Estado</label><select class="form-select" id="em-estado">${["disponible","en_uso","mantenimiento","baja"].map(s=>`<option value="${s}" ${m.estado===s?"selected":""}>${s.replace("_"," ")}</option>`).join("")}</select>
-    <label class="form-lbl">Ubicación</label><input class="form-input" id="em-ubic" value="${m.ubicacion||""}"/>
-    <label class="form-lbl">Notas</label><textarea class="form-textarea" id="em-notas">${m.notas||""}</textarea>
-    <div style="display:flex;gap:8px"><button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarMaterial('${m.id}')">Guardar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarMaterial('${m.id}')">Eliminar</button></div>`),100);
-}
-async function actualizarMaterial(id){
-  await _sb.from('inventario').update({nombre:document.getElementById("em-nombre").value.trim(),categoria:document.getElementById("em-cat").value,cantidad:parseInt(document.getElementById("em-cant").value)||1,estado:document.getElementById("em-estado").value,ubicacion:document.getElementById("em-ubic").value,notas:document.getElementById("em-notas").value}).eq('id',id);
-  toast("Material actualizado ✓");closeModal();renderInventario(document.getElementById("page-content"));
-}
+function nuevoMaterial(){const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir material</div><label class="form-lbl">Nombre</label><input class="form-input" id="mat-nombre" placeholder="Micrófono Shure SM58"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Código</label><input class="form-input" id="mat-codigo" placeholder="001"/></div><div><label class="form-lbl">Categoría</label><select class="form-select" id="mat-cat">${cats.map(c=>`<option>${c}</option>`).join("")}</select></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Cantidad</label><input class="form-input" id="mat-cant" type="number" value="1"/></div><div><label class="form-lbl">Estado</label><select class="form-select" id="mat-estado"><option value="disponible">Disponible</option><option value="en_uso">En uso</option><option value="mantenimiento">Mantenimiento</option><option value="baja">Baja</option></select></div></div><label class="form-lbl">Ubicación</label><input class="form-input" id="mat-ubic" placeholder="Almacén principal"/><label class="form-lbl">Notas</label><textarea class="form-textarea" id="mat-notas"></textarea><button class="btn btn-p btn-full" onclick="guardarMaterial()">Guardar</button>`);}
+async function guardarMaterial(){const nombre=document.getElementById("mat-nombre").value.trim();if(!nombre){toast("⚠️ Nombre obligatorio");return;}await _sb.from('inventario').insert({nombre,codigo:document.getElementById("mat-codigo").value,categoria:document.getElementById("mat-cat").value,cantidad:parseInt(document.getElementById("mat-cant").value)||1,estado:document.getElementById("mat-estado").value,ubicacion:document.getElementById("mat-ubic").value||"—",notas:document.getElementById("mat-notas").value,creado_por:userProfile.nombre});toast(`"${nombre}" añadido ✓`);closeModal();renderInventario(document.getElementById("page-content"));}
+function editarMaterial(id){const m=INVENTARIO.find(x=>x.id===id);if(!m)return;const cats=["Audio","Iluminación","Vídeo","Escenografía","Transporte","Otro"];closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar: ${m.nombre}</div><label class="form-lbl">Nombre</label><input class="form-input" id="em-nombre" value="${m.nombre}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Categoría</label><select class="form-select" id="em-cat">${cats.map(c=>`<option ${m.categoria===c?"selected":""}>${c}</option>`).join("")}</select></div><div><label class="form-lbl">Cantidad</label><input class="form-input" id="em-cant" type="number" value="${m.cantidad||1}"/></div></div><label class="form-lbl">Estado</label><select class="form-select" id="em-estado">${["disponible","en_uso","mantenimiento","baja"].map(s=>`<option value="${s}" ${m.estado===s?"selected":""}>${s.replace("_"," ")}</option>`).join("")}</select><label class="form-lbl">Ubicación</label><input class="form-input" id="em-ubic" value="${m.ubicacion||""}"/><label class="form-lbl">Notas</label><textarea class="form-textarea" id="em-notas">${m.notas||""}</textarea><div style="display:flex;gap:8px"><button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarMaterial('${m.id}')">Guardar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarMaterial('${m.id}')">Eliminar</button></div>`),100);}
+async function actualizarMaterial(id){await _sb.from('inventario').update({nombre:document.getElementById("em-nombre").value.trim(),categoria:document.getElementById("em-cat").value,cantidad:parseInt(document.getElementById("em-cant").value)||1,estado:document.getElementById("em-estado").value,ubicacion:document.getElementById("em-ubic").value,notas:document.getElementById("em-notas").value}).eq('id',id);toast("Material actualizado ✓");closeModal();renderInventario(document.getElementById("page-content"));}
 async function eliminarMaterial(id){await _sb.from('inventario').delete().eq('id',id);toast("Eliminado ✓");closeModal();renderInventario(document.getElementById("page-content"));}
 
 // ── INCIDENCIAS ───────────────────────────────────────────────────────────
 async function renderIncidencias(pc){
   try{const{data}=await _sb.from('incidencias').select('*').order('created_at',{ascending:false});INCIDENCIAS=data||[];}catch(e){INCIDENCIAS=[];}
   const prioColor={alta:"b-pink",media:"b-orange",baja:"b-gray"};const estadoInc={abierta:"b-pink",en_proceso:"b-blue",resuelta:"b-green"};
-  pc.innerHTML=`
-    <div class="page-hd"><div><div class="page-title">Incidencias</div><div class="page-sub">${INCIDENCIAS.length} registradas</div></div><button class="btn btn-p" onclick="nuevaIncidencia()">+ Nueva</button></div>
-    ${INCIDENCIAS.length===0?`<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">🚨</div><div style="color:var(--muted)">Sin incidencias</div></div>`:`
-    <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Por</th><th>Cuándo</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead><tbody>${INCIDENCIAS.map(inc=>`<tr><td style="font-weight:500">${inc.material||"—"}</td><td style="color:var(--muted)">${inc.reportado_por||"—"}</td><td style="color:var(--muted);font-size:12px">${inc.created_at?new Date(inc.created_at).toLocaleDateString("es-ES"):"—"}</td><td><span class="badge ${prioColor[inc.prioridad]||"b-gray"}">${inc.prioridad||"—"}</span></td><td><span class="badge ${estadoInc[inc.estado]||"b-gray"}">${(inc.estado||"abierta").replace("_"," ")}</span></td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="verIncidencia('${inc.id}')">Ver</button></td></tr>`).join("")}</tbody></table></div></div>`}`;
+  pc.innerHTML=`<div class="page-hd"><div><div class="page-title">Incidencias</div><div class="page-sub">${INCIDENCIAS.length} registradas</div></div><button class="btn btn-p" onclick="nuevaIncidencia()">+ Nueva</button></div>
+    ${INCIDENCIAS.length===0?`<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">🚨</div><div style="color:var(--muted)">Sin incidencias</div></div>`:`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Por</th><th>Cuándo</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead><tbody>${INCIDENCIAS.map(inc=>`<tr><td style="font-weight:500">${inc.material||"—"}</td><td style="color:var(--muted)">${inc.reportado_por||"—"}</td><td style="color:var(--muted);font-size:12px">${inc.created_at?new Date(inc.created_at).toLocaleDateString("es-ES"):"—"}</td><td><span class="badge ${prioColor[inc.prioridad]||"b-gray"}">${inc.prioridad||"—"}</span></td><td><span class="badge ${estadoInc[inc.estado]||"b-gray"}">${(inc.estado||"abierta").replace("_"," ")}</span></td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="verIncidencia('${inc.id}')">Ver</button></td></tr>`).join("")}</tbody></table></div></div>`}`;
 }
-function nuevaIncidencia(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">🚨 Nueva incidencia</div>
-    <label class="form-lbl">Material afectado</label><input class="form-input" id="inc-material" placeholder="Micrófono, mesa de mezclas…"/>
-    <label class="form-lbl">Tipo</label><select class="form-select" id="inc-tipo"><option value="averia">Avería</option><option value="perdida">Pérdida</option><option value="dano">Daño</option><option value="mantenimiento">Mantenimiento</option><option value="otro">Otro</option></select>
-    <label class="form-lbl">Prioridad</label><select class="form-select" id="inc-prioridad"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select>
-    <label class="form-lbl">Dónde</label><input class="form-input" id="inc-donde" placeholder="Evento, sala, almacén…"/>
-    <label class="form-lbl">Descripción</label><textarea class="form-textarea" id="inc-desc" style="min-height:100px"></textarea>
-    <button class="btn btn-p btn-full" onclick="guardarIncidencia()">Enviar</button>`);
-}
-async function guardarIncidencia(){
-  const material=document.getElementById("inc-material").value.trim();if(!material){toast("⚠️ Indica el material");return;}
-  await _sb.from('incidencias').insert({material,reportado_por:userProfile.nombre,empleado_id:userProfile._supabase_id,tipo:document.getElementById("inc-tipo").value,prioridad:document.getElementById("inc-prioridad").value,lugar:document.getElementById("inc-donde").value||"—",descripcion:document.getElementById("inc-desc").value||"—",estado:"abierta"});
-  toast("Incidencia reportada ✓");closeModal();renderIncidencias(document.getElementById("page-content"));
-}
-function verIncidencia(id){
-  const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">🚨 ${inc.material}</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px"><span class="badge ${inc.prioridad==="alta"?"b-pink":"b-orange"}">${inc.prioridad}</span><span class="badge ${inc.estado==="resuelta"?"b-green":"b-pink"}">${inc.estado}</span></div>
-    <div style="font-size:14px;line-height:1.6"><div><span style="color:var(--muted)">👤</span> ${inc.reportado_por}</div><div><span style="color:var(--muted)">📍</span> ${inc.lugar}</div><div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">${inc.descripcion}</div></div>
-    ${canAdmin()?`<div style="margin-top:16px"><label class="form-lbl">Cambiar estado</label><select class="form-select" id="inc-new-estado"><option value="abierta" ${inc.estado==="abierta"?"selected":""}>Abierta</option><option value="en_proceso" ${inc.estado==="en_proceso"?"selected":""}>En proceso</option><option value="resuelta" ${inc.estado==="resuelta"?"selected":""}>Resuelta</option></select><button class="btn btn-p btn-full" onclick="actualizarEstadoIncidencia('${inc.id}')">Guardar</button></div>`:
-    `<button class="btn btn-p btn-full" style="margin-top:16px" onclick="closeModal()">Cerrar</button>`}`);
-}
-async function actualizarEstadoIncidencia(id){
-  await _sb.from('incidencias').update({estado:document.getElementById("inc-new-estado").value}).eq('id',id);
-  toast("Estado actualizado ✓");closeModal();renderIncidencias(document.getElementById("page-content"));
-}
-
-// ── PDF NÓMINA (real .pdf con jsPDF) ────────────────────────────────────
+function nuevaIncidencia(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">🚨 Nueva incidencia</div><label class="form-lbl">Material afectado</label><input class="form-input" id="inc-material" placeholder="Micrófono, mesa de mezclas…"/><label class="form-lbl">Tipo</label><select class="form-select" id="inc-tipo"><option value="averia">Avería</option><option value="perdida">Pérdida</option><option value="dano">Daño</option><option value="mantenimiento">Mantenimiento</option><option value="otro">Otro</option></select><label class="form-lbl">Prioridad</label><select class="form-select" id="inc-prioridad"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select><label class="form-lbl">Dónde</label><input class="form-input" id="inc-donde" placeholder="Evento, sala, almacén…"/><label class="form-lbl">Descripción</label><textarea class="form-textarea" id="inc-desc" style="min-height:100px"></textarea><button class="btn btn-p btn-full" onclick="guardarIncidencia()">Enviar</button>`);}
+async function guardarIncidencia(){const material=document.getElementById("inc-material").value.trim();if(!material){toast("⚠️ Indica el material");return;}await _sb.from('incidencias').insert({material,reportado_por:userProfile.nombre,empleado_id:userProfile._supabase_id,tipo:document.getElementById("inc-tipo").value,prioridad:document.getElementById("inc-prioridad").value,lugar:document.getElementById("inc-donde").value||"—",descripcion:document.getElementById("inc-desc").value||"—",estado:"abierta"});toast("Incidencia reportada ✓");closeModal();renderIncidencias(document.getElementById("page-content"));}
+function verIncidencia(id){const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">🚨 ${inc.material}</div><div style="display:flex;gap:8px;margin-bottom:16px"><span class="badge ${inc.prioridad==="alta"?"b-pink":"b-orange"}">${inc.prioridad}</span><span class="badge ${inc.estado==="resuelta"?"b-green":"b-pink"}">${inc.estado}</span></div><div style="font-size:14px;line-height:1.6"><div><span style="color:var(--muted)">👤</span> ${inc.reportado_por}</div><div><span style="color:var(--muted)">📍</span> ${inc.lugar}</div><div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">${inc.descripcion}</div></div>${canAdmin()?`<div style="margin-top:16px"><label class="form-lbl">Cambiar estado</label><select class="form-select" id="inc-new-estado"><option value="abierta" ${inc.estado==="abierta"?"selected":""}>Abierta</option><option value="en_proceso" ${inc.estado==="en_proceso"?"selected":""}>En proceso</option><option value="resuelta" ${inc.estado==="resuelta"?"selected":""}>Resuelta</option></select><button class="btn btn-p btn-full" onclick="actualizarEstadoIncidencia('${inc.id}')">Guardar</button></div>`:`<button class="btn btn-p btn-full" style="margin-top:16px" onclick="closeModal()">Cerrar</button>`}`);}
+async function actualizarEstadoIncidencia(id){await _sb.from('incidencias').update({estado:document.getElementById("inc-new-estado").value}).eq('id',id);toast("Estado actualizado ✓");closeModal();renderIncidencias(document.getElementById("page-content"));}
+// ── PDF NÓMINA ────────────────────────────────────────────────────────────
 function generarPDFNomina(n){
-  const { jsPDF } = window.jspdf;
-  const nombre=n.empleadoNombre||userProfile.nombre;
-  const dept=userProfile.dept||"—";
-  const email=userProfile.email||"—";
-  const mes=n.mes||"—";
-  const bruto=n.bruto||userProfile.salarioBase||0;
-  const irpf=n.irpf||userProfile.irpf||15;
-  const ret=n.retencion||Math.round(bruto*irpf/100);
-  const ss=n.ss||(bruto>0?160:0);
-  const neto=n.neto||(bruto-ret-ss);
-  const fecha=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"});
-  const anio=new Date().getFullYear();
-
-  const doc=new jsPDF({unit:"mm",format:"a4"});
-  const pw=210;
-
-  doc.setFillColor(7,7,15);
-  doc.rect(0,0,pw,40,"F");
-  doc.setTextColor(255,255,255);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(22);
-  doc.text("InOut",15,22);
-  doc.setTextColor(200,255,0);
-  doc.text("Media",42,22);
-  doc.setTextColor(200,255,0);
-  doc.setFontSize(9);
-  doc.setFont("helvetica","bold");
-  doc.text("RECIBO DE SALARIO",pw-15,18,{align:"right"});
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13);
-  doc.text(mes,pw-15,26,{align:"right"});
-
-  doc.setTextColor(30,30,30);
-  doc.setFontSize(8);
-  doc.setFont("helvetica","normal");
-  doc.setTextColor(130,130,130);
-  doc.text("TRABAJADOR",15,55);
-  doc.text("DEPARTAMENTO",110,55);
-  doc.setTextColor(30,30,30);
-  doc.setFontSize(11);
-  doc.setFont("helvetica","bold");
-  doc.text(nombre,15,62);
-  doc.text(dept,110,62);
-
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(8);
-  doc.setTextColor(130,130,130);
-  doc.text("EMAIL",15,75);
-  doc.text("FECHA EMISIÓN",110,75);
-  doc.setTextColor(30,30,30);
-  doc.setFontSize(10);
-  doc.text(email,15,82);
-  doc.text(fecha,110,82);
-
-  doc.setDrawColor(220,220,230);
-  doc.setLineWidth(0.3);
-  doc.line(15,92,pw-15,92);
-
-  doc.setTextColor(130,130,130);
-  doc.setFontSize(9);
-  doc.setFont("helvetica","bold");
-  doc.text("DEVENGOS",15,102);
-
-  doc.setTextColor(30,30,30);
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(10);
-  doc.text("Salario base mensual",15,112);
-  doc.text(`${bruto.toLocaleString("es-ES")} €`,pw-15,112,{align:"right"});
-  doc.setDrawColor(240,240,245);
-  doc.line(15,115,pw-15,115);
-
-  doc.text("Horas extra / complementos",15,122);
-  doc.text("0 €",pw-15,122,{align:"right"});
-  doc.line(15,125,pw-15,125);
-
-  doc.setTextColor(130,130,130);
-  doc.setFontSize(9);
-  doc.setFont("helvetica","bold");
-  doc.text("DEDUCCIONES",15,138);
-
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(10);
-  doc.setTextColor(30,30,30);
-  doc.text(`Retención IRPF (${irpf}%)`,15,148);
-  doc.setTextColor(229,62,62);
-  doc.text(`− ${ret.toLocaleString("es-ES")} €`,pw-15,148,{align:"right"});
-  doc.setDrawColor(240,240,245);
-  doc.line(15,151,pw-15,151);
-
-  doc.setTextColor(30,30,30);
-  doc.text("Cotización Seguridad Social",15,158);
-  doc.setTextColor(229,62,62);
-  doc.text(`− ${ss.toLocaleString("es-ES")} €`,pw-15,158,{align:"right"});
-  doc.line(15,161,pw-15,161);
-
-  doc.setFillColor(248,248,252);
-  doc.rect(15,172,pw-30,16,"F");
-  doc.setTextColor(30,30,30);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(11);
-  doc.text("SALARIO LÍQUIDO A PERCIBIR",20,182);
-  doc.setTextColor(45,106,45);
-  doc.setFontSize(16);
-  doc.text(`${neto.toLocaleString("es-ES")} €`,pw-20,182,{align:"right"});
-
+  const{jsPDF}=window.jspdf;
+  const nombre=n.empleadoNombre||userProfile.nombre,dept=userProfile.dept||"—",email=userProfile.email||"—",mes=n.mes||"—";
+  const bruto=n.bruto||userProfile.salarioBase||0,irpf=n.irpf||userProfile.irpf||15,ret=n.retencion||Math.round(bruto*irpf/100),ss=n.ss||(bruto>0?160:0),neto=n.neto||(bruto-ret-ss);
+  const fecha=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}),anio=new Date().getFullYear();
+  const doc=new jsPDF({unit:"mm",format:"a4"});const pw=210;
+  doc.setFillColor(7,7,15);doc.rect(0,0,pw,40,"F");
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(22);doc.text("InOut",15,22);
+  doc.setTextColor(200,255,0);doc.text("Media",42,22);
+  doc.setTextColor(200,255,0);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("RECIBO DE SALARIO",pw-15,18,{align:"right"});
+  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.text(mes,pw-15,26,{align:"right"});
+  doc.setTextColor(30,30,30);doc.setFontSize(8);doc.setFont("helvetica","normal");
+  doc.setTextColor(130,130,130);doc.text("TRABAJADOR",15,55);doc.text("DEPARTAMENTO",110,55);
+  doc.setTextColor(30,30,30);doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text(nombre,15,62);doc.text(dept,110,62);
+  doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(130,130,130);doc.text("EMAIL",15,75);doc.text("FECHA EMISIÓN",110,75);
+  doc.setTextColor(30,30,30);doc.setFontSize(10);doc.text(email,15,82);doc.text(fecha,110,82);
+  doc.setDrawColor(220,220,230);doc.setLineWidth(0.3);doc.line(15,92,pw-15,92);
+  doc.setTextColor(130,130,130);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("DEVENGOS",15,102);
+  doc.setTextColor(30,30,30);doc.setFont("helvetica","normal");doc.setFontSize(10);
+  doc.text("Salario base mensual",15,112);doc.text(`${bruto.toLocaleString("es-ES")} €`,pw-15,112,{align:"right"});
+  doc.setDrawColor(240,240,245);doc.line(15,115,pw-15,115);
+  doc.text("Horas extra / complementos",15,122);doc.text("0 €",pw-15,122,{align:"right"});doc.line(15,125,pw-15,125);
+  doc.setTextColor(130,130,130);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("DEDUCCIONES",15,138);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(30,30,30);
+  doc.text(`Retención IRPF (${irpf}%)`,15,148);doc.setTextColor(229,62,62);doc.text(`− ${ret.toLocaleString("es-ES")} €`,pw-15,148,{align:"right"});
+  doc.setDrawColor(240,240,245);doc.line(15,151,pw-15,151);
+  doc.setTextColor(30,30,30);doc.text("Cotización Seguridad Social",15,158);doc.setTextColor(229,62,62);doc.text(`− ${ss.toLocaleString("es-ES")} €`,pw-15,158,{align:"right"});doc.line(15,161,pw-15,161);
+  doc.setFillColor(248,248,252);doc.rect(15,172,pw-30,16,"F");
+  doc.setTextColor(30,30,30);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("SALARIO LÍQUIDO A PERCIBIR",20,182);
+  doc.setTextColor(45,106,45);doc.setFontSize(16);doc.text(`${neto.toLocaleString("es-ES")} €`,pw-20,182,{align:"right"});
   const esPagada=n.estado==="pagada";
-  doc.setFillColor(esPagada?209:255,esPagada?250:243,esPagada?229:205);
-  doc.roundedRect(pw-50,195,35,7,2,2,"F");
-  doc.setTextColor(esPagada?6:133,esPagada?95:100,esPagada?70:4);
-  doc.setFontSize(8);
-  doc.setFont("helvetica","bold");
-  doc.text(esPagada?"✓ PAGADO":"PENDIENTE",pw-32.5,199.5,{align:"center"});
-
-  doc.setDrawColor(200,200,200);
-  doc.setLineDashPattern([1,1],0);
-  doc.line(15,235,pw-15,235);
-  doc.setLineDashPattern([],0);
-
-  doc.setDrawColor(180,180,180);
-  doc.line(35,255,85,255);
-  doc.line(pw-85,255,pw-35,255);
-  doc.setTextColor(150,150,150);
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(8);
-  doc.text("Firma empresa",60,261,{align:"center"});
-  doc.text("Firma trabajador",pw-60,261,{align:"center"});
-
-  doc.setFillColor(248,248,252);
-  doc.rect(0,277,pw,20,"F");
-  doc.setTextColor(150,150,150);
-  doc.setFontSize(8);
-  doc.text(`InOut Media S.L. · CIF: B-XXXXXXXX`,15,285);
-  doc.text(`Documento generado el ${fecha}`,15,290);
-  doc.text(`Ejercicio ${anio}`,pw-15,285,{align:"right"});
-  doc.text("Confidencial",pw-15,290,{align:"right"});
-
-  doc.save(`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.pdf`);
-  toast("Nómina descargada ✓");
+  doc.setFillColor(esPagada?209:255,esPagada?250:243,esPagada?229:205);doc.roundedRect(pw-50,195,35,7,2,2,"F");
+  doc.setTextColor(esPagada?6:133,esPagada?95:100,esPagada?70:4);doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text(esPagada?"✓ PAGADO":"PENDIENTE",pw-32.5,199.5,{align:"center"});
+  doc.setDrawColor(200,200,200);doc.setLineDashPattern([1,1],0);doc.line(15,235,pw-15,235);doc.setLineDashPattern([],0);
+  doc.setDrawColor(180,180,180);doc.line(35,255,85,255);doc.line(pw-85,255,pw-35,255);
+  doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Firma empresa",60,261,{align:"center"});doc.text("Firma trabajador",pw-60,261,{align:"center"});
+  doc.setFillColor(248,248,252);doc.rect(0,277,pw,20,"F");
+  doc.setTextColor(150,150,150);doc.setFontSize(8);doc.text(`InOut Media S.L. · CIF: B-XXXXXXXX`,15,285);doc.text(`Documento generado el ${fecha}`,15,290);doc.text(`Ejercicio ${anio}`,pw-15,285,{align:"right"});doc.text("Confidencial",pw-15,290,{align:"right"});
+  doc.save(`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.pdf`);toast("Nómina descargada ✓");
 }
 
-// ── AUTO-LOGIN (check session) ───────────────────────────────────────────
+// ── AUTO-LOGIN ────────────────────────────────────────────────────────────
 (async function checkSession(){
   const hash=window.location.hash;
   if(hash&&hash.includes('type=recovery')){
     document.getElementById("login-screen").style.display="flex";
-    document.getElementById("panel-login").style.display="none";
-    document.getElementById("panel-reset").style.display="none";
-    const loginCard=document.querySelector(".login-card");
-    loginCard.innerHTML=`
+    document.getElementById("panel-login").style.display="none";document.getElementById("panel-reset").style.display="none";
+    document.querySelector(".login-card").innerHTML=`
       <div class="login-logo">InOut<span class="logo-dot">.</span></div>
       <div class="login-sub" style="margin-bottom:20px">Establecer nueva contraseña</div>
       <div id="newpass-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-      <label class="form-lbl">Nueva contraseña</label>
-      <input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
-      <label class="form-lbl">Confirmar contraseña</label>
-      <input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
-      <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>
-    `;
+      <label class="form-lbl">Nueva contraseña</label><input class="form-input" id="newpass-1" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      <label class="form-lbl">Confirmar contraseña</label><input class="form-input" id="newpass-2" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      <button class="btn btn-p btn-full" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>`;
     return;
   }
   const{data:{session}}=await _sb.auth.getSession();
   if(session?.user){
     currentUser=session.user;
     const{data:perfil}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    if(perfil){
-      userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id};
-      enterApp();
-    }
+    if(perfil){userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id};enterApp();}
   }
 })();
 
 async function guardarNuevaPassword(){
-  const p1=document.getElementById("newpass-1").value;
-  const p2=document.getElementById("newpass-2").value;
+  const p1=document.getElementById("newpass-1").value,p2=document.getElementById("newpass-2").value;
   const msg=document.getElementById("newpass-msg");
-  const showMsg=(text,isError)=>{
-    msg.style.display="block";
-    msg.style.background=isError?"rgba(255,60,172,.1)":"rgba(200,255,0,.08)";
-    msg.style.border=isError?"1px solid rgba(255,60,172,.2)":"1px solid rgba(200,255,0,.2)";
-    msg.style.color=isError?"var(--a2)":"var(--a1)";
-    msg.textContent=text;
-  };
+  const showMsg=(text,isError)=>{msg.style.display="block";msg.style.background=isError?"rgba(255,60,172,.1)":"rgba(200,255,0,.08)";msg.style.border=isError?"1px solid rgba(255,60,172,.2)":"1px solid rgba(200,255,0,.2)";msg.style.color=isError?"var(--a2)":"var(--a1)";msg.textContent=text;};
   if(!p1||!p2){showMsg("⚠️ Rellena ambos campos",true);return;}
   if(p1!==p2){showMsg("⚠️ Las contraseñas no coinciden",true);return;}
   if(p1.length<6){showMsg("⚠️ Mínimo 6 caracteres",true);return;}
-
   const{data:{user}}=await _sb.auth.getUser();
-  if(user){
-    const{data:hist}=await _sb.from('password_history').select('password_hash').eq('user_id',user.id);
-    if(hist&&hist.length>0){
-      const hashNew=await hashPassword(p1);
-      if(hist.some(h=>h.password_hash===hashNew)){
-        showMsg("⚠️ No puedes usar una contraseña anterior. Elige una nueva.",true);
-        return;
-      }
-    }
-  }
-
-  const{error}=await _sb.auth.updateUser({password:p1});
-  if(error){showMsg("Error: "+error.message,true);return;}
-
-  if(user){
-    const hashNew=await hashPassword(p1);
-    await _sb.from('password_history').insert({user_id:user.id,password_hash:hashNew});
-  }
-
-  showMsg("✅ Contraseña actualizada. Redirigiendo al login...",false);
-  setTimeout(async()=>{
-    await _sb.auth.signOut();
-    window.location.hash="";
-    window.location.href=window.location.pathname;
-  },1500);
+  if(user){const{data:hist}=await _sb.from('password_history').select('password_hash').eq('user_id',user.id);if(hist&&hist.length>0){const hashNew=await hashPassword(p1);if(hist.some(h=>h.password_hash===hashNew)){showMsg("⚠️ No puedes usar una contraseña anterior.",true);return;}}}
+  const{error}=await _sb.auth.updateUser({password:p1});if(error){showMsg("Error: "+error.message,true);return;}
+  if(user){const hashNew=await hashPassword(p1);await _sb.from('password_history').insert({user_id:user.id,password_hash:hashNew});}
+  showMsg("✅ Contraseña actualizada. Redirigiendo…",false);setTimeout(async()=>{await _sb.auth.signOut();window.location.hash="";window.location.href=window.location.pathname;},1500);
 }
 
-async function hashPassword(pass){
-  const data=new TextEncoder().encode(pass);
-  const buf=await crypto.subtle.digest('SHA-256',data);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+async function hashPassword(pass){const data=new TextEncoder().encode(pass);const buf=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
 </script>
 </body>
 </html>

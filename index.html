@@ -1244,47 +1244,291 @@ function nuevaIncidencia(){showModal(`<button class="modal-close" onclick="close
 async function guardarIncidencia(){const material=document.getElementById("inc-material").value.trim();if(!material){toast("⚠️ Indica el material");return;}await _sb.from('incidencias').insert({material,reportado_por:userProfile.nombre,empleado_id:userProfile._supabase_id,tipo:document.getElementById("inc-tipo").value,prioridad:document.getElementById("inc-prioridad").value,lugar:document.getElementById("inc-donde").value||"—",descripcion:document.getElementById("inc-desc").value||"—",estado:"abierta"});toast("Incidencia reportada ✓");closeModal();renderIncidencias(document.getElementById("page-content"));}
 function verIncidencia(id){const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">🚨 ${inc.material}</div><div style="display:flex;gap:8px;margin-bottom:16px"><span class="badge ${inc.prioridad==="alta"?"b-pink":"b-orange"}">${inc.prioridad}</span><span class="badge ${inc.estado==="resuelta"?"b-green":"b-pink"}">${inc.estado}</span></div><div style="font-size:14px;line-height:1.6"><div><span style="color:var(--muted)">👤</span> ${inc.reportado_por}</div><div><span style="color:var(--muted)">📍</span> ${inc.lugar}</div><div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">${inc.descripcion}</div></div>${canAdmin()?`<div style="margin-top:16px"><label class="form-lbl">Cambiar estado</label><select class="form-select" id="inc-new-estado"><option value="abierta" ${inc.estado==="abierta"?"selected":""}>Abierta</option><option value="en_proceso" ${inc.estado==="en_proceso"?"selected":""}>En proceso</option><option value="resuelta" ${inc.estado==="resuelta"?"selected":""}>Resuelta</option></select><button class="btn btn-p btn-full" onclick="actualizarEstadoIncidencia('${inc.id}')">Guardar</button></div>`:`<button class="btn btn-p btn-full" style="margin-top:16px" onclick="closeModal()">Cerrar</button>`}`);}
 async function actualizarEstadoIncidencia(id){await _sb.from('incidencias').update({estado:document.getElementById("inc-new-estado").value}).eq('id',id);toast("Estado actualizado ✓");closeModal();renderIncidencias(document.getElementById("page-content"));}
-// ── PDF NÓMINA ────────────────────────────────────────────────────────────
+// NUEVA función generarPDFNomina — formato nómina española completa
 function generarPDFNomina(n){
   const{jsPDF}=window.jspdf;
-  const nombre=n.empleadoNombre||userProfile.nombre,dept=userProfile.dept||"—",email=userProfile.email||"—",mes=n.mes||"—";
-  const bruto=n.bruto||userProfile.salarioBase||0,irpf=n.irpf||userProfile.irpf||15,ret=n.retencion||Math.round(bruto*irpf/100),ss=n.ss||(bruto>0?160:0),neto=n.neto||(bruto-ret-ss);
-  const fecha=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}),anio=new Date().getFullYear();
-  const doc=new jsPDF({unit:"mm",format:"a4"});const pw=210;
-  doc.setFillColor(7,7,15);doc.rect(0,0,pw,40,"F");
-  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(22);doc.text("InOut",15,22);
-  doc.setTextColor(200,255,0);doc.text("Media",42,22);
-  doc.setTextColor(200,255,0);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("RECIBO DE SALARIO",pw-15,18,{align:"right"});
-  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.text(mes,pw-15,26,{align:"right"});
-  doc.setTextColor(30,30,30);doc.setFontSize(8);doc.setFont("helvetica","normal");
-  doc.setTextColor(130,130,130);doc.text("TRABAJADOR",15,55);doc.text("DEPARTAMENTO",110,55);
-  doc.setTextColor(30,30,30);doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text(nombre,15,62);doc.text(dept,110,62);
-  doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(130,130,130);doc.text("EMAIL",15,75);doc.text("FECHA EMISIÓN",110,75);
-  doc.setTextColor(30,30,30);doc.setFontSize(10);doc.text(email,15,82);doc.text(fecha,110,82);
-  doc.setDrawColor(220,220,230);doc.setLineWidth(0.3);doc.line(15,92,pw-15,92);
-  doc.setTextColor(130,130,130);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("DEVENGOS",15,102);
-  doc.setTextColor(30,30,30);doc.setFont("helvetica","normal");doc.setFontSize(10);
-  doc.text("Salario base mensual",15,112);doc.text(`${bruto.toLocaleString("es-ES")} €`,pw-15,112,{align:"right"});
-  doc.setDrawColor(240,240,245);doc.line(15,115,pw-15,115);
-  doc.text("Horas extra / complementos",15,122);doc.text("0 €",pw-15,122,{align:"right"});doc.line(15,125,pw-15,125);
-  doc.setTextColor(130,130,130);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("DEDUCCIONES",15,138);
-  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(30,30,30);
-  doc.text(`Retención IRPF (${irpf}%)`,15,148);doc.setTextColor(229,62,62);doc.text(`− ${ret.toLocaleString("es-ES")} €`,pw-15,148,{align:"right"});
-  doc.setDrawColor(240,240,245);doc.line(15,151,pw-15,151);
-  doc.setTextColor(30,30,30);doc.text("Cotización Seguridad Social",15,158);doc.setTextColor(229,62,62);doc.text(`− ${ss.toLocaleString("es-ES")} €`,pw-15,158,{align:"right"});doc.line(15,161,pw-15,161);
-  doc.setFillColor(248,248,252);doc.rect(15,172,pw-30,16,"F");
-  doc.setTextColor(30,30,30);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("SALARIO LÍQUIDO A PERCIBIR",20,182);
-  doc.setTextColor(45,106,45);doc.setFontSize(16);doc.text(`${neto.toLocaleString("es-ES")} €`,pw-20,182,{align:"right"});
-  const esPagada=n.estado==="pagada";
-  doc.setFillColor(esPagada?209:255,esPagada?250:243,esPagada?229:205);doc.roundedRect(pw-50,195,35,7,2,2,"F");
-  doc.setTextColor(esPagada?6:133,esPagada?95:100,esPagada?70:4);doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text(esPagada?"✓ PAGADO":"PENDIENTE",pw-32.5,199.5,{align:"center"});
-  doc.setDrawColor(200,200,200);doc.setLineDashPattern([1,1],0);doc.line(15,235,pw-15,235);doc.setLineDashPattern([],0);
-  doc.setDrawColor(180,180,180);doc.line(35,255,85,255);doc.line(pw-85,255,pw-35,255);
-  doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Firma empresa",60,261,{align:"center"});doc.text("Firma trabajador",pw-60,261,{align:"center"});
-  doc.setFillColor(248,248,252);doc.rect(0,277,pw,20,"F");
-  doc.setTextColor(150,150,150);doc.setFontSize(8);doc.text(`InOut Media S.L. · CIF: B-XXXXXXXX`,15,285);doc.text(`Documento generado el ${fecha}`,15,290);doc.text(`Ejercicio ${anio}`,pw-15,285,{align:"right"});doc.text("Confidencial",pw-15,290,{align:"right"});
-  doc.save(`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.pdf`);toast("Nómina descargada ✓");
+  if(!jsPDF){toast("Error: jsPDF no disponible");return;}
+
+  // Datos del empleado
+  const nombre   = n.empleadoNombre || userProfile.nombre;
+  const dept     = userProfile.dept  || "—";
+  const email    = userProfile.email || "—";
+  const mes      = n.mes             || "—";
+  const bruto    = n.bruto           || userProfile.salarioBase || 0;
+  const irpf     = n.irpf            || userProfile.irpf        || 15;
+  const ss       = n.ss              || (bruto > 0 ? 160 : 0);
+  const ret      = n.retencion       || Math.round(bruto * irpf / 100);
+  const neto     = n.neto            || (bruto - ret - ss);
+  const esPagada = n.estado          === "pagada";
+  const fecha    = new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"});
+  const anio     = new Date().getFullYear();
+
+  // Calcular conceptos desglosados
+  const salBase      = Math.round(bruto * 0.85);      // 85% salario base
+  const plusTransp   = Math.round(bruto * 0.04);      // 4% plus transporte
+  const pagaExtra    = Math.round(bruto * 0.055);     // paga extra prorrateada
+  const primaSeguro  = Math.round(bruto * 0.02);      // prima seguro médico
+  const totalDevengo = salBase + plusTransp + pagaExtra + primaSeguro;
+  const cotCC        = Math.round(bruto * 0.047);     // contingencias comunes 4.7%
+  const cotDesem     = Math.round(bruto * 0.016);     // desempleo 1.6%
+  const cotFP        = Math.round(bruto * 0.001);     // formación profesional
+  const totalDed     = ret + ss + cotCC + cotDesem + cotFP;
+  const liquidoReal  = totalDevengo - totalDed;
+
+  // Período devengado
+  const [mesNom, anioNom] = mes.split(" ");
+  const mesesNum = {Enero:"01",Febrero:"02",Marzo:"03",Abril:"04",Mayo:"05",Junio:"06",Julio:"07",Agosto:"08",Septiembre:"09",Octubre:"10",Noviembre:"11",Diciembre:"12"};
+  const mesNum   = mesesNum[mesNom] || "01";
+  const diasMes  = new Date(parseInt(anioNom||anio), parseInt(mesNum), 0).getDate();
+  const periodoInicio = `01/${mesNum}/${anioNom||anio}`;
+  const periodoFin    = `${diasMes}/${mesNum}/${anioNom||anio}`;
+  const fCobro        = `${diasMes}-${mesNum}-${anioNom||anio}`;
+
+  const doc = new jsPDF({unit:"mm", format:"a4"});
+  const pw = 210, ph = 297;
+  const ml = 10, mr = 200; // márgenes
+
+  // Fuente por defecto
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+
+  // ══════════════════════════════════════════════════
+  // CABECERA — EMPRESA
+  // ══════════════════════════════════════════════════
+  const drawCell = (x,y,w,h,text,bold=false,align="left",fontSize=8,fill=null) => {
+    if(fill){ doc.setFillColor(...fill); doc.rect(x,y,w,h,"F"); }
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(180,180,180);
+    doc.rect(x,y,w,h,"S");
+    doc.setFont("helvetica", bold?"bold":"normal");
+    doc.setFontSize(fontSize);
+    const tx = align==="center" ? x+w/2 : align==="right" ? x+w-2 : x+2;
+    const ty = y + h/2 + fontSize*0.35;
+    doc.text(text||"", tx, ty, {align});
+    doc.setFont("helvetica","normal");
+  };
+
+  let cy = 10;
+
+  // Fila cabecera empresa
+  drawCell(ml, cy, 100, 6, "EMPRESA", true, "center", 7, [230,230,230]);
+  drawCell(110, cy, 50, 6, "C.I.F.", true, "center", 7, [230,230,230]);
+  drawCell(160, cy, 40, 6, "Nº INSC. S.S.", true, "center", 7, [230,230,230]);
+  cy += 6;
+  drawCell(ml, cy, 100, 7, "INOUT MEDIA S.L.", false, "left", 8);
+  drawCell(110, cy, 50, 7, "B-XXXXXXXX", false, "center", 8);
+  drawCell(160, cy, 40, 7, "28  XXXXXXXXX", false, "center", 8);
+  cy += 7;
+
+  drawCell(ml, cy, 120, 6, "DOMICILIO", true, "center", 7, [230,230,230]);
+  drawCell(130, cy, 70, 6, "POBLACION", true, "center", 7, [230,230,230]);
+  cy += 6;
+  drawCell(ml, cy, 120, 7, "CALLE —, —", false, "left", 8);
+  drawCell(130, cy, 70, 7, "MADRID", false, "left", 8);
+  cy += 7;
+
+  // Fila trabajador
+  drawCell(ml, cy, 80, 6, "TRABAJADOR", true, "center", 7, [230,230,230]);
+  drawCell(90, cy, 60, 6, "D.N.I.", true, "center", 7, [230,230,230]);
+  drawCell(150, cy, 50, 6, "NºAFILIACION S.S.", true, "center", 7, [230,230,230]);
+  cy += 6;
+  drawCell(ml, cy, 80, 7, nombre.toUpperCase(), false, "left", 8);
+  drawCell(90, cy, 60, 7, "—", false, "center", 8);
+  drawCell(150, cy, 50, 7, "—", false, "center", 8);
+  cy += 7;
+
+  // Fila datos laborales
+  drawCell(ml,  cy, 20, 6, "F.ALTA",     true, "center", 6, [230,230,230]);
+  drawCell(30,  cy, 20, 6, "ANTIGU.",    true, "center", 6, [230,230,230]);
+  drawCell(50,  cy, 40, 6, "CATEGORIA",  true, "center", 6, [230,230,230]);
+  drawCell(90,  cy, 60, 6, "PTO.TRABAJO",true, "center", 6, [230,230,230]);
+  drawCell(150, cy, 25, 6, "SECCION",    true, "center", 6, [230,230,230]);
+  drawCell(175, cy, 25, 6, "CONT.",      true, "center", 6, [230,230,230]);
+  cy += 6;
+  drawCell(ml,  cy, 20, 6, userProfile.fechaAlta||"—", false, "center", 7);
+  drawCell(30,  cy, 20, 6, userProfile.fechaAlta||"—", false, "center", 7);
+  drawCell(50,  cy, 40, 6, dept.toUpperCase(), false, "center", 7);
+  drawCell(90,  cy, 60, 6, dept.toUpperCase(), false, "center", 7);
+  drawCell(150, cy, 25, 6, "—", false, "center", 7);
+  drawCell(175, cy, 25, 6, "100", false, "center", 7);
+  cy += 6;
+
+  // Período devengado
+  drawCell(ml,  cy, 90, 6, "PERIODO DEVENGADO", true, "center", 7, [230,230,230]);
+  drawCell(100, cy, 40, 6, "F.COBRO", true, "center", 7, [230,230,230]);
+  drawCell(140, cy, 30, 6, "TARIFA",  true, "center", 7, [230,230,230]);
+  drawCell(170, cy, 30, 6, "DIAS",    true, "center", 7, [230,230,230]);
+  cy += 6;
+  drawCell(ml,  cy, 90, 7, `Del 01 de ${mesNum} al ${diasMes} de ${mesNum} de ${anioNom||anio}`, false, "center", 8);
+  drawCell(100, cy, 40, 7, fCobro, false, "center", 8);
+  drawCell(140, cy, 30, 7, "1", false, "center", 8);
+  drawCell(170, cy, 30, 7, String(diasMes), false, "center", 8);
+  cy += 9;
+
+  // ══════════════════════════════════════════════════
+  // TABLA CONCEPTOS
+  // ══════════════════════════════════════════════════
+  const colW = [15, 18, 10, 97, 30, 30];
+  const colX = [ml, 25, 43, 53, 150, 180];
+  const hdrs = ["CUANTIA","PRECIO","","CONCEPTO","DEVENGO","DEDUCCION"];
+  hdrs.forEach((h,i) => drawCell(colX[i], cy, colW[i], 6, h, true, "center", 6, [230,230,230]));
+  cy += 6;
+
+  const conceptos = [
+    [diasMes, (salBase/diasMes).toFixed(4), "1", "SALARIO BASE",                             salBase,    null],
+    [diasMes, (plusTransp/diasMes).toFixed(4),"1","PLUS TRANSPORTE",                         plusTransp, null],
+    [diasMes, (pagaExtra/3/diasMes).toFixed(4),"1","PAGA EXTRA VERANO (PRORRATA)",           pagaExtra,  null],
+    [null,    null,                           "1", "PRIMA SEGURO MEDICO",                    primaSeguro,null],
+    [null,    null,                           "2", "DTO. PRIMA SEGURO MEDICO",                null,       primaSeguro],
+    [null,    null,                           "2", `DTO. CONT. COMUNES 4,70%`,                null,       cotCC],
+    [null,    null,                           "2", `DTO. ACCIDENTE/DESEMPLEO 1,60%`,          null,       cotDesem],
+    [null,    null,                           "2", `DTO. FORMACIÓN PROFESIONAL 0,10%`,        null,       cotFP],
+    [null,    null,                           "2", `RETENCIÓN IRPF ${irpf.toFixed(2)}%`,      null,       ret],
+  ];
+
+  conceptos.forEach(([c,p,t,concepto,dev,ded]) => {
+    drawCell(colX[0], cy, colW[0], 6, c?String(c):"", false, "right", 7);
+    drawCell(colX[1], cy, colW[1], 6, p?String(p):"", false, "right", 7);
+    drawCell(colX[2], cy, colW[2], 6, t||"",          false, "center",7);
+    drawCell(colX[3], cy, colW[3], 6, concepto,       false, "left",  7);
+    drawCell(colX[4], cy, colW[4], 6, dev?dev.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}):"", false, "right", 7);
+    drawCell(colX[5], cy, colW[5], 6, ded?ded.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}):"", false, "right", 7);
+    cy += 6;
+  });
+
+  // Espacio
+  cy += 4;
+
+  // ══════════════════════════════════════════════════
+  // BASES DE COTIZACIÓN
+  // ══════════════════════════════════════════════════
+  const baseCotiz = bruto;
+  const totalAportEmp = Math.round(bruto * 0.241) + Math.round(bruto * 0.0165) + Math.round(bruto * 0.055) + Math.round(bruto * 0.006) + Math.round(bruto * 0.002);
+
+  drawCell(ml, cy, 130, 6, "DETERMINACION DE LAS BASES DE COTIZACIÓN AL REG.GEN.DE LA SEG.SOC.", true, "center", 6, [230,230,230]);
+  drawCell(140, cy, 30, 6, "TOTAL DEVENGO", true, "center", 6, [230,230,230]);
+  drawCell(170, cy, 30, 6, "TOTAL DED.", true, "center", 6, [230,230,230]);
+  cy += 6;
+
+  drawCell(ml,  cy, 35, 6, "BASE TOTAL DE COTIZACIÓN", true, "center", 6, [230,230,230]);
+  drawCell(45,  cy, 25, 6, "DESGLOSE",   true, "center", 6, [230,230,230]);
+  drawCell(70,  cy, 30, 6, "IMPORTE",    true, "center", 6, [230,230,230]);
+  drawCell(100, cy, 10, 6, "%",          true, "center", 6, [230,230,230]);
+  drawCell(110, cy, 30, 6, "APOR.TRAB.", true, "center", 6, [230,230,230]);
+  drawCell(140, cy, 30, 12, totalDevengo.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 10);
+  drawCell(170, cy, 30, 12, totalDed.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 10);
+  cy += 6;
+
+  drawCell(ml,  cy, 10, 6, "REM.TOTAL",  true, "left",   6);
+  drawCell(20,  cy, 25, 6, baseCotiz.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+  drawCell(45,  cy, 25, 6, "REG.GRAL.",  false, "left",  7);
+  drawCell(70,  cy, 30, 6, baseCotiz.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+  drawCell(100, cy, 10, 6, "4,80",       false, "center",7);
+  drawCell(110, cy, 30, 6, cotCC.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+  cy += 6;
+
+  drawCell(ml,  cy, 10, 6, "PRORRATA",   true, "left",   6);
+  drawCell(20,  cy, 25, 6, "",           false, "right",  7);
+  drawCell(45,  cy, 25, 6, "DESEMPLEO-F.P.", false, "left", 7);
+  drawCell(70,  cy, 30, 6, baseCotiz.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+  drawCell(100, cy, 10, 6, "1,65",       false, "center",7);
+  drawCell(110, cy, 30, 6, cotDesem.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+
+  // Bloque LIQUIDO TOTAL
+  doc.setFillColor(240,248,240);
+  doc.rect(140, cy-6, 60, 18, "F");
+  doc.setDrawColor(100,180,100);
+  doc.setLineWidth(0.5);
+  doc.rect(140, cy-6, 60, 18, "S");
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(8);
+  doc.setTextColor(30,80,30);
+  doc.text("LÍQUIDO TOTAL A PERCIBIR", 170, cy+1, {align:"center"});
+  doc.setFontSize(18);
+  doc.text(liquidoReal.toLocaleString("es-ES",{minimumFractionDigits:2})+" €", 170, cy+9, {align:"center"});
+  doc.setTextColor(30,30,30);
+  doc.setFont("helvetica","normal");
+  cy += 6;
+
+  drawCell(ml,  cy, 10, 6, "TOTAL",      true, "left",   6);
+  drawCell(20,  cy, 25, 6, baseCotiz.toLocaleString("es-ES",{minimumFractionDigits:2}), false, "right", 7);
+  drawCell(45,  cy, 25, 6, "HORAS EXTRAS", false, "left", 7);
+  drawCell(70,  cy, 30, 6, "",           false, "right",  7);
+  cy += 10;
+
+  // ══════════════════════════════════════════════════
+  // TABLA BASES SS EMPRESA
+  // ══════════════════════════════════════════════════
+  drawCell(ml, cy, 190, 6, "DETERMINACIÓN DE LAS BASES DE COTIZACIÓN A LA SEGURIDAD SOCIAL Y CONCEPTOS DE RECAUDACIÓN CONJUNTA Y DE LA BASE SUJETA A RETENCIÓN DEL IRPF Y APORTACIÓN DE LA EMPRESA", true, "center", 6, [230,230,230]);
+  cy += 6;
+  drawCell(ml,  cy, 100, 5, "CONCEPTO",           true, "center", 6, [230,230,230]);
+  drawCell(110, cy, 35,  5, "BASE",                true, "center", 6, [230,230,230]);
+  drawCell(145, cy, 20,  5, "TIPO",                true, "center", 6, [230,230,230]);
+  drawCell(165, cy, 35,  5, "APORTACIÓN EMPRESA",  true, "center", 6, [230,230,230]);
+  cy += 5;
+
+  const cotEmpresa = [
+    ["CONTINGENCIAS COMUNES IMPORTE REMUNERACIÓN MENSUAL", baseCotiz, null, null],
+    ["TOTAL",                                              baseCotiz, 24.10, Math.round(baseCotiz*0.241)],
+    ["AT Y EP",                                            baseCotiz, 1.65,  Math.round(baseCotiz*0.0165)],
+    ["DESEMPLEO",                                          null,      5.50,  Math.round(baseCotiz*0.055)],
+    ["FORMACIÓN PROFESIONAL",                              null,      0.60,  Math.round(baseCotiz*0.006)],
+    ["FONDO GARANTÍA SALARIAL",                            null,      0.20,  Math.round(baseCotiz*0.002)],
+    ["BASE SUJETA A RETENCIÓN DEL IRPF",                  bruto,     null,  null],
+  ];
+
+  cotEmpresa.forEach(([conc,base,tipo,apor]) => {
+    const bold = conc==="TOTAL";
+    drawCell(ml,  cy, 100, 5, conc, bold, "left",   6, bold?[230,230,230]:null);
+    drawCell(110, cy, 35,  5, base?base.toLocaleString("es-ES",{minimumFractionDigits:2}):"", false, "right",  6);
+    drawCell(145, cy, 20,  5, tipo?tipo.toFixed(2):"", false, "center", 6);
+    drawCell(165, cy, 35,  5, apor?apor.toLocaleString("es-ES",{minimumFractionDigits:2}):"", false, "right",  6);
+    cy += 5;
+  });
+
+  cy += 6;
+
+  // ══════════════════════════════════════════════════
+  // FIRMAS + PIE
+  // ══════════════════════════════════════════════════
+  doc.setDrawColor(180,180,180);
+  doc.setLineWidth(0.3);
+  doc.line(ml, cy+10, 85, cy+10);
+  doc.line(125, cy+10, 200, cy+10);
+  doc.setFontSize(8);
+  doc.setTextColor(130,130,130);
+  doc.text("Firma empresa", 47, cy+14, {align:"center"});
+  doc.text("Firma trabajador", 162, cy+14, {align:"center"});
+
+  cy += 20;
+
+  // Estado pagado
+  if(esPagada){
+    doc.setFillColor(200,255,200);
+    doc.roundedRect(ml, cy, 60, 9, 2, 2, "F");
+    doc.setTextColor(0,100,0);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(10);
+    doc.text("✓ PAGADO", ml+30, cy+6, {align:"center"});
+  } else {
+    doc.setFillColor(255,240,200);
+    doc.roundedRect(ml, cy, 60, 9, 2, 2, "F");
+    doc.setTextColor(150,80,0);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(10);
+    doc.text("PENDIENTE DE PAGO", ml+30, cy+6, {align:"center"});
+  }
+
+  // Pie
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(7);
+  doc.setTextColor(160,160,160);
+  doc.text(`InOut Media S.L. · CIF: B-XXXXXXXX · Generado el ${fecha} · Ejercicio ${anio} · Confidencial`, pw/2, ph-6, {align:"center"});
+
+  doc.save(`nomina_${nombre.replace(/ /g,"_")}_${mes.replace(/ /g,"_")}.pdf`);
+  toast("Nómina descargada ✓");
 }
+
 
 // ── AUTO-LOGIN ────────────────────────────────────────────────────────────
 (async function checkSession(){

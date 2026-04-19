@@ -333,6 +333,10 @@ const NAV_CONFIG={
     {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
     {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"produccion",icon:"🎬",label:"Producción AV"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
   ],
+  empresa_externa:[
+    {sec:"Principal"},
+    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
+  ],
 };
 
 const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",mensajes:"Mensajes",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
@@ -347,7 +351,7 @@ function badge(e){
   const[c,l]=m[e]||["b-gray",e];return`<span class="badge ${c}">${l}</span>`;
 }
 function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
-function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
+function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance",empresa_externa:"b-gray Empresa Externa"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
 function showModal(h){document.getElementById("modal-body").innerHTML=h;document.getElementById("modal-bg").classList.add("show");}
 function closeModal(){document.getElementById("modal-bg").classList.remove("show");}
 document.getElementById("modal-bg").addEventListener("click",e=>{if(e.target===document.getElementById("modal-bg"))closeModal();});
@@ -431,7 +435,7 @@ async function cargarMisTurnos(){try{const{data}=await _sb.from('turnos').select
 async function cargarTodosLosTurnos(){try{const{data}=await _sb.from('turnos').select('*').order('fecha');TURNOS_EQUIPO=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));}catch(e){TURNOS_EQUIPO=[];}}
 async function cargarEventos(){try{try{await _sb.rpc('marcar_eventos_finalizados');}catch(e){}const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});DEMO_EVENTOS=(data||[]).map(e=>{const fi=e.fecha_inicio||"",ff=e.fecha_fin||"";return{id:e.id,nombre:e.nombre,fecha:fi.slice(0,10),hora_inicio:fi.slice(11,16),fecha_fin:ff.slice(0,10),hora_fin:ff.slice(11,16),lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,tipo:e.tipo||"nocturno",estado:e.estado||"borrador",equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",material:e.material||[],ticketTypes:[],artistas:e.artistas||"",vestimenta:e.vestimenta||"",apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,normas:e.normas||"",descripcionEvento:e.descripcion||"",mapsUrl:e.maps_url||"",webEvento:e.web_evento||"",firebase_id:e.firebase_id,slug:e.slug};})}catch(e){DEMO_EVENTOS=[];}}
 async function cargarProyectos(){try{const{data}=await _sb.from('proyectos').select('*').order('created_at',{ascending:false});DEMO_PROYECTOS=(data||[]).map(p=>({id:p.id,nombre:p.nombre,cliente:p.cliente||"—",inicio:p.inicio||"—",fin:p.fin||"—",presupuesto:parseFloat(p.presupuesto)||0,estado:p.estado||"activo",progreso:p.progreso||0,creadoPor:p.creado_por}));}catch(e){DEMO_PROYECTOS=[];}}
-async function cargarEmpleados(){try{const{data}=await _sb.from('empleados').select('*');DEMO_EMPLEADOS=(data||[]).map(d=>({id:d.id,nombre:d.nombre||"—",email:d.email||"—",role:d.role||"empleado",dept:d.departamento||"—",tipo:d.tipo||"fijo",irpf:parseFloat(d.irpf)||15,salario:parseFloat(d.salario_base)||0,salarioBase:parseFloat(d.salario_base)||0,estado:d.estado||"activo",tlf:d.telefono||"—",fechaAlta:d.fecha_alta||"—",auth_user_id:d.auth_user_id}));}catch(e){DEMO_EMPLEADOS=[];}}
+async function cargarEmpleados(){try{const{data}=await _sb.from('empleados').select('*');DEMO_EMPLEADOS=(data||[]).map(d=>({id:d.id,nombre:d.nombre||"—",email:d.email||"—",role:d.role||"empleado",dept:d.departamento||"—",tipo:d.tipo||"fijo",irpf:parseFloat(d.irpf)||15,salario:parseFloat(d.salario_base)||0,salarioBase:parseFloat(d.salario_base)||0,estado:d.estado||"activo",tlf:d.telefono||"—",fechaAlta:d.fecha_alta||"—",auth_user_id:d.auth_user_id,numero_empleado:d.numero_empleado||"—",staff_uid:d.staff_uid||"",staff_pin:d.staff_pin||"",horas_contrato:parseFloat(d.horas_contrato)||40}));}catch(e){DEMO_EMPLEADOS=[];}}
 
 // ── NAV ──────────────────────────────────────────────────────────────────
 function buildNav(role){
@@ -446,6 +450,9 @@ function buildNav(role){
 function navigate(page){
   const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
   if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
+  // empresa_externa solo puede ver sus 3 páginas
+  const extPages=["dashboard","perfil","mensajes"];
+  if(userProfile?.role==="empresa_externa"&&!extPages.includes(page)){toast("⛔ Sin acceso");page="dashboard";}
   currentPage=page;window.location.hash=page;
   document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
   document.getElementById(`nav-${page}`)?.classList.add("active");
@@ -499,6 +506,7 @@ function renderPerfil(pc){
           </div>
           <div class="info-row"><span class="info-lbl">📧 Email</span><span>${p.email}</span></div>
           <div class="info-row"><span class="info-lbl">🏢 Departamento</span><span>${p.dept}</span></div>
+          ${p.numero_empleado&&p.numero_empleado!=="—"?`<div class="info-row"><span class="info-lbl">🪪 Nº Empleado</span><span style="font-family:monospace;color:var(--a3)">${p.numero_empleado}</span></div>`:""}
           <div class="info-row"><span class="info-lbl">📊 IRPF</span><span style="color:var(--a1);font-weight:600">${p.irpf}%</span></div>
           ${p.salarioBase>0?`<div class="info-row"><span class="info-lbl">💶 Salario base</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€/mes</span></div>`:""}
         </div>
@@ -509,6 +517,7 @@ function renderPerfil(pc){
             <button class="btn btn-g btn-full" onclick="navigate('retribuciones')">📊 Cambiar IRPF</button>
             <button class="btn btn-g btn-full" onclick="navigate('calendario')">📅 Ver calendario</button>
             <button class="btn btn-g btn-full" onclick="cambiarPassword()">🔑 Cambiar contraseña</button>
+            <button class="btn btn-g btn-full" onclick="cambiarPIN()">🔢 Cambiar PIN de fichaje</button>
           </div>
         </div>
       </div>
@@ -566,6 +575,45 @@ async function doChangePassword(){
   const{error}=await _sb.auth.updateUser({password:np});
   if(error){toast("Error: "+error.message);return;}
   toast("Contraseña actualizada ✓");closeModal();
+}
+
+function cambiarPIN(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🔢 Cambiar PIN de fichaje</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.5">Tu PIN de 4 dígitos se usa para fichar en <strong style="color:var(--txt)">InOut Staff</strong> sin necesitar tarjeta RFID.</div>
+    <div id="pin-dots-ch" style="display:flex;gap:14px;justify-content:center;margin:12px 0">
+      <div id="cpd0" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>
+      <div id="cpd1" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>
+      <div id="cpd2" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>
+      <div id="cpd3" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?`<div></div>`:`<div onclick="pinKeyChange('${k}')" style="padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border);font-family:Syne,sans-serif;font-size:22px;font-weight:700;text-align:center;cursor:pointer;user-select:none">${k}</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--muted);text-align:center">PIN actual: <strong style="color:var(--a1)">${userProfile.staff_pin||'No configurado'}</strong></div>
+    <button class="btn btn-g btn-full" style="margin-top:14px" onclick="closeModal()">Cancelar</button>`);
+  window._pinChangeBuf='';
+}
+
+function pinKeyChange(k){
+  if(!window._pinChangeBuf) window._pinChangeBuf='';
+  if(k==='⌫'){ window._pinChangeBuf=window._pinChangeBuf.slice(0,-1); }
+  else if(window._pinChangeBuf.length<4){ window._pinChangeBuf+=k; }
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('cpd'+i);
+    if(d){ d.style.background=i<window._pinChangeBuf.length?'var(--a1)':'transparent'; d.style.borderColor=i<window._pinChangeBuf.length?'var(--a1)':'var(--border)'; }
+  }
+  if(window._pinChangeBuf.length===4){
+    setTimeout(()=>guardarNuevoPIN(window._pinChangeBuf),150);
+    window._pinChangeBuf='';
+  }
+}
+
+async function guardarNuevoPIN(pin){
+  const{error}=await _sb.from('empleados').update({staff_pin:pin}).eq('id',userProfile._supabase_id);
+  if(error){toast("Error: "+error.message);return;}
+  userProfile.staff_pin=pin;
+  toast("PIN de fichaje actualizado ✓");closeModal();
 }
 
 // ── NÓMINAS ──────────────────────────────────────────────────────────────
@@ -1110,14 +1158,101 @@ function renderAdmin(pc){
       <div class="stat"><div class="stat-lbl">Bajas</div><div class="stat-val c-a2">${DEMO_EMPLEADOS.filter(e=>e.estado==="baja").length}</div></div>
     </div>
     <div class="card"><div class="tbl-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>IRPF</th><th>Salario</th><th>Estado</th><th></th></tr></thead>
-      <tbody>${DEMO_EMPLEADOS.map(e=>`<tr><td style="font-weight:500">${e.nombre}</td><td>${tipoBadge(e.tipo)}</td><td style="color:var(--muted)">${e.dept}</td><td style="color:var(--a1)">${e.irpf}%</td><td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td><td>${badge(e.estado)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="confirmarEliminarEmpleado('${e.id}')">✕</button></div></td></tr>`).join("")}</tbody>
+      <thead><tr><th>Nombre</th><th>Nº Emp.</th><th>Tipo</th><th>Departamento</th><th>IRPF</th><th>Salario</th><th>Staff</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${DEMO_EMPLEADOS.map(e=>`<tr>
+        <td style="font-weight:500">${e.nombre}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--a3)">${e.numero_empleado&&e.numero_empleado!=="—"?e.numero_empleado:"—"}</td>
+        <td>${tipoBadge(e.tipo)}</td>
+        <td style="color:var(--muted)">${e.dept}</td>
+        <td style="color:var(--a1)">${e.irpf}%</td>
+        <td>${e.salario>0?e.salario.toLocaleString()+"€":"Caché"}</td>
+        <td style="text-align:center">${e.staff_pin?'<span class="badge b-green" style="font-size:10px">🔢 PIN</span>':''} ${e.staff_uid?'<span class="badge b-blue" style="font-size:10px">📡 RFID</span>':''}</td>
+        <td>${badge(e.estado)}</td>
+        <td><div style="display:flex;gap:6px"><button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editEmpleado('${e.id}')">Editar</button><button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="confirmarEliminarEmpleado('${e.id}')">✕</button></div></td>
+      </tr>`).join("")}</tbody>
     </table></div></div>`;
 }
 function nuevoEmpleado(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Añadir empleado</div><label class="form-lbl">Nombre</label><input class="form-input" id="emp-nombre" placeholder="Nombre Apellidos"/><label class="form-lbl">Email</label><input class="form-input" id="emp-email" type="email" placeholder="email@noctua.es"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="emp-tipo"><option value="fijo">Fijo</option><option value="freelance">Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="emp-role"><option value="empleado">Empleado</option><option value="freelance">Freelance</option><option value="rrhh">RRHH</option><option value="admin">Admin</option></select></div></div><label class="form-lbl">Departamento</label><select class="form-select" id="emp-dept"><option>Dirección</option><option>RRHH</option><option>Producción AV</option><option>Eventos</option><option>Comunicación</option><option>Audiovisual</option></select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="emp-salario" type="number" placeholder="0"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="emp-irpf" type="number" value="15" min="2" max="45"/></div></div><button class="btn btn-p btn-full" onclick="guardarEmpleado()">Crear empleado</button>`);}
-async function guardarEmpleado(){const nombre=document.getElementById("emp-nombre").value.trim(),email=document.getElementById("emp-email").value.trim();if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}try{const res=await fetch("/api/create-employee",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,nombre,departamento:document.getElementById("emp-dept").value,role:document.getElementById("emp-role").value,tipo:document.getElementById("emp-tipo").value,salario_base:parseInt(document.getElementById("emp-salario").value)||0,irpf:parseInt(document.getElementById("emp-irpf").value)||15})});const data=await res.json();if(res.ok)toast(`✅ "${nombre}" creado. Email de acceso enviado.`);else toast("Error: "+(data.error||"desconocido"));}catch(e){toast("Error: "+e.message);}closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
-function editEmpleado(id){const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar: ${e.nombre}</div><label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${e.nombre}"/><label class="form-lbl">Email</label><input class="form-input" id="ee-email" type="email" value="${e.email}"/><label class="form-lbl">Teléfono</label><input class="form-input" id="ee-tlf" value="${e.tlf||""}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Tipo</label><select class="form-select" id="ee-tipo"><option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option><option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option></select></div><div><label class="form-lbl">Rol</label><select class="form-select" id="ee-role">${["empleado","freelance","rrhh","admin"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r}</option>`).join("")}</select></div></div><label class="form-lbl">Departamento</label><select class="form-select" id="ee-dept">${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}</select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Salario (€)</label><input class="form-input" id="ee-salario" type="number" value="${e.salario||0}"/></div><div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="ee-irpf" type="number" min="2" max="45" value="${e.irpf||15}"/></div></div><label class="form-lbl">Estado</label><select class="form-select" id="ee-status"><option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option><option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option></select><button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>`),100);}
-async function actualizarEmpleado(id){await _sb.from('empleados').update({nombre:document.getElementById("ee-nombre").value.trim(),email:document.getElementById("ee-email").value.trim(),telefono:document.getElementById("ee-tlf").value,tipo:document.getElementById("ee-tipo").value,role:document.getElementById("ee-role").value,departamento:document.getElementById("ee-dept").value,salario_base:parseInt(document.getElementById("ee-salario").value)||0,irpf:parseInt(document.getElementById("ee-irpf").value)||15,estado:document.getElementById("ee-status").value}).eq('id',id);toast("Empleado actualizado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
+async function guardarEmpleado(){
+  const nombre=document.getElementById("emp-nombre").value.trim();
+  const email=document.getElementById("emp-email").value.trim();
+  if(!nombre||!email){toast("⚠️ Nombre y email obligatorios");return;}
+  const pin=document.getElementById("emp-pin")?.value||"";
+  const uid=document.getElementById("emp-uid")?.value||"";
+  const numero=document.getElementById("emp-numero")?.value||"";
+  const horas=parseInt(document.getElementById("emp-horas")?.value)||40;
+  if(pin&&(pin.length!==4||!/^\d{4}$/.test(pin))){toast("⚠️ El PIN debe ser de 4 dígitos");return;}
+  try{
+    const res=await fetch("/api/create-employee",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      email,nombre,
+      departamento:document.getElementById("emp-dept").value,
+      role:document.getElementById("emp-role").value,
+      tipo:document.getElementById("emp-tipo").value,
+      salario_base:parseInt(document.getElementById("emp-salario").value)||0,
+      irpf:parseInt(document.getElementById("emp-irpf").value)||15,
+      numero_empleado:numero||null,
+      staff_pin:pin||null,
+      staff_uid:uid||null,
+      horas_contrato:horas,
+    })});
+    const data=await res.json();
+    if(res.ok) toast(`✅ "${nombre}" creado. Email de acceso enviado.`);
+    else toast("Error: "+(data.error||"desconocido"));
+  }catch(e){toast("Error: "+e.message);}
+  closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));
+}
+function editEmpleado(id){const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;closeModal();setTimeout(()=>showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-title">Editar: ${e.nombre}</div>
+  <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${e.nombre}"/>
+  <label class="form-lbl">Email</label><input class="form-input" id="ee-email" type="email" value="${e.email}"/>
+  <label class="form-lbl">Teléfono</label><input class="form-input" id="ee-tlf" value="${e.tlf||""}"/>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div><label class="form-lbl">Tipo</label><select class="form-select" id="ee-tipo"><option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option><option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option></select></div>
+    <div><label class="form-lbl">Rol</label><select class="form-select" id="ee-role">${["empleado","freelance","rrhh","admin","empresa_externa"].map(r=>`<option value="${r}" ${e.role===r?"selected":""}>${r==="empresa_externa"?"Empresa Externa":r}</option>`).join("")}</select></div>
+  </div>
+  <label class="form-lbl">Departamento</label>
+  <select class="form-select" id="ee-dept">${["Dirección","RRHH","Producción AV","Eventos","Comunicación","Audiovisual","Empresa Externa"].map(d=>`<option ${e.dept===d?"selected":""}>${d}</option>`).join("")}</select>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div><label class="form-lbl">Salario (€)</label><input class="form-input" id="ee-salario" type="number" value="${e.salario||0}"/></div>
+    <div><label class="form-lbl">IRPF (%)</label><input class="form-input" id="ee-irpf" type="number" min="2" max="45" value="${e.irpf||15}"/></div>
+  </div>
+  <label class="form-lbl">Estado</label>
+  <select class="form-select" id="ee-status"><option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option><option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option></select>
+  <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:600">⚙️ Fichaje InOut Staff</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">Nº Empleado</label><input class="form-input" id="ee-numero" value="${e.numero_empleado&&e.numero_empleado!=="—"?e.numero_empleado:""}" placeholder="EMP-001"/></div>
+      <div><label class="form-lbl">Horas/semana contrato</label><input class="form-input" id="ee-horas" type="number" value="${e.horas_contrato||40}" min="0" max="60"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="form-lbl">PIN fichaje (4 dígitos)</label><input class="form-input" id="ee-pin" type="text" maxlength="4" value="${e.staff_pin||""}" placeholder="0000"/></div>
+      <div><label class="form-lbl">UID tarjeta RFID</label><input class="form-input" id="ee-uid" value="${e.staff_uid||""}" placeholder="A3B21F8C" style="font-family:monospace" oninput="this.value=this.value.toUpperCase()"/></div>
+    </div>
+    ${e.staff_pin?`<div style="padding:8px 12px;background:rgba(200,255,0,.06);border:1px solid rgba(200,255,0,.15);border-radius:8px;font-size:12px;color:var(--a1)">✓ PIN configurado · UID RFID: ${e.staff_uid||"no asignado"}</div>`:""}
+  </div>
+  <button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>`),100);}
+
+async function actualizarEmpleado(id){
+  const pin=document.getElementById("ee-pin")?.value||"";
+  if(pin&&(pin.length!==4||!/^\d{4}$/.test(pin))){toast("⚠️ El PIN debe ser de 4 dígitos");return;}
+  const updateData={
+    nombre:document.getElementById("ee-nombre").value.trim(),
+    email:document.getElementById("ee-email").value.trim(),
+    telefono:document.getElementById("ee-tlf").value,
+    tipo:document.getElementById("ee-tipo").value,
+    role:document.getElementById("ee-role").value,
+    departamento:document.getElementById("ee-dept").value,
+    salario_base:parseInt(document.getElementById("ee-salario").value)||0,
+    irpf:parseInt(document.getElementById("ee-irpf").value)||15,
+    estado:document.getElementById("ee-status").value,
+    numero_empleado:document.getElementById("ee-numero")?.value||null,
+    horas_contrato:parseInt(document.getElementById("ee-horas")?.value)||40,
+    staff_uid:document.getElementById("ee-uid")?.value||null,
+  };
+  if(pin) updateData.staff_pin=pin;  // solo actualizar PIN si se introdujo uno nuevo
+  await _sb.from('empleados').update(updateData).eq('id',id);
+  toast("Empleado actualizado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));
+}
 function confirmarEliminarEmpleado(id){const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">¿Eliminar empleado?</div><p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px">Vas a eliminar a <strong style="color:var(--txt)">${e.nombre}</strong>. No se puede deshacer.</p><div style="display:flex;gap:8px"><button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal()">Cancelar</button><button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEmpleadoDB('${e.id}')">Sí, eliminar</button></div>`);}
 async function eliminarEmpleadoDB(id){await _sb.from('empleados').delete().eq('id',id);toast("Empleado eliminado ✓");closeModal();await cargarEmpleados();renderAdmin(document.getElementById("page-content"));}
 
@@ -1549,7 +1684,7 @@ function generarPDFNomina(n){
   if(session?.user){
     currentUser=session.user;
     const{data:perfil}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    if(perfil){userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id};enterApp();}
+    if(perfil){userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id,numero_empleado:perfil.numero_empleado||"—",staff_uid:perfil.staff_uid||"",staff_pin:perfil.staff_pin||"",horas_contrato:parseFloat(perfil.horas_contrato)||40};enterApp();}
   }
 })();
 

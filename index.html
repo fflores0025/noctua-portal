@@ -712,9 +712,10 @@ function renderEventos(pc){
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span class="badge ${tc[ev.tipo]||"b-gray"}">${ev.tipo}</span>${badge(ev.estado)}</div>
         <div class="ev-nombre">${ev.nombre}</div>
         <div class="ev-meta"><span>📅 ${ev.fecha}</span><span>📍 ${ev.lugar}</span></div>
-        <div style="margin-top:12px;display:flex;gap:8px">
-          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();verEvento('${ev.id}')">Ver</button>
-          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();editEvento('${ev.id}')">Editar</button>`:""}
+        <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px;min-width:50px" onclick="event.stopPropagation();verEvento('${ev.id}')">Ver</button>
+          ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;font-size:12px;min-width:50px" onclick="event.stopPropagation();editEvento('${ev.id}')">Editar</button>`:""}
+          ${canAdmin()?`<button class="btn btn-sup" style="flex:1;justify-content:center;font-size:12px;min-width:50px" onclick="event.stopPropagation();gestionarProductosEvento('${ev.id}')">🎟️</button>`:""}
         </div></div>`).join("")}</div>`;
 }
 
@@ -730,30 +731,220 @@ function verEvento(id){
       ${ev.artistas?`<div><span style="color:var(--muted)">🎵 Artistas:</span> ${ev.artistas}</div>`:""}
       <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Notas</div><div style="font-size:13px;line-height:1.6">${ev.notas}</div></div>
     </div>
-    <div style="margin-top:20px;display:flex;gap:8px">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="closeModal()">Cerrar</button>
-      ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeModal();editEvento('${ev.id}')">Editar</button>`:""}
+    <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" style="flex:1;justify-content:center;min-width:80px" onclick="closeModal()">Cerrar</button>
+      ${canAdmin()?`<button class="btn btn-g" style="flex:1;justify-content:center;min-width:80px" onclick="closeModal();editEvento('${ev.id}')">✏️ Editar</button>`:""}
+      ${canAdmin()?`<button class="btn btn-sup" style="flex:1;justify-content:center;min-width:80px" onclick="closeModal();gestionarProductosEvento('${ev.id}')">🎟️ Productos</button>`:""}
     </div>`);
 }
 
 let _ticketRowCount=0;
-function addTicketRow(){
+
+// Añade una fila vacía al formulario de tipos de entrada
+function addTicketRow(data={}){
   const list=document.getElementById("ticket-types-list");if(!list)return;
   const empty=document.getElementById("ticket-empty-msg");if(empty)empty.remove();
-  const i=_ticketRowCount++;const zonas=["general","vip","backstage","pista","grada","palco"];
+  const i=_ticketRowCount++;
+  const zonas=["general","vip","backstage","pista","grada","palco"];
   const row=document.createElement("div");row.id=`tt-row-${i}`;
-  row.style.cssText="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;position:relative";
-  row.innerHTML=`<button onclick="document.getElementById('tt-row-${i}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">✕</button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" placeholder="Ej: General, VIP…" style="margin-bottom:0"/></div><div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}">${z}</option>`).join("")}</select></div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label class="form-lbl">Precio (€)</label><input class="form-input tt-precio" type="number" min="0" step="0.01" placeholder="0.00" style="margin-bottom:0"/></div><div><label class="form-lbl">Stock</label><input class="form-input tt-stock" type="number" min="1" placeholder="100" style="margin-bottom:0"/></div><div><label class="form-lbl">Máx/persona</label><input class="form-input tt-max" type="number" min="1" value="4" style="margin-bottom:0"/></div></div>`;
+  row.style.cssText="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;position:relative;margin-bottom:2px";
+  const activo=data.activo!==false;
+  const stockDisp=data.stock_disponible!==undefined?data.stock_disponible:(data.stock_total||0);
+  row.innerHTML=`
+    <button onclick="document.getElementById('tt-row-${i}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1" title="Eliminar">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" placeholder="Ej: General, VIP…" value="${data.nombre||''}" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}" ${data.zona===z?'selected':''}>${z}</option>`).join('')}</select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><label class="form-lbl">Precio (€)</label><input class="form-input tt-precio" type="number" min="0" step="0.01" placeholder="0.00" value="${data.precio||0}" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Stock total</label><input class="form-input tt-stock" type="number" min="0" placeholder="100" value="${data.stock_total||0}" style="margin-bottom:0" oninput="syncStockDisp(this,${i})"/></div>
+      <div><label class="form-lbl">Stock disp.</label><input class="form-input tt-stock-disp" type="number" min="0" placeholder="100" value="${stockDisp}" style="margin-bottom:0"/></div>
+      <div><label class="form-lbl">Máx/persona</label><input class="form-input tt-max" type="number" min="1" value="${data.max_por_persona||4}" style="margin-bottom:0"/></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <label class="form-lbl" style="margin-bottom:0">Estado:</label>
+      <select class="form-select tt-activo" style="margin-bottom:0;width:auto;padding:6px 10px;font-size:12px">
+        <option value="activo" ${activo?'selected':''}>✅ Activo</option>
+        <option value="inactivo" ${!activo?'selected':''}>⛔ Inactivo</option>
+      </select>
+    </div>`;
   list.appendChild(row);
 }
+
+// Sincroniza stock disponible cuando se cambia el stock total (solo si el disp estaba igual)
+function syncStockDisp(input, i){
+  const row=document.getElementById(`tt-row-${i}`);if(!row)return;
+  const dispInput=row.querySelector('.tt-stock-disp');
+  if(!dispInput||dispInput.dataset.edited) return;
+  dispInput.value=input.value;
+}
+
 function getTicketTypes(){
   const rows=document.querySelectorAll("#ticket-types-list [id^='tt-row-']");const types=[];
-  rows.forEach(row=>{const nombre=row.querySelector(".tt-nombre").value.trim();const zona=row.querySelector(".tt-zona").value;const precio=parseFloat(row.querySelector(".tt-precio").value)||0;const stock=parseInt(row.querySelector(".tt-stock").value)||0;const max=parseInt(row.querySelector(".tt-max").value)||4;if(nombre)types.push({nombre,zona,precio,stock_total:stock,stock_disponible:stock,max_por_persona:max});});
+  rows.forEach(row=>{
+    const nombre=row.querySelector(".tt-nombre").value.trim();
+    if(!nombre) return;
+    const zona=row.querySelector(".tt-zona").value;
+    const precio=parseFloat(row.querySelector(".tt-precio").value)||0;
+    const stock=parseInt(row.querySelector(".tt-stock").value)||0;
+    const stockDisp=parseInt(row.querySelector(".tt-stock-disp").value);
+    const max=parseInt(row.querySelector(".tt-max").value)||4;
+    const activoVal=row.querySelector(".tt-activo").value;
+    types.push({nombre,zona,precio,stock_total:stock,stock_disponible:isNaN(stockDisp)?stock:stockDisp,max_por_persona:max,activo:activoVal==='activo'});
+  });
   return types;
 }
+
 function toSlug(text){return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+
+// ── GESTIÓN DE PRODUCTOS (tickets) de un evento — pantalla completa ──────
+async function gestionarProductosEvento(eventId){
+  const ev=DEMO_EVENTOS.find(e=>e.id===eventId);if(!ev)return;
+  closeModal();
+  
+  // Cargar tickets actuales y lista de todos los eventos para copiar
+  const [{data:tts},{data:allEvents}] = await Promise.all([
+    _sb.from('ticket_types').select('*').eq('event_id',eventId).order('nombre'),
+    _sb.from('events').select('id,nombre,fecha_inicio').order('fecha_inicio',{ascending:false})
+  ]);
+  const tickets=tts||[];
+  const otrosEventos=(allEvents||[]).filter(e=>e.id!==eventId);
+
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🎟️ Productos · ${ev.nombre}</div>
+
+    <!-- Copiar desde otro evento -->
+    <div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);border-radius:9px;padding:12px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--a3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📋 Copiar productos desde otro evento</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="copy-from-event" class="form-select" style="flex:1;margin-bottom:0;font-size:13px">
+          <option value="">— Selecciona un evento —</option>
+          ${otrosEventos.map(e=>`<option value="${e.id}">${e.nombre} (${(e.fecha_inicio||'').slice(0,10)})</option>`).join('')}
+        </select>
+        <button class="btn btn-sup" style="flex-shrink:0;padding:8px 14px;font-size:13px" onclick="copiarProductosDeEvento('${eventId}')">Copiar</button>
+      </div>
+    </div>
+
+    <!-- Lista de productos actuales -->
+    <div id="prod-list" style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin-bottom:14px">
+      ${tickets.length===0
+        ? '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Sin productos. Añade uno abajo o copia de otro evento.</div>'
+        : tickets.map(t=>productoCard(t)).join('')}
+    </div>
+
+    <!-- Añadir nuevo producto rápido -->
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">+ Añadir nuevo producto</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <input class="form-input" id="np-nombre" placeholder="Nombre…" style="margin-bottom:0"/>
+        <input class="form-input" id="np-precio" type="number" min="0" step="0.01" placeholder="€ precio" style="margin-bottom:0"/>
+        <input class="form-input" id="np-stock" type="number" min="0" placeholder="Stock" style="margin-bottom:0"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <select class="form-select" id="np-zona" style="margin-bottom:0">
+          ${["general","vip","backstage","pista","grada","palco"].map(z=>`<option value="${z}">${z}</option>`).join('')}
+        </select>
+        <button class="btn btn-p" onclick="agregarProductoRapido('${eventId}')">+ Añadir</button>
+      </div>
+    </div>
+  `);
+}
+
+// Renderiza una tarjeta de producto con controles inline
+function productoCard(t){
+  const activo=t.activo!==false;
+  const dispPct=t.stock_total>0?Math.round((t.stock_disponible/t.stock_total)*100):0;
+  const stockColor=t.stock_disponible===0?'var(--danger)':t.stock_disponible<(t.stock_total*0.2)?'#ffab00':'var(--a1)';
+  return `<div id="prod-card-${t.id}" style="background:var(--bg);border:1px solid ${activo?'var(--border)':'rgba(255,23,68,.2)'};border-radius:9px;padding:12px;opacity:${activo?1:.75}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-weight:600;font-size:14px">${t.nombre}</div>
+        <div style="font-size:11px;color:var(--muted)">${t.tipo_zona||t.zona||'general'} · ${parseFloat(t.precio||0).toFixed(2)}€</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select onchange="cambiarEstadoProducto('${t.id}',this.value,'${t.event_id}')" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--txt);font-size:12px;cursor:pointer">
+          <option value="activo" ${activo?'selected':''}>✅ Activo</option>
+          <option value="inactivo" ${!activo?'selected':''}>⛔ Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Stock disponible / total</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" min="0" max="${t.stock_total}" value="${t.stock_disponible}" 
+            style="width:60px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:${stockColor};font-weight:700;font-size:14px;text-align:center"
+            onchange="actualizarStockProducto('${t.id}',this.value,'${t.event_id}')"/>
+          <span style="color:var(--muted);font-size:12px">/ ${t.stock_total}</span>
+        </div>
+        <div style="margin-top:6px;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="width:${dispPct}%;height:100%;background:${stockColor};border-radius:2px;transition:width .3s"></div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Vendidos</div>
+        <div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--a2)">${(t.stock_total||0)-(t.stock_disponible||0)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Cambiar estado activo/inactivo de un producto desde la pantalla de gestión
+async function cambiarEstadoProducto(ticketTypeId, nuevoEstado, eventId){
+  const activo=nuevoEstado==='activo';
+  const{error}=await _sb.from('ticket_types').update({activo}).eq('id',ticketTypeId);
+  if(error){toast('Error: '+error.message);return;}
+  toast(activo?'Producto activado ✓':'Producto desactivado ✓');
+  gestionarProductosEvento(eventId);
+}
+
+// Actualizar stock disponible inline
+async function actualizarStockProducto(ticketTypeId, nuevoStock, eventId){
+  const v=parseInt(nuevoStock);if(isNaN(v)||v<0)return;
+  const{error}=await _sb.from('ticket_types').update({stock_disponible:v}).eq('id',ticketTypeId);
+  if(error){toast('Error stock: '+error.message);return;}
+  toast('Stock actualizado ✓');
+  // Refrescar solo la card sin cerrar modal
+  const{data:t}=await _sb.from('ticket_types').select('*').eq('id',ticketTypeId).single();
+  if(t){const card=document.getElementById(`prod-card-${ticketTypeId}`);if(card)card.outerHTML=productoCard(t);}
+}
+
+// Copiar productos de otro evento a este
+async function copiarProductosDeEvento(targetEventId){
+  const sourceId=document.getElementById('copy-from-event').value;
+  if(!sourceId){toast('Selecciona un evento origen','warn');return;}
+  const{data:sourceTTs}=await _sb.from('ticket_types').select('*').eq('event_id',sourceId);
+  if(!sourceTTs||sourceTTs.length===0){toast('Ese evento no tiene productos','warn');return;}
+  const nuevos=sourceTTs.map(t=>({
+    event_id:targetEventId,
+    nombre:t.nombre,
+    tipo_zona:t.tipo_zona,
+    precio:t.precio,
+    stock_total:t.stock_total,
+    stock_disponible:t.stock_total, // resetear disponible al total
+    max_por_persona:t.max_por_persona,
+    activo:t.activo
+  }));
+  const{error}=await _sb.from('ticket_types').insert(nuevos);
+  if(error){toast('Error al copiar: '+error.message);return;}
+  toast(`${nuevos.length} productos copiados ✓`);
+  gestionarProductosEvento(targetEventId);
+}
+
+// Añadir producto rápido desde el panel de gestión
+async function agregarProductoRapido(eventId){
+  const nombre=document.getElementById('np-nombre').value.trim();
+  if(!nombre){toast('Escribe un nombre','warn');return;}
+  const precio=parseFloat(document.getElementById('np-precio').value)||0;
+  const stock=parseInt(document.getElementById('np-stock').value)||0;
+  const zona=document.getElementById('np-zona').value;
+  const{error}=await _sb.from('ticket_types').insert({event_id:eventId,nombre,tipo_zona:zona,precio,stock_total:stock,stock_disponible:stock,max_por_persona:4,activo:true});
+  if(error){toast('Error: '+error.message);return;}
+  toast(`"${nombre}" añadido ✓`);
+  gestionarProductosEvento(eventId);
+}
 
 function nuevoEvento(){
   closeModal();setTimeout(()=>{_ticketRowCount=0;
@@ -792,7 +983,7 @@ async function guardarEvento(){
   try{
     const{data:ev,error}=await _sb.from('events').insert({slug,nombre,tipo:document.getElementById("ev-tipo").value,fecha_inicio:`${fecha}T${horaInicio}:00`,fecha_fin:`${fechaFin}T${horaFin}:00`,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ev-estado").value,descripcion:document.getElementById("ev-descripcion")?.value||null,artistas:document.getElementById("ev-artistas")?.value||null,vestimenta:document.getElementById("ev-vestimenta")?.value||null,apertura_puertas:document.getElementById("ev-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ev-edad")?.value)||null,normas:document.getElementById("ev-normas")?.value||null,maps_url:document.getElementById("ev-maps")?.value||null,web_evento:document.getElementById("ev-web")?.value||null,notas:document.getElementById("ev-notas")?.value||null,creado_por:userProfile.nombre}).select().single();
     if(error)throw error;
-    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:ev.id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true})));
+    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:ev.id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:t.activo!==false})));
     toast(`Evento "${nombre}" guardado ✓`);
   }catch(e){toast("Error: "+e.message);return;}
   _ticketRowCount=0;closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
@@ -802,7 +993,7 @@ function editEvento(id){
   const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;closeModal();
   setTimeout(async()=>{
     const{data:tts}=await _sb.from('ticket_types').select('*').eq('event_id',id);
-    const existingTickets=(tts||[]).map(t=>({nombre:t.nombre,zona:t.tipo_zona,precio:parseFloat(t.precio),stock_total:t.stock_total,max_por_persona:t.max_por_persona}));
+    const existingTickets=(tts||[]).map(t=>({id:t.id,nombre:t.nombre,zona:t.tipo_zona,precio:parseFloat(t.precio),stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:t.activo!==false}));
     _ticketRowCount=0;const zonas=["general","vip","backstage","pista","grada","palco"];
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Editar evento</div>
@@ -812,9 +1003,9 @@ function editEvento(id){
     <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
     <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["borrador","publicado","agotado","cancelado","finalizado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas||""}</textarea>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><label class="form-lbl" style="margin-bottom:0">🎟️ Tipos de entrada</label><button class="btn btn-g" style="padding:4px 10px;font-size:12px" onclick="addTicketRow()">+ Añadir</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><label class="form-lbl" style="margin-bottom:0">🎟️ Tipos de entrada</label><div style="display:flex;gap:6px"><button class="btn btn-sup" style="padding:4px 10px;font-size:12px" onclick="closeModal();gestionarProductosEvento('${ev.id}')">⚙️ Gestionar todos</button><button class="btn btn-g" style="padding:4px 10px;font-size:12px" onclick="addTicketRow()">+ Añadir</button></div></div>
     <div id="ticket-types-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-      ${existingTickets.length===0?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px" id="ticket-empty-msg">Sin tipos de entrada.</div>`:existingTickets.map((t,i)=>`<div id="tt-row-${i}" style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;position:relative"><button onclick="document.getElementById('tt-row-${i}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">✕</button><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" value="${t.nombre||""}" style="margin-bottom:0"/></div><div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}" ${t.zona===z?"selected":""}>${z}</option>`).join("")}</select></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label class="form-lbl">Precio</label><input class="form-input tt-precio" type="number" value="${t.precio||0}" style="margin-bottom:0"/></div><div><label class="form-lbl">Stock</label><input class="form-input tt-stock" type="number" value="${t.stock_total||0}" style="margin-bottom:0"/></div><div><label class="form-lbl">Máx</label><input class="form-input tt-max" type="number" value="${t.max_por_persona||4}" style="margin-bottom:0"/></div></div></div>`).join("")}
+      ${existingTickets.length===0?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px" id="ticket-empty-msg">Sin tipos de entrada.</div>`:existingTickets.map((t,idx)=>{_ticketRowCount=idx+1;return`<div id="tt-row-${idx}" style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;position:relative;margin-bottom:2px"><button onclick="document.getElementById('tt-row-${idx}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">✕</button><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div><label class="form-lbl">Nombre</label><input class="form-input tt-nombre" value="${t.nombre||""}" style="margin-bottom:0"/></div><div><label class="form-lbl">Zona</label><select class="form-select tt-zona" style="margin-bottom:0">${zonas.map(z=>`<option value="${z}" ${t.zona===z?"selected":""}>${z}</option>`).join("")}</select></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px"><div><label class="form-lbl">Precio</label><input class="form-input tt-precio" type="number" value="${t.precio||0}" style="margin-bottom:0"/></div><div><label class="form-lbl">Stock total</label><input class="form-input tt-stock" type="number" value="${t.stock_total||0}" style="margin-bottom:0" oninput="syncStockDisp(this,${idx})"/></div><div><label class="form-lbl">Stock disp.</label><input class="form-input tt-stock-disp" type="number" value="${t.stock_disponible!==undefined?t.stock_disponible:t.stock_total||0}" style="margin-bottom:0"/></div><div><label class="form-lbl">Máx</label><input class="form-input tt-max" type="number" value="${t.max_por_persona||4}" style="margin-bottom:0"/></div></div><div style="display:flex;align-items:center;gap:10px"><label class="form-lbl" style="margin-bottom:0">Estado:</label><select class="form-select tt-activo" style="margin-bottom:0;width:auto;padding:6px 10px;font-size:12px"><option value="activo" ${t.activo!==false?"selected":""}>✅ Activo</option><option value="inactivo" ${t.activo===false?"selected":""}>⛔ Inactivo</option></select></div></div>`;}).join("")}
     </div>
     <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:14px">
       <label class="form-lbl">🎵 Artistas</label><input class="form-input" id="ee-artistas" value="${ev.artistas||""}"/>
@@ -840,7 +1031,7 @@ async function actualizarEvento(id){
   try{
     await _sb.from('events').update({nombre:document.getElementById("ee-nombre").value.trim(),fecha_inicio:fecha?`${fecha}T${horaInicio}:00`:undefined,fecha_fin:fechaFin?`${fechaFin}T${horaFin}:00`:undefined,venue_nombre,venue_ciudad,aforo_total,estado:document.getElementById("ee-estado").value,notas:document.getElementById("ee-notas").value,artistas:document.getElementById("ee-artistas")?.value||null,vestimenta:document.getElementById("ee-vestimenta")?.value||null,apertura_puertas:document.getElementById("ee-apertura")?.value||null,edad_minima:parseInt(document.getElementById("ee-edad")?.value)||null,normas:document.getElementById("ee-normas")?.value||null,descripcion:document.getElementById("ee-descripcion")?.value||null,maps_url:document.getElementById("ee-maps")?.value||null,web_evento:document.getElementById("ee-web")?.value||null}).eq('id',id);
     await _sb.from('ticket_types').delete().eq('event_id',id);
-    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:true})));
+    if(ticketTypes.length>0)await _sb.from('ticket_types').insert(ticketTypes.map(t=>({event_id:id,nombre:t.nombre,tipo_zona:t.zona||'general',precio:t.precio,stock_total:t.stock_total,stock_disponible:t.stock_disponible,max_por_persona:t.max_por_persona,activo:t.activo!==false})));
     toast("Evento actualizado ✓");
   }catch(e){toast("Error: "+e.message);}
   _ticketRowCount=0;closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));if(currentPage==="calendario")renderCalendario(document.getElementById("page-content"));

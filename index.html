@@ -1041,6 +1041,26 @@ async function guardarEvento(){
   _ticketRowCount=0;closeModal();await cargarEventos();if(currentPage==="eventos")renderEventos(document.getElementById("page-content"));
 }
 
+
+  function formatDateForInput(dateStr) {
+  if (!dateStr) return '';
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
+  if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    return '';
+  }
+}
+  
 function editEvento(id){
   const ev=DEMO_EVENTOS.find(e=>e.id===id);if(!ev)return;closeModal();
   setTimeout(async()=>{
@@ -1050,8 +1070,8 @@ function editEvento(id){
     showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Editar evento</div>
     <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${ev.fecha}"/></div><div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="date" value="${ev.fecha_fin||ev.fecha}"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${formatDateForInput(ev.fecha)}"/></div><div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="date" value="${formatDateForInput(ev.fecha_fin||ev.fecha)}"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div></div>
     <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
     <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["borrador","publicado","agotado","cancelado","finalizado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas||""}</textarea>

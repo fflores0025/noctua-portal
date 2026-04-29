@@ -303,32 +303,8 @@
 <script>
 const SUPABASE_URL = 'https://raoxkjnwrccoxjcipfpv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhb3hram53cmNjb3hqY2lwZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMDIyNzMsImV4cCI6MjA1OTc3ODI3M30.sb_publishable_-K1pC4bOJHRf8JQ-_OOzg_jqLxlGla';
-
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storageKey: 'inout-connect-auth',
-    storage: window.localStorage
-  }
-});
 
-// Auto-recuperación de sesión
-_sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'TOKEN_REFRESHED' && !session) {
-    await _sb.auth.signOut();
-    toast('Sesión expirada. Inicia sesión de nuevo.');
-  }
-  if (event === 'SIGNED_OUT') {
-    currentUser = null;
-    userProfile = null;
-    document.getElementById("app").style.display = "none";
-    document.getElementById("login-screen").style.display = "flex";
-  }
-});
-
-console.log('✅ Supabase configurado correctamente');
 
 let currentUser=null, userProfile=null, currentPage="dashboard";
 let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_EMPLEADOS=[], DEMO_TURNOS=[], TURNOS_EQUIPO=[], DEMO_PROYECTOS=[], INVENTARIO=[], INCIDENCIAS=[];

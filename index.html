@@ -342,8 +342,8 @@ const NAV_CONFIG={
 const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",produccion:"Producción AV",inventario:"Inventario",incidencias:"Incidencias",mensajes:"Mensajes",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
 
 function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
-function canAdmin(){return["admin","rrhh"].includes(userProfile?.role);}
-function canAdminRole(r){return["admin","rrhh"].includes(r);}
+function canAdmin(){return["admin","rrhh","superadmin"].includes(userProfile?.role);}
+function canAdminRole(r){return["admin","rrhh","superadmin"].includes(r);}
 function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":"";}
 function badge(e){

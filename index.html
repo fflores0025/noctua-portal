@@ -1097,6 +1097,7 @@ function editEvento(id){
 }
 
 async function actualizarEvento(id){
+  console.log('Actualizando evento ID:', id); // debug
   const nombre = document.getElementById("ee-nombre")?.value?.trim();
   if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
   
@@ -1108,6 +1109,9 @@ async function actualizarEvento(id){
   const horaInicio=document.getElementById("ee-hora-inicio")?.value||"22:00";
   const fechaFin=document.getElementById("ee-fecha-fin")?.value||fecha;
   const horaFin=document.getElementById("ee-hora-fin")?.value||"06:00";
+  
+  console.log('Fechas:', fecha, fechaFin); // debug
+  
   const ticketTypes=getTicketTypes();
   const aforo_total=ticketTypes.reduce((sum,t)=>sum+(t.stock_total||0),0);
   
@@ -1128,14 +1132,12 @@ async function actualizarEvento(id){
     web_evento: document.getElementById("ee-web")?.value||null,
   };
   
-  // Solo añadir fechas si tienen valor
   if(fecha) updateData.fecha_inicio = `${fecha}T${horaInicio}:00`;
   if(fechaFin) updateData.fecha_fin = `${fechaFin}T${horaFin}:00`;
   
   const{error}=await _sb.from('events').update(updateData).eq('id',id);
-  if(error){toast("Error al guardar: "+error.message);console.error(error);return;}
+  if(error){toast("Error: "+error.message);console.error('Error Supabase:', error);return;}
   
-  // Actualizar ticket types
   try{
     await _sb.from('ticket_types').delete().eq('event_id',id);
     if(ticketTypes.length>0){
@@ -1150,9 +1152,7 @@ async function actualizarEvento(id){
         activo:t.activo!==false
       })));
     }
-  }catch(e2){
-    console.warn('Error actualizando ticket types:',e2);
-  }
+  }catch(e2){console.warn('Ticket types error:',e2);}
   
   toast("Evento actualizado ✓");
   _ticketRowCount=0;

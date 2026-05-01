@@ -1107,7 +1107,7 @@ async function actualizarEvento(id){
   const venue_ciudad=lugarParts[1]?.trim()||"Madrid";
   const fecha=document.getElementById("ee-fecha")?.value||"";
   const horaInicio=document.getElementById("ee-hora-inicio")?.value||"22:00";
-  const fechaFin=document.getElementById("ee-fecha-fin")?.value||fecha;
+  const fechaFin=document.getElementById("ee-fecha-fin")?.value||"";
   const horaFin=document.getElementById("ee-hora-fin")?.value||"06:00";
   
   console.log('Fechas:', fecha, fechaFin); // debug

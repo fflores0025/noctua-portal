@@ -1089,7 +1089,7 @@ function editEvento(id){
       <label class="form-lbl">🌐 Web</label><input class="form-input" id="ee-web" value="${ev.webEvento||""}" style="margin-bottom:0"/>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="actualizarEvento('${ev.id}')">Guardar</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="event.stopPropagation();actualizarEvento('${ev.id}')">Guardar</button>
       <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="eliminarEvento('${ev.id}')">Eliminar</button>
     </div>`);
     _ticketRowCount=existingTickets.length;

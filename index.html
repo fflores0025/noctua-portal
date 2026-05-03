@@ -81,6 +81,8 @@
     .btn-p{background:var(--a1);color:#000;} .btn-p:hover{background:#d4ff20;}
     .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);} .btn-g:hover{color:var(--txt);border-color:var(--muted);}
     .btn-danger{background:rgba(255,60,172,.1);color:var(--a2);border:1px solid rgba(255,60,172,.2);}
+    .btn-sup{background: rgba(255, 60, 172, 0.1);color: var(--a2);border: 1px solid rgba(255, 60, 172, 0.25);}
+    .btn-sup:hover{background: rgba(255, 60, 172, 0.2);border-color: var(--a2);}
     .btn-full{width:100%;justify-content:center;}
     .btn-paid{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.25);}
     .btn-paid:hover{background:rgba(0,230,118,.2);}
@@ -1162,6 +1164,25 @@ async function actualizarEvento(id){
   if(currentPage==="eventos") renderEventos(document.getElementById("page-content"));
   if(currentPage==="calendario") renderCalendario(document.getElementById("page-content"));
 }
+
+async function eliminarEvento(id){
+  const ev=DEMO_EVENTOS.find(e=>e.id===id);
+  if(!ev)return;
+  if(!confirm(`¿Eliminar "${ev.nombre}"? Esta acción no se puede deshacer.`))return;
+  
+  // Eliminar tickets asociados primero
+  await _sb.from('ticket_types').delete().eq('event_id',id);
+  
+  // Eliminar evento
+  const{error}=await _sb.from('events').delete().eq('id',id);
+  if(error){toast("Error: "+error.message);return;}
+  
+  toast("Evento eliminado ✓");
+  closeModal();
+  await cargarEventos();
+  if(currentPage==="eventos") renderEventos(document.getElementById("page-content"));
+}
+  
 // ── PRODUCCIÓN ───────────────────────────────────────────────────────────
 function renderProduccion(pc){
   pc.innerHTML=`

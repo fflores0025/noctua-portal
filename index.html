@@ -1072,7 +1072,7 @@ function editEvento(id){
     <label class="form-lbl">Nombre</label><input class="form-input" id="ee-nombre" value="${ev.nombre}"/>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha inicio</label><input class="form-input" id="ee-fecha" type="date" value="${formatDateForInput(ev.fecha)}"/></div><div><label class="form-lbl">Hora inicio</label><input class="form-input" id="ee-hora-inicio" type="time" value="${ev.hora_inicio||"22:00"}"/></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label class="form-lbl">Fecha fin</label><input class="form-input" id="ee-fecha-fin" type="text" 
- placeholder="YYYY-MM-DD" value="${ev.fecha_fin?formatDateForInput(ev.fecha_fin):''}"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div></div>
+ placeholder="DD/MM/YYYY" value="${ev.fecha_fin?formatDateForInput(ev.fecha_fin):''}"/></div><div><label class="form-lbl">Hora fin</label><input class="form-input" id="ee-hora-fin" type="time" value="${ev.hora_fin||"06:00"}"/></div></div>
     <label class="form-lbl">Lugar</label><input class="form-input" id="ee-lugar" value="${ev.lugar}"/>
     <label class="form-lbl">Estado</label><select class="form-select" id="ee-estado">${["borrador","publicado","agotado","cancelado","finalizado"].map(s=>`<option value="${s}" ${ev.estado===s?"selected":""}>${s}</option>`).join("")}</select>
     <label class="form-lbl">Notas</label><textarea class="form-textarea" id="ee-notas">${ev.notas||""}</textarea>

@@ -987,7 +987,7 @@ async function solicitarIRPF(){
 
 let selectedDate=null, selectedMonth=new Date().getMonth(), selectedYear=new Date().getFullYear();
 
-function renderCalendario(pc){
+async function renderCalendario(pc){
   const hoy=new Date();
   selectedMonth=hoy.getMonth();
   selectedYear=hoy.getFullYear();

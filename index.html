@@ -1971,7 +1971,7 @@ async function guardarNuevoEmpleado(){
     payload.organization_id=userProfile.organization_id;
   }
   
-  const{error} = await _sb.from('empleados').insert(payload);
+  const{error}=await _sb.from('empleados').insert(payload);
   if(error){toast("Error: "+error.message);return;}
   toast("Empleado creado ✓");
   closeModal();

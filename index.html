@@ -559,8 +559,33 @@ function canAdminRole(r){return["admin","rrhh","superadmin"].includes(r);}
 function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":r==="superadmin"?"av-pink":"";}
 function badge(e){
-  const m={pagada:["b-green","Pagada"],pendiente:["b-orange","Pendiente"],confirmado:["b-green","Confirmado"],produccion:["b-blue","En producción"],preproduccion:["b-gray","Preproducción"],negociacion:["b-orange","Negociación"],activo:["b-green","Activo"],cerrado:["b-gray","Cerrado"],baja:["b-pink","Baja"],borrador:["b-gray","Borrador"],publicado:["b-green","Publicado"],agotado:["b-pink","Agotado"],cancelado:["b-pink","Cancelado"],finalizado:["b-gray","Finalizado"],abierta:["b-pink","Abierta"],en_proceso:["b-blue","En proceso"],resuelta:["b-green","Resuelta"],disponible:["b-green","Disponible"],en_uso:["b-blue","En uso"],mantenimiento:["b-orange","Mantenimiento"]};
-  const[c,l]=m[e]||["b-gray",e];return`<span class="badge ${c}">${l}</span>`;
+function badge(e){
+  const m={
+    pagada:["b-green","Pagada"],
+    pendiente:["b-blue","Pendiente"],
+    aprobada:["b-green","Aprobada"],
+    rechazada:["b-pink","Rechazada"],
+    confirmado:["b-green","Confirmado"],
+    produccion:["b-blue","En producción"],
+    preproduccion:["b-gray","Preproducción"],
+    negociacion:["b-orange","Negociación"],
+    activo:["b-green","Activo"],
+    cerrado:["b-gray","Cerrado"],
+    baja:["b-pink","Baja"],
+    borrador:["b-gray","Borrador"],
+    publicado:["b-green","Publicado"],
+    agotado:["b-pink","Agotado"],
+    cancelado:["b-pink","Cancelado"],
+    finalizado:["b-gray","Finalizado"],
+    abierta:["b-pink","Abierta"],
+    en_proceso:["b-blue","En proceso"],
+    resuelta:["b-green","Resuelta"],
+    disponible:["b-green","Disponible"],
+    en_uso:["b-blue","En uso"],
+    mantenimiento:["b-orange","Mantenimiento"]
+  };
+  const[c,l]=m[e]||["b-gray",e];
+  return`<span class="badge ${c}">${l}</span>`;
 }
 function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
 function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance",empresa_externa:"b-gray Empresa Externa",superadmin:"b-pink SuperAdmin"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
@@ -2376,11 +2401,13 @@ async function ejecutarGeneracionNominas(){
 // ══════════════════════════════════════════════════════════════════════════
 
 let AUSENCIAS_PENDIENTES = [];
-let vistaAdminTurnos = "turnos"; // "turnos" o "ausencias"
+let AUSENCIAS_APROBADAS = [];
+  
+let vistaAdminTurnos = "turnos"; // "turnos" | "ausencias-pendientes" | "ausencias-aprobadas"
 
 async function renderAdminTurnos(pc){
   if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
-  
+ 
   await cargarTodosLosTurnos();
   await cargarAusenciasPendientes();
   
@@ -2388,19 +2415,22 @@ async function renderAdminTurnos(pc){
     <div class="page-hd">
       <div>
         <div class="page-title">Gestión de Turnos</div>
-        <div class="page-sub">${TURNOS_EQUIPO.length} turnos · ${AUSENCIAS_PENDIENTES.length} ausencias pendientes</div>
+        <div class="page-sub">${TURNOS_EQUIPO.length} turnos · ${AUSENCIAS_PENDIENTES.length} pendientes · ${AUSENCIAS_APROBADAS.length} aprobadas</div>
       </div>
       <button class="btn btn-p" onclick="nuevoTurno()">+ Asignar turno</button>
     </div>
     
     <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
-        📅 Turnos (${TURNOS_EQUIPO.length})
-      </button>
-      <button class="btn ${vistaAdminTurnos==="ausencias"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias')" style="flex:1">
-        🏖️ Ausencias (${AUSENCIAS_PENDIENTES.length})
-      </button>
-    </div>
+  <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
+    📅 Turnos (${TURNOS_EQUIPO.length})
+  </button>
+  <button class="btn ${vistaAdminTurnos==="ausencias-pendientes"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-pendientes')" style="flex:1">
+    ⏳ Pendientes (${AUSENCIAS_PENDIENTES.length})
+  </button>
+  <button class="btn ${vistaAdminTurnos==="ausencias-aprobadas"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-aprobadas')" style="flex:1">
+    ✓ Aprobadas (${AUSENCIAS_APROBADAS.length})
+  </button>
+</div>
     
     <div id="admin-turnos-content"></div>`;
   
@@ -2441,7 +2471,7 @@ function renderVistaAdminTurnos(){
           </table>
         </div>
       </div>`;
-  } else {
+  } else if(vistaAdminTurnos === "ausencias-pendientes") {
     container.innerHTML = `
       <div class="card">
         <div class="card-title">Solicitudes pendientes de aprobación</div>
@@ -2472,6 +2502,31 @@ function renderVistaAdminTurnos(){
           </table>
         </div>`}
       </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-title">Ausencias aprobadas</div>
+        ${AUSENCIAS_APROBADAS.length===0?`<div style="text-align:center;color:var(--muted);padding:30px">Sin ausencias aprobadas</div>`:`
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Observaciones</th></tr>
+            </thead>
+            <tbody>
+              ${AUSENCIAS_APROBADAS.map(a=>`
+                <tr>
+                  <td style="font-weight:500">${a.empleado_nombre}</td>
+                  <td>${tipoAusenciaBadge(a.tipo)}</td>
+                  <td>${a.fecha_inicio}</td>
+                  <td>${a.fecha_fin}</td>
+                  <td style="font-weight:600;color:var(--a1)">${a.dias_totales}</td>
+                  <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.observaciones||"—"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>`}
+      </div>`;
   }
 }
 
@@ -2493,6 +2548,24 @@ async function cargarAusenciasPendientes(){
   }
 }
 
+async function cargarAusenciasAprobadas(){
+  try{
+    let query = _sb.from('ausencias')
+      .select('*')
+      .eq('estado', 'aprobada')
+      .order('fecha_inicio', {ascending: false});
+    
+    if(userProfile.organization_id){
+      query = query.eq('organization_id', userProfile.organization_id);
+    }
+    
+    const {data} = await query;
+    AUSENCIAS_APROBADAS = data || [];
+  } catch(e){
+    AUSENCIAS_APROBADAS = [];
+  }
+}
+  
 async function aprobarAusencia(id){
   const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
   if(!ausencia) return;

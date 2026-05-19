@@ -1071,7 +1071,7 @@ function selectDay(fecha){
           <span style="width:8px;height:8px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"}"></span>
           <span style="font-weight:600">${t.tipo==="libre"?"Día libre":t.tipo}</span>
         </div>
-        ${t.tipo!=="libre"?`<div style="font-size:12px;color:var(--muted)">⏰ ${t.entrada}–${t.salida} · 📍 ${t.lugar||"—"}</div>`:""}
+        ${t.tipo!=="libre"?`<div style="font-size:12px;color:var(--muted)">${t.entrada}–${t.salida} · ${t.lugar||"—"}</div>`:""}
       </div>`;
     });
   }
@@ -1084,7 +1084,7 @@ function selectDay(fecha){
           <span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${e.nombre}</span>
           ${badge(e.estado)}
         </div>
-        <div style="font-size:12px;color:var(--muted)">📍 ${e.lugar}</div>
+        <div style="font-size:12px;color:var(--muted)">${e.lugar}</div>
       </div>`;
     });
   }

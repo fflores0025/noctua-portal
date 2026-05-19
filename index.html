@@ -220,21 +220,68 @@
   background: var(--a3);
 }
 
-.cal-day.has-ausencia {
-  background: rgba(200, 255, 0, 0.20) !important;
-  border: 2px solid var(--a1) !important;
-  color: var(--a1) !important;
-  font-weight: 700 !important;
+/* Indicadores de ausencia - línea superior según tipo */
+.cal-day.has-ausencia-vacaciones::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #c8ff00;
 }
 
-.cal-day.has-ausencia.selected {
-  background: rgba(200, 255, 0, 0.35) !important;
-  border: 2px solid var(--a1) !important;
+.cal-day.has-ausencia-libre::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #00d4ff;
 }
 
-.cal-day.has-ausencia:hover {
-  background: rgba(200, 255, 0, 0.30) !important;
-  transform: scale(1.02);
+.cal-day.has-ausencia-asunto_personal::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #60607a;
+}
+
+.cal-day.has-ausencia-baja_medica::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #ffa500;
+}
+
+.cal-day.has-ausencia-baja_maternidad::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #ff3cac;
+}
+
+
 }
 /* Estilos para el chat */
 .chat-container {
@@ -1051,21 +1098,23 @@ function renderCalendarioGrid(){
     const turno=DEMO_TURNOS.find(t=>t.fecha===fecha);
     const hasEvento=DEMO_EVENTOS.some(e=>e.fecha===fecha);
 
-// Verificar si la fecha está en una ausencia aprobada
-    const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
-    const enAusencia = ausenciasAprobadas.some(a => {
-      const inicio = new Date(a.fecha_inicio + 'T00:00:00');
-      const fin = new Date(a.fecha_fin + 'T23:59:59');
-      const actual = new Date(fecha + 'T12:00:00');
-      return actual >= inicio && actual <= fin;
-    });
-    
-  let cls='cal-day';
-    if(isHoy)cls+=' today';
-    if(isSelected)cls+=' selected';
-    if(enAusencia)cls+=' has-ausencia'; // ← NUEVA LÍNEA
-    if(turno)cls+=' has-turno';
-    if(hasEvento)cls+=' has-event';
+// Verificar si la fecha está en una ausencia aprobada y obtener el tipo
+const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
+const ausenciaDelDia = ausenciasAprobadas.find(a => {
+  const inicio = new Date(a.fecha_inicio + 'T00:00:00');
+  const fin = new Date(a.fecha_fin + 'T23:59:59');
+  const actual = new Date(fecha + 'T12:00:00');
+  return actual >= inicio && actual <= fin;
+});
+
+let cls='cal-day';
+if(isHoy)cls+=' today';
+if(isSelected)cls+=' selected';
+if(ausenciaDelDia)cls+=` has-ausencia-${ausenciaDelDia.tipo}`; // ← NUEVA LÍNEA
+if(turno)cls+=' has-turno';
+if(hasEvento)cls+=' has-event';
+
+
     
     html+=`<div class="${cls}" onclick="selectDay('${fecha}')">${d}</div>`;
   }

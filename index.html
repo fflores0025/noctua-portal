@@ -419,43 +419,139 @@ let currentUser=null, userProfile=null, currentPage="dashboard";
 let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_EMPLEADOS=[], DEMO_TURNOS=[], TURNOS_EQUIPO=[], INVENTARIO=[], INCIDENCIAS=[];
 let unreadMsgCount=0;
 
-const NAV_CONFIG={
-  admin:[
-    {sec:"Principal"},
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
-    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
-    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
-    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+const NAV_CONFIG = {
+  admin: [
+    {sec: "Principal"},
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "eventos", icon: "🎪", label: "Eventos"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+    {sec: "Administración"},
+    {key: "admin", icon: "👥", label: "Empleados"},
+    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
+    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
+    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
   ],
-  rrhh:[
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
-    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
-    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
-    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  rrhh: [
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "eventos", icon: "🎪", label: "Eventos"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+    {sec: "Administración"},
+    {key: "admin", icon: "👥", label: "Empleados"},
+    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
+    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
+    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
   ],
-  empleado:[
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
-    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
-    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+  empleado: [
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "eventos", icon: "🎪", label: "Eventos"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
   ],
-  freelance:[
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
-    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Mis cachés"},{key:"calendario",icon:"📅",label:"Calendario"},
-    {sec:"Empresa"},{key:"eventos",icon:"🎪",label:"Eventos"},{key:"inventario",icon:"📦",label:"Inventario"},{key:"incidencias",icon:"🚨",label:"Incidencias"},
+  manager: [ // ← NUEVO ROL
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "eventos", icon: "🎪", label: "Eventos"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
   ],
-  empresa_externa:[
-    {sec:"Principal"},
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
+  tecnico: [ // ← NUEVO ROL
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
   ],
-  superadmin:[
-    {sec:"Principal"},
-    {key:"dashboard",icon:"⚡",label:"Inicio"},{key:"perfil",icon:"👤",label:"Mi perfil"},{key:"mensajes",icon:"💬",label:"Mensajes"},
-    {sec:"Mi área"},{key:"nominas",icon:"💶",label:"Nóminas"},{key:"retribuciones",icon:"📊",label:"Retribuciones"},{key:"calendario",icon:"📅",label:"Calendario"},
-    {sec:"Administración"},{key:"admin",icon:"👥",label:"Empleados"},{key:"admin-irpf",icon:"🔧",label:"Cambiar IRPF"},{key:"admin-nominas",icon:"📋",label:"Nóminas equipo"},{key:"admin-turnos",icon:"🗓",label:"Gestión turnos"},
+  freelance: [
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Mis cachés"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Empresa"},
+    {key: "eventos", icon: "🎪", label: "Eventos"},
+    {key: "inventario", icon: "📦", label: "Inventario"},
+    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+  ],
+  empresa_externa: [
+    {sec: "Principal"},
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+  ],
+  superadmin: [
+    {sec: "Principal"},
+    {key: "dashboard", icon: "⚡", label: "Inicio"},
+    {key: "perfil", icon: "👤", label: "Mi perfil"},
+    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec: "Mi área"},
+    {key: "nominas", icon: "💶", label: "Nóminas"},
+    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
+    {key: "calendario", icon: "📅", label: "Calendario"},
+    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
+    {sec: "Administración"},
+    {key: "admin", icon: "👥", label: "Empleados"},
+    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
+    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
+    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
   ],
 };
 
-const PAGE_TITLE={dashboard:"Inicio",perfil:"Mi perfil",nominas:"Nóminas",retribuciones:"Retribuciones",calendario:"Calendario",eventos:"Eventos",inventario:"Inventario",incidencias:"Incidencias",mensajes:"Mensajes",admin:"Empleados","admin-irpf":"Cambiar IRPF","admin-nominas":"Nóminas del equipo","admin-turnos":"Gestión de turnos"};
+const PAGE_TITLE = {
+  dashboard: "Inicio",
+  perfil: "Mi perfil",
+  nominas: "Nóminas",
+  retribuciones: "Retribuciones",
+  calendario: "Calendario",
+  ausencias: "Ausencias",
+  eventos: "Eventos",
+  inventario: "Inventario",
+  incidencias: "Incidencias",
+  mensajes: "Mensajes",
+  admin: "Empleados",
+  "admin-irpf": "Cambiar IRPF",
+  "admin-nominas": "Nóminas del equipo",
+  "admin-turnos": "Gestión de turnos"
+};
 
 function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
 function canAdmin(){return["admin","rrhh","superadmin"].includes(userProfile?.role);}
@@ -1787,7 +1883,8 @@ function nuevoEmpleado(){
     <label class="form-lbl">Role</label>
     <select class="form-select" id="nemp-role">
       <option value="empleado">Empleado</option>
-      <option value="freelance">Freelance</option>
+      <option value="manager">Manager</option>
+      <option value="tecnico">Técnico</option>
       <option value="rrhh">RRHH</option>
       <option value="admin">Admin</option>
     </select>
@@ -1795,7 +1892,15 @@ function nuevoEmpleado(){
     <label class="form-lbl">Tipo de contrato</label>
     <select class="form-select" id="nemp-tipo">
       <option value="fijo">Fijo</option>
+      <option value="temporal">Temporal</option>
       <option value="freelance">Freelance</option>
+    </select>
+    
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="nemp-estado">
+      <option value="activo">Activo</option>
+      <option value="baja_temporal">Baja temporal</option>
+      <option value="inactivo">Inactivo</option>
     </select>
     
     <label class="form-lbl">Salario base (€/mes)</label>
@@ -1808,15 +1913,47 @@ function nuevoEmpleado(){
 }
 
 async function guardarNuevoEmpleado(){
-  const nombre=document.getElementById("nemp-nombre").value.trim();
-  const email=document.getElementById("nemp-email").value.trim();
-  const dept=document.getElementById("nemp-dept").value.trim();
-  const role=document.getElementById("nemp-role").value;
-  const tipo=document.getElementById("nemp-tipo").value;
-  const salario=parseFloat(document.getElementById("nemp-salario").value)||0;
-  const irpf=parseFloat(document.getElementById("nemp-irpf").value)||15;
+  const nombre = document.getElementById("nemp-nombre").value.trim();
+  const email = document.getElementById("nemp-email").value.trim();
+  const dept = document.getElementById("nemp-dept").value.trim();
+  const role = document.getElementById("nemp-role").value;
+  const tipo = document.getElementById("nemp-tipo").value;
+  const estado = document.getElementById("nemp-estado").value;
+  const salario = parseFloat(document.getElementById("nemp-salario").value) || 0;
+  const irpf = parseFloat(document.getElementById("nemp-irpf").value) || 15;
   
-  if(!nombre||!email){toast("⚠️ Nombre y email son obligatorios");return;}
+  if(!nombre || !email){
+    toast("⚠️ Nombre y email son obligatorios");
+    return;
+  }
+  
+  const payload = {
+    nombre,
+    email,
+    departamento: dept,
+    role,
+    tipo,
+    estado,
+    salario_base: salario,
+    irpf,
+    fecha_alta: new Date().toISOString().slice(0, 10)
+  };
+  
+  if(userProfile.organization_id){
+    payload.organization_id = userProfile.organization_id;
+  }
+  
+  const {error} = await _sb.from('empleados').insert(payload);
+  if(error){
+    toast("Error: " + error.message);
+    return;
+  }
+  
+  toast("Empleado creado ✓");
+  closeModal();
+  await cargarEmpleados();
+  renderAdmin(document.getElementById("page-content"));
+}
   
   const payload={
     nombre,
@@ -1867,7 +2004,8 @@ function verEmpleado(id){
 }
 
 function editarEmpleado(id){
-  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
+  const e = DEMO_EMPLEADOS.find(x => x.id === id);
+  if(!e) return;
   
   showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">Editar Empleado</div>
@@ -1884,9 +2022,24 @@ function editarEmpleado(id){
     <label class="form-lbl">Role</label>
     <select class="form-select" id="eemp-role">
       <option value="empleado" ${e.role==="empleado"?"selected":""}>Empleado</option>
-      <option value="freelance" ${e.role==="freelance"?"selected":""}>Freelance</option>
+      <option value="manager" ${e.role==="manager"?"selected":""}>Manager</option>
+      <option value="tecnico" ${e.role==="tecnico"?"selected":""}>Técnico</option>
       <option value="rrhh" ${e.role==="rrhh"?"selected":""}>RRHH</option>
       <option value="admin" ${e.role==="admin"?"selected":""}>Admin</option>
+    </select>
+    
+    <label class="form-lbl">Tipo de contrato</label>
+    <select class="form-select" id="eemp-tipo">
+      <option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option>
+      <option value="temporal" ${e.tipo==="temporal"?"selected":""}>Temporal</option>
+      <option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option>
+    </select>
+    
+    <label class="form-lbl">Estado</label>
+    <select class="form-select" id="eemp-estado">
+      <option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option>
+      <option value="baja_temporal" ${e.estado==="baja_temporal"?"selected":""}>Baja temporal</option>
+      <option value="inactivo" ${e.estado==="inactivo"?"selected":""}>Inactivo</option>
     </select>
     
     <label class="form-lbl">Salario base (€/mes)</label>
@@ -1895,16 +2048,42 @@ function editarEmpleado(id){
     <label class="form-lbl">IRPF (%)</label>
     <input class="form-input" id="eemp-irpf" type="number" value="${e.irpf}"/>
     
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="eemp-estado">
-      <option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option>
-      <option value="baja" ${e.estado==="baja"?"selected":""}>Baja</option>
-    </select>
-    
     <div style="display:flex;gap:8px">
       <button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>
       <button class="btn btn-g" onclick="verEmpleado('${e.id}')">Cancelar</button>
     </div>`);
+}
+
+async function actualizarEmpleado(id){
+  const nombre = document.getElementById("eemp-nombre").value.trim();
+  const email = document.getElementById("eemp-email").value.trim();
+  const dept = document.getElementById("eemp-dept").value.trim();
+  const role = document.getElementById("eemp-role").value;
+  const tipo = document.getElementById("eemp-tipo").value;
+  const estado = document.getElementById("eemp-estado").value;
+  const salario = parseFloat(document.getElementById("eemp-salario").value) || 0;
+  const irpf = parseFloat(document.getElementById("eemp-irpf").value) || 15;
+  
+  const {error} = await _sb.from('empleados').update({
+    nombre,
+    email,
+    departamento: dept,
+    role,
+    tipo,
+    estado,
+    salario_base: salario,
+    irpf
+  }).eq('id', id);
+  
+  if(error){
+    toast("Error: " + error.message);
+    return;
+  }
+  
+  toast("Empleado actualizado ✓");
+  closeModal();
+  await cargarEmpleados();
+  setTimeout(() => verEmpleado(id), 200);
 }
 
 async function actualizarEmpleado(id){
@@ -2322,22 +2501,22 @@ function navigate(page){
   closeSidebar();
   const pc=document.getElementById("page-content");pc.scrollTop=0;
   
-  // Router completo
-  const routes={
-    dashboard,
-    perfil:renderPerfil,
-    nominas:renderNominas,
-    retribuciones:renderRetribuciones,
-    calendario:renderCalendario,
-    eventos:renderEventos,
-    inventario:renderInventario,
-    incidencias:renderIncidencias,
-    mensajes:renderMensajes,
-    admin:renderAdmin,
-    "admin-irpf":renderAdminIRPF,
-    "admin-nominas":renderAdminNominas,
-    "admin-turnos":renderAdminTurnos,
-  };
+ const routes = {
+  dashboard,
+  perfil: renderPerfil,
+  nominas: renderNominas,
+  retribuciones: renderRetribuciones,
+  calendario: renderCalendario,
+  ausencias: renderAusencias, // ← NUEVO
+  eventos: renderEventos,
+  inventario: renderInventario,
+  incidencias: renderIncidencias,
+  mensajes: renderMensajes,
+  admin: renderAdmin,
+  "admin-irpf": renderAdminIRPF,
+  "admin-nominas": renderAdminNominas,
+  "admin-turnos": renderAdminTurnos,
+};
   
   if(routes[page]){
     routes[page](pc);

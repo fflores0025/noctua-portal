@@ -1083,7 +1083,9 @@ function renderCalendarioGrid(){
   
   const primerDia=new Date(selectedYear,selectedMonth,1).getDay();
   const diasMes=new Date(selectedYear,selectedMonth+1,0).getDate();
-  const hoy=new Date();const hoyStr=hoy.toISOString().slice(0,10);
+  const hoy = new Date(); 
+  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+
   
   let html='<div class="cal-grid">';
   ["L","M","X","J","V","S","D"].forEach(d=>html+=`<div class="cal-hd">${d}</div>`);

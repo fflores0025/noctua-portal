@@ -559,7 +559,6 @@ function canAdminRole(r){return["admin","rrhh","superadmin"].includes(r);}
 function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":r==="superadmin"?"av-pink":"";}
 function badge(e){
-function badge(e){
   const m={
     pagada:["b-green","Pagada"],
     pendiente:["b-blue","Pendiente"],

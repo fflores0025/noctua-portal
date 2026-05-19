@@ -2397,19 +2397,19 @@ async function ejecutarGeneracionNominas(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// ADMIN: GESTIÓN DE TURNOS + APROBACIÓN DE AUSENCIAS
+// ADMIN: GESTIÓN DE TURNOS + APROBACIÓN DE AUSENCIAS (3 PESTAÑAS)
 // ══════════════════════════════════════════════════════════════════════════
 
 let AUSENCIAS_PENDIENTES = [];
 let AUSENCIAS_APROBADAS = [];
-  
 let vistaAdminTurnos = "turnos"; // "turnos" | "ausencias-pendientes" | "ausencias-aprobadas"
 
 async function renderAdminTurnos(pc){
   if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
- 
+  
   await cargarTodosLosTurnos();
   await cargarAusenciasPendientes();
+  await cargarAusenciasAprobadas();
   
   pc.innerHTML=`
     <div class="page-hd">
@@ -2421,16 +2421,16 @@ async function renderAdminTurnos(pc){
     </div>
     
     <div style="display:flex;gap:8px;margin-bottom:16px">
-  <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
-    📅 Turnos (${TURNOS_EQUIPO.length})
-  </button>
-  <button class="btn ${vistaAdminTurnos==="ausencias-pendientes"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-pendientes')" style="flex:1">
-    ⏳ Pendientes (${AUSENCIAS_PENDIENTES.length})
-  </button>
-  <button class="btn ${vistaAdminTurnos==="ausencias-aprobadas"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-aprobadas')" style="flex:1">
-    ✓ Aprobadas (${AUSENCIAS_APROBADAS.length})
-  </button>
-</div>
+      <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
+        📅 Turnos (${TURNOS_EQUIPO.length})
+      </button>
+      <button class="btn ${vistaAdminTurnos==="ausencias-pendientes"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-pendientes')" style="flex:1">
+        ⏳ Pendientes (${AUSENCIAS_PENDIENTES.length})
+      </button>
+      <button class="btn ${vistaAdminTurnos==="ausencias-aprobadas"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-aprobadas')" style="flex:1">
+        ✓ Aprobadas (${AUSENCIAS_APROBADAS.length})
+      </button>
+    </div>
     
     <div id="admin-turnos-content"></div>`;
   
@@ -2565,7 +2565,7 @@ async function cargarAusenciasAprobadas(){
     AUSENCIAS_APROBADAS = [];
   }
 }
-  
+
 async function aprobarAusencia(id){
   const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
   if(!ausencia) return;
@@ -2612,6 +2612,7 @@ async function confirmarAprobarAusencia(id){
   toast("Ausencia aprobada ✓");
   closeModal();
   await cargarAusenciasPendientes();
+  await cargarAusenciasAprobadas();
   renderVistaAdminTurnos();
 }
 
@@ -2733,7 +2734,6 @@ async function eliminarTurno(id){
   await cargarTodosLosTurnos();
   renderAdminTurnos(document.getElementById("page-content"));
 }
-
 // ══════════════════════════════════════════════════════════════════════════
 // GENERACIÓN DE PDFs
 // ══════════════════════════════════════════════════════════════════════════
@@ -2930,7 +2930,7 @@ function navigate(page){
     pc.innerHTML=`<div class="card"><div style="text-align:center;padding:40px;color:var(--muted)">Página "${page}" en desarrollo</div></div>`;
   }
 }
-    
+
 </script>
 </body>
 </html>

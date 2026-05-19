@@ -2372,40 +2372,221 @@ async function ejecutarGeneracionNominas(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// ADMIN: GESTIÓN DE TURNOS
+// ADMIN: GESTIÓN DE TURNOS + APROBACIÓN DE AUSENCIAS
 // ══════════════════════════════════════════════════════════════════════════
 
-function renderAdminTurnos(pc){
+let AUSENCIAS_PENDIENTES = [];
+let vistaAdminTurnos = "turnos"; // "turnos" o "ausencias"
+
+async function renderAdminTurnos(pc){
   if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
+  
+  await cargarTodosLosTurnos();
+  await cargarAusenciasPendientes();
   
   pc.innerHTML=`
     <div class="page-hd">
-      <div><div class="page-title">Gestión de Turnos</div><div class="page-sub">${TURNOS_EQUIPO.length} turnos asignados</div></div>
+      <div>
+        <div class="page-title">Gestión de Turnos</div>
+        <div class="page-sub">${TURNOS_EQUIPO.length} turnos · ${AUSENCIAS_PENDIENTES.length} ausencias pendientes</div>
+      </div>
       <button class="btn btn-p" onclick="nuevoTurno()">+ Asignar turno</button>
     </div>
-    <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>Empleado</th><th>Fecha</th><th>Tipo</th><th>Horario</th><th>Lugar</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${TURNOS_EQUIPO.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">Sin turnos asignados</td></tr>`:TURNOS_EQUIPO.slice(0,50).map(t=>`
-              <tr>
-                <td style="font-weight:500">${t.empleadoNombre}</td>
-                <td>${t.fecha}</td>
-                <td><span style="width:8px;height:8px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"};display:inline-block;margin-right:6px"></span>${t.tipo}</td>
-                <td style="color:var(--muted)">${t.tipo==="libre"?"—":`${t.entrada}–${t.salida}`}</td>
-                <td style="color:var(--muted)">${t.lugar||"—"}</td>
-                <td style="text-align:right">
-                  <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTurno('${t.id}')">✕</button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
+        📅 Turnos (${TURNOS_EQUIPO.length})
+      </button>
+      <button class="btn ${vistaAdminTurnos==="ausencias"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias')" style="flex:1">
+        🏖️ Ausencias (${AUSENCIAS_PENDIENTES.length})
+      </button>
+    </div>
+    
+    <div id="admin-turnos-content"></div>`;
+  
+  renderVistaAdminTurnos();
+}
+
+function cambiarVistaAdminTurnos(vista){
+  vistaAdminTurnos = vista;
+  renderVistaAdminTurnos();
+}
+
+function renderVistaAdminTurnos(){
+  const container = document.getElementById("admin-turnos-content");
+  if(!container) return;
+  
+  if(vistaAdminTurnos === "turnos"){
+    container.innerHTML = `
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Empleado</th><th>Fecha</th><th>Tipo</th><th>Horario</th><th>Lugar</th><th></th></tr>
+            </thead>
+            <tbody>
+              ${TURNOS_EQUIPO.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">Sin turnos asignados</td></tr>`:TURNOS_EQUIPO.slice(0,50).map(t=>`
+                <tr>
+                  <td style="font-weight:500">${t.empleadoNombre}</td>
+                  <td>${t.fecha}</td>
+                  <td><span style="width:8px;height:8px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"};display:inline-block;margin-right:6px"></span>${t.tipo}</td>
+                  <td style="color:var(--muted)">${t.tipo==="libre"?"—":`${t.entrada}–${t.salida}`}</td>
+                  <td style="color:var(--muted)">${t.lugar||"—"}</td>
+                  <td style="text-align:right">
+                    <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTurno('${t.id}')">✕</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-title">Solicitudes pendientes de aprobación</div>
+        ${AUSENCIAS_PENDIENTES.length===0?`<div style="text-align:center;color:var(--muted);padding:30px">Sin solicitudes pendientes</div>`:`
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Motivo</th><th></th></tr>
+            </thead>
+            <tbody>
+              ${AUSENCIAS_PENDIENTES.map(a=>`
+                <tr>
+                  <td style="font-weight:500">${a.empleado_nombre}</td>
+                  <td>${tipoAusenciaBadge(a.tipo)}</td>
+                  <td>${a.fecha_inicio}</td>
+                  <td>${a.fecha_fin}</td>
+                  <td style="font-weight:600;color:var(--a3)">${a.dias_totales}</td>
+                  <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.motivo||"—"}</td>
+                  <td style="text-align:right">
+                    <div style="display:flex;gap:4px;justify-content:flex-end">
+                      <button class="btn btn-p" style="padding:4px 8px;font-size:11px" onclick="aprobarAusencia('${a.id}')">✓</button>
+                      <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="rechazarAusencia('${a.id}')">✕</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>`}
+      </div>`;
+  }
+}
+
+async function cargarAusenciasPendientes(){
+  try{
+    let query = _sb.from('ausencias')
+      .select('*')
+      .eq('estado', 'pendiente')
+      .order('created_at', {ascending: false});
+    
+    if(userProfile.organization_id){
+      query = query.eq('organization_id', userProfile.organization_id);
+    }
+    
+    const {data} = await query;
+    AUSENCIAS_PENDIENTES = data || [];
+  } catch(e){
+    AUSENCIAS_PENDIENTES = [];
+  }
+}
+
+async function aprobarAusencia(id){
+  const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
+  if(!ausencia) return;
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Aprobar Ausencia</div>
+    
+    <div style="padding:14px;background:var(--bg);border-radius:9px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">EMPLEADO</div>
+      <div style="font-weight:600">${ausencia.empleado_nombre}</div>
+      
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">TIPO</div>
+      <div>${tipoAusenciaBadge(ausencia.tipo)}</div>
+      
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">PERÍODO</div>
+      <div>${ausencia.fecha_inicio} → ${ausencia.fecha_fin} <span style="color:var(--a3);font-weight:600">(${ausencia.dias_totales} días)</span></div>
+      
+      ${ausencia.motivo?`<div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">MOTIVO</div><div style="color:var(--muted)">${ausencia.motivo}</div>`:""}
+    </div>
+    
+    <label class="form-lbl">Observaciones (opcional)</label>
+    <textarea class="form-textarea" id="obs-aprobar" placeholder="Notas para el empleado..."></textarea>
+    
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p btn-full" onclick="confirmarAprobarAusencia('${id}')">✓ Aprobar</button>
+      <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+    </div>`);
+}
+
+async function confirmarAprobarAusencia(id){
+  const observaciones = document.getElementById("obs-aprobar").value.trim();
+  
+  const {error} = await _sb.from('ausencias').update({
+    estado: "aprobada",
+    aprobado_por: userProfile._supabase_id,
+    observaciones: observaciones || null
+  }).eq('id', id);
+  
+  if(error){
+    toast("Error: " + error.message);
+    return;
+  }
+  
+  toast("Ausencia aprobada ✓");
+  closeModal();
+  await cargarAusenciasPendientes();
+  renderVistaAdminTurnos();
+}
+
+async function rechazarAusencia(id){
+  const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
+  if(!ausencia) return;
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Rechazar Ausencia</div>
+    
+    <div style="padding:14px;background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);border-radius:9px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--a2);margin-bottom:8px">⚠️ VAS A RECHAZAR ESTA SOLICITUD</div>
+      <div style="font-weight:600">${ausencia.empleado_nombre}</div>
+      <div style="font-size:13px;margin-top:4px">${ausencia.fecha_inicio} → ${ausencia.fecha_fin} (${ausencia.dias_totales} días)</div>
+    </div>
+    
+    <label class="form-lbl">Motivo del rechazo *</label>
+    <textarea class="form-textarea" id="obs-rechazar" placeholder="Explica el motivo del rechazo..."></textarea>
+    
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-danger btn-full" onclick="confirmarRechazarAusencia('${id}')">✕ Rechazar</button>
+      <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+    </div>`);
+}
+
+async function confirmarRechazarAusencia(id){
+  const observaciones = document.getElementById("obs-rechazar").value.trim();
+  
+  if(!observaciones){
+    toast("⚠️ Debes explicar el motivo del rechazo");
+    return;
+  }
+  
+  const {error} = await _sb.from('ausencias').update({
+    estado: "rechazada",
+    aprobado_por: userProfile._supabase_id,
+    observaciones
+  }).eq('id', id);
+  
+  if(error){
+    toast("Error: " + error.message);
+    return;
+  }
+  
+  toast("Ausencia rechazada");
+  closeModal();
+  await cargarAusenciasPendientes();
+  renderVistaAdminTurnos();
 }
 
 function nuevoTurno(){

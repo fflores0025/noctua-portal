@@ -1954,30 +1954,6 @@ async function guardarNuevoEmpleado(){
   await cargarEmpleados();
   renderAdmin(document.getElementById("page-content"));
 }
-  
-  const payload={
-    nombre,
-    email,
-    departamento:dept,
-    role,
-    tipo,
-    salario_base:salario,
-    irpf,
-    estado:"activo",
-    fecha_alta:new Date().toISOString().slice(0,10)
-  };
-  
-  if(userProfile.organization_id){
-    payload.organization_id=userProfile.organization_id;
-  }
-  
-  const{error}=await _sb.from('empleados').insert(payload);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Empleado creado ✓");
-  closeModal();
-  await cargarEmpleados();
-  renderAdmin(document.getElementById("page-content"));
-}
 
 function verEmpleado(id){
   const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
@@ -2085,27 +2061,6 @@ async function actualizarEmpleado(id){
   await cargarEmpleados();
   setTimeout(() => verEmpleado(id), 200);
 }
-
-async function actualizarEmpleado(id){
-  const nombre=document.getElementById("eemp-nombre").value.trim();
-  const email=document.getElementById("eemp-email").value.trim();
-  const dept=document.getElementById("eemp-dept").value.trim();
-  const role=document.getElementById("eemp-role").value;
-  const salario=parseFloat(document.getElementById("eemp-salario").value)||0;
-  const irpf=parseFloat(document.getElementById("eemp-irpf").value)||15;
-  const estado=document.getElementById("eemp-estado").value;
-  
-  const{error}=await _sb.from('empleados').update({
-    nombre,email,departamento:dept,role,salario_base:salario,irpf,estado
-  }).eq('id',id);
-  
-  if(error){toast("Error: "+error.message);return;}
-  toast("Empleado actualizado ✓");
-  closeModal();
-  await cargarEmpleados();
-  setTimeout(()=>verEmpleado(id),200);
-}
-
 // ══════════════════════════════════════════════════════════════════════════
 // ADMIN: CAMBIAR IRPF (para un empleado)
 // ══════════════════════════════════════════════════════════════════════════

@@ -1831,6 +1831,203 @@ function activarRealtime(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// AUSENCIAS (Sistema de solicitudes de ausencias)
+// ══════════════════════════════════════════════════════════════════════════
+
+let MIS_AUSENCIAS = [];
+
+async function renderAusencias(pc){
+  await cargarMisAusencias();
+  
+  pc.innerHTML=`
+    <div class="page-hd">
+      <div>
+        <div class="page-title">Mis Ausencias</div>
+        <div class="page-sub">${MIS_AUSENCIAS.length} solicitudes registradas</div>
+      </div>
+      <button class="btn btn-p" onclick="nuevaAusencia()">+ Nueva solicitud</button>
+    </div>
+    
+    <div class="card">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${MIS_AUSENCIAS.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No tienes solicitudes de ausencia</td></tr>`:MIS_AUSENCIAS.map(a=>`
+              <tr style="cursor:pointer" onclick="verAusencia('${a.id}')">
+                <td>${tipoAusenciaBadge(a.tipo)}</td>
+                <td>${a.fecha_inicio}</td>
+                <td>${a.fecha_fin}</td>
+                <td style="font-weight:600;color:var(--a3)">${a.dias_totales}</td>
+                <td>${badge(a.estado)}</td>
+                <td style="text-align:right">
+                  <button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function cargarMisAusencias(){
+  try{
+    const {data} = await _sb.from('ausencias')
+      .select('*')
+      .eq('empleado_id', userProfile._supabase_id)
+      .order('created_at', {ascending: false});
+    
+    MIS_AUSENCIAS = (data || []).map(a => ({
+      id: a.id,
+      tipo: a.tipo,
+      fecha_inicio: a.fecha_inicio,
+      fecha_fin: a.fecha_fin,
+      dias_totales: a.dias_totales || 0,
+      motivo: a.motivo || "",
+      estado: a.estado || "pendiente",
+      observaciones: a.observaciones || ""
+    }));
+  } catch(e){
+    MIS_AUSENCIAS = [];
+  }
+}
+
+function nuevaAusencia(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Nueva Solicitud de Ausencia</div>
+    
+    <label class="form-lbl">Tipo de ausencia *</label>
+    <select class="form-select" id="na-tipo">
+      <option value="vacaciones">🏖️ Vacaciones</option>
+      <option value="libre">📅 Día libre</option>
+      <option value="asunto_personal">📋 Asunto personal</option>
+      <option value="baja_medica">🏥 Baja médica</option>
+      <option value="baja_maternidad">👶 Baja maternidad/paternidad</option>
+    </select>
+    
+    <label class="form-lbl">Fecha inicio *</label>
+    <input class="form-input" id="na-inicio" type="date"/>
+    
+    <label class="form-lbl">Fecha fin *</label>
+    <input class="form-input" id="na-fin" type="date"/>
+    
+    <label class="form-lbl">Motivo</label>
+    <textarea class="form-textarea" id="na-motivo" placeholder="Descripción opcional..."></textarea>
+    
+    <button class="btn btn-p btn-full" onclick="guardarNuevaAusencia()">Enviar solicitud</button>`);
+}
+
+async function guardarNuevaAusencia(){
+  const tipo = document.getElementById("na-tipo").value;
+  const inicio = document.getElementById("na-inicio").value;
+  const fin = document.getElementById("na-fin").value;
+  const motivo = document.getElementById("na-motivo").value.trim();
+  
+  if(!inicio || !fin){
+    toast("⚠️ Las fechas son obligatorias");
+    return;
+  }
+  
+  // Calcular días entre fechas
+  const d1 = new Date(inicio);
+  const d2 = new Date(fin);
+  const dias = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+  
+  if(dias <= 0){
+    toast("⚠️ La fecha fin debe ser posterior a la de inicio");
+    return;
+  }
+  
+  const payload = {
+    empleado_id: userProfile._supabase_id,
+    empleado_nombre: userProfile.nombre,
+    tipo,
+    fecha_inicio: inicio,
+    fecha_fin: fin,
+    dias_totales: dias,
+    motivo,
+    estado: "pendiente"
+  };
+  
+  if(userProfile.organization_id){
+    payload.organization_id = userProfile.organization_id;
+  }
+  
+  const {error} = await _sb.from('ausencias').insert(payload);
+  if(error){
+    toast("Error: " + error.message);
+    return;
+  }
+  
+  toast("Solicitud enviada ✓");
+  closeModal();
+  await cargarMisAusencias();
+  renderAusencias(document.getElementById("page-content"));
+}
+
+function verAusencia(id){
+  const a = MIS_AUSENCIAS.find(x => x.id === id);
+  if(!a) return;
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0">Solicitud de Ausencia</div>
+      ${badge(a.estado)}
+    </div>
+    
+    <div class="info-row">
+      <span class="info-lbl">Tipo</span>
+      <span>${tipoAusenciaBadge(a.tipo)}</span>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-lbl">Desde</span>
+      <span style="font-weight:600">${a.fecha_inicio}</span>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-lbl">Hasta</span>
+      <span style="font-weight:600">${a.fecha_fin}</span>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-lbl">Total días</span>
+      <span style="color:var(--a3);font-weight:600">${a.dias_totales}</span>
+    </div>
+    
+    ${a.motivo?`
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">MOTIVO</div>
+      <div style="color:var(--muted);font-size:13px;line-height:1.5">${a.motivo}</div>
+    </div>`:""}
+    
+    ${a.observaciones?`
+    <div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">OBSERVACIONES DE RRHH</div>
+      <div style="font-size:13px">${a.observaciones}</div>
+    </div>`:""}
+    
+    <div style="margin-top:20px">
+      <button class="btn btn-g btn-full" onclick="closeModal()">Cerrar</button>
+    </div>
+  `);
+}
+
+function tipoAusenciaBadge(tipo){
+  const tipos = {
+    vacaciones: '<span class="badge b-green">🏖️ Vacaciones</span>',
+    libre: '<span class="badge b-blue">📅 Día libre</span>',
+    asunto_personal: '<span class="badge b-gray">📋 Asunto personal</span>',
+    baja_medica: '<span class="badge b-orange">🏥 Baja médica</span>',
+    baja_maternidad: '<span class="badge b-pink">👶 Maternidad/Paternidad</span>'
+  };
+  return tipos[tipo] || `<span class="badge b-gray">${tipo}</span>`;
+}
+  
+// ══════════════════════════════════════════════════════════════════════════
 // ADMIN: EMPLEADOS
 // ══════════════════════════════════════════════════════════════════════════
 

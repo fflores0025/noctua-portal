@@ -220,6 +220,13 @@
   background: var(--a3);
 }
 
+.cal-day.has-ausencia {
+  background: rgba(200, 255, 0, .14) !important;
+  border-color: var(--a1) !important;
+  color: var(--a1) !important;
+  font-weight: 600;
+}
+
 /* Estilos para el chat */
 .chat-container {
   display: flex;
@@ -985,6 +992,7 @@ function renderCalendario(pc){
   selectedMonth=hoy.getMonth();
   selectedYear=hoy.getFullYear();
   selectedDate=null;
+  await cargarMisAusencias();
   pc.innerHTML=`
     <div class="page-hd">
       <div><div class="page-title">Calendario</div><div class="page-sub">Tus turnos y eventos del mes</div></div>
@@ -1033,10 +1041,20 @@ function renderCalendarioGrid(){
     const isSelected=fecha===selectedDate;
     const turno=DEMO_TURNOS.find(t=>t.fecha===fecha);
     const hasEvento=DEMO_EVENTOS.some(e=>e.fecha===fecha);
+
+// Verificar si la fecha está en una ausencia aprobada
+    const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
+    const enAusencia = ausenciasAprobadas.some(a => {
+      const inicio = new Date(a.fecha_inicio + 'T00:00:00');
+      const fin = new Date(a.fecha_fin + 'T23:59:59');
+      const actual = new Date(fecha + 'T12:00:00');
+      return actual >= inicio && actual <= fin;
+    });
     
-    let cls='cal-day';
+  let cls='cal-day';
     if(isHoy)cls+=' today';
     if(isSelected)cls+=' selected';
+    if(enAusencia)cls+=' has-ausencia'; // ← NUEVA LÍNEA
     if(turno)cls+=' has-turno';
     if(hasEvento)cls+=' has-event';
     

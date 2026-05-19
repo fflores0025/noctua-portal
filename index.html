@@ -1084,8 +1084,15 @@ function selectDay(fecha){
   
   const turnos=DEMO_TURNOS.filter(t=>t.fecha===fecha);
   const eventos=DEMO_EVENTOS.filter(e=>e.fecha===fecha);
+  const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
+  const ausenciaDelDia = ausenciasAprobadas.find(a => {
+    const inicio = new Date(a.fecha_inicio + 'T00:00:00');
+    const fin = new Date(a.fecha_fin + 'T23:59:59');
+    const actual = new Date(fecha + 'T12:00:00');
+    return actual >= inicio && actual <= fin;
+  });
   
-  if(turnos.length===0&&eventos.length===0){
+  if(turnos.length===0 && eventos.length===0 && !ausenciaDelDia){
     document.getElementById("day-detail-container").innerHTML=`
       <div class="card-title">${new Date(fecha+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div>
       <div style="color:var(--muted);font-size:13px;padding-top:10px">Sin actividad programada.</div>`;
@@ -1093,6 +1100,25 @@ function selectDay(fecha){
   }
   
   let html=`<div class="card-title">${new Date(fecha+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div>`;
+  
+  // Mostrar ausencia si existe
+  if(ausenciaDelDia){
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--a1)">🏖️ Ausencia Aprobada</div>
+      <div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid rgba(200,255,0,.2)">
+        <div style="font-weight:600;margin-bottom:6px">${tipoAusenciaBadge(ausenciaDelDia.tipo)}</div>
+        <div style="font-size:12px;color:var(--muted)">
+          Del ${ausenciaDelDia.fecha_inicio} al ${ausenciaDelDia.fecha_fin}
+          <span style="color:var(--a3);font-weight:600;margin-left:8px">(${ausenciaDelDia.dias_totales} días)</span>
+        </div>
+        ${ausenciaDelDia.observaciones ? `
+          <div style="margin-top:8px;padding:8px;background:rgba(200,255,0,.05);border-radius:6px;font-size:12px">
+            💬 ${ausenciaDelDia.observaciones}
+          </div>
+        ` : ''}
+      </div>
+    </div>`;
+  }
   
   if(turnos.length>0){
     html+=`<div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--a3)">Tu turno</div>`;

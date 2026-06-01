@@ -477,6 +477,10 @@
 const SUPABASE_URL = 'https://raoxkjnwrccoxjcipfpv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhb3hram53cmNjb3hqY2lwZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzMxNzgsImV4cCI6MjA5MTgwOTE3OH0.dlPG4hpA-ypmGkqrP0ohaiOfMtXq5dpVmV7QNOt7_Qs';
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  // ── MULTI-TENANT: slug de org ──
+const _orgSlug = location.pathname.replace(/^\//, '').split('/')[0] || null
+if (_orgSlug) localStorage.setItem('inout_org_slug', _orgSlug)
 
 let currentUser=null, userProfile=null, currentPage="dashboard";
 let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_EMPLEADOS=[], DEMO_TURNOS=[], TURNOS_EQUIPO=[], INVENTARIO=[], INCIDENCIAS=[];
@@ -674,8 +678,18 @@ async function doLogin(){
     currentUser=data.user;
     const{data:perfil,error:perfilErr}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
     if(perfilErr||!perfil){setLoginError("Perfil no encontrado. Contacta con el administrador.");await _sb.auth.signOut();setLoginLoading(false);return;}
-    userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id,organization_id:perfil.organization_id||null,pin_desbloqueo:perfil.pin_desbloqueo||"",staff_pin:perfil.staff_pin||"",staff_uid:perfil.staff_uid||""};
-    enterApp();
+   const slug = localStorage.getItem('inout_org_slug')
+if (slug) {
+  const { data: org } = await _sb.from('organizations').select('*').eq('slug', slug).maybeSingle()
+  if (!org) { setLoginError('Organización no encontrada'); await _sb.auth.signOut(); setLoginLoading(false); return; }
+  if (perfil.organization_id && perfil.organization_id !== org.id) { setLoginError('No tienes acceso a esta organización'); await _sb.auth.signOut(); setLoginLoading(false); return; }
+  localStorage.setItem('inout_org_id', org.id)
+  localStorage.setItem('inout_org_name', org.nombre)
+  if (org.color_primario) document.documentElement.style.setProperty('--a1', org.color_primario)
+  if (org.color_secundario) document.documentElement.style.setProperty('--a2', org.color_secundario)
+}
+userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id,organization_id:perfil.organization_id||null,pin_desbloqueo:perfil.pin_desbloqueo||"",staff_pin:perfil.staff_pin||"",staff_uid:perfil.staff_uid||""};
+enterApp();
   }catch(e){
     setLoginLoading(false);
     const msgs={"Invalid login credentials":"Email o contraseña incorrectos.","Email not confirmed":"Confirma tu email primero."};
@@ -1033,7 +1047,16 @@ async function solicitarIRPF(){
   if(session?.user){
     currentUser=session.user;
     const{data:perfil}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    if(perfil){userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id,organization_id:perfil.organization_id||null,pin_desbloqueo:perfil.pin_desbloqueo||"",staff_pin:perfil.staff_pin||"",staff_uid:perfil.staff_uid||""};enterApp();}
+    const slug = localStorage.getItem('inout_org_slug')
+if (slug) {
+  const { data: org } = await _sb.from('organizations').select('*').eq('slug', slug).maybeSingle()
+  if (org) {
+    localStorage.setItem('inout_org_id', org.id)
+    localStorage.setItem('inout_org_name', org.nombre)
+    if (org.color_primario) document.documentElement.style.setProperty('--a1', org.color_primario)
+    if (org.color_secundario) document.documentElement.style.setProperty('--a2', org.color_secundario)
+  }
+}
   }
 })();
 

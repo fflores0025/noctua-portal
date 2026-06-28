@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>InOut · Mi Perfil</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app" style="display:none">
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="s-logo"><span>InOut<span class="logo-dot">.</span></span><button class="s-logo-close" onclick="closeSidebar()">✕</button></div>
+    <div class="s-user" onclick="window.location.href='/index.html#perfil'">
+      <div class="avatar" id="s-avatar">--</div>
+      <div style="flex:1;min-width:0"><div class="u-name" id="s-name">—</div><div class="u-role" id="s-role">—</div></div>
+      <span class="s-user-arrow">›</span>
+    </div>
+    <nav class="nav" id="nav-items"></nav>
+    <div class="s-bottom"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+  </aside>
+  <div class="main-area">
+    <div class="topbar">
+      <button class="burger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title">Mi Perfil</span>
+      <div class="topbar-right">
+        <a href="/index.html" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none">← Portal</a>
+        <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px">--</div>
+      </div>
+    </div>
+    <div class="main-content" id="page-content"></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal-body"></div></div>
+
+<script>
+var supabase = window.supabase.createClient(
+  'https://raoxkjnwrccoxjcipfpv.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhb3hram53cmNjb3hqY2lwZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzMxNzgsImV4cCI6MjA5MTgwOTE3OH0.dlPG4hpA-ypmGkqrP0ohaiOfMtXq5dpVmV7QNOt7_Qs'
+);
+</script>
+<script src="/shared.js"></script>
+<script src="/auth.js"></script>
+<script>
+checkSession(async (profile) => {
+  document.getElementById('app').style.display = 'flex';
+  const ini = initials(profile.nombre), avc = avatarColor(profile.role);
+  ['s-avatar','tb-avatar'].forEach(id => { const el=document.getElementById(id); if(el){el.textContent=ini;el.className=`avatar ${avc}`;} });
+  document.getElementById('s-name').textContent = profile.nombre;
+  document.getElementById('s-role').textContent = profile.role;
+  buildPageNav(profile.role, 'perfil');
+  renderPerfil();
+}, () => window.location.href = '/index.html');
+
+function buildPageNav(role, active) {
+  const NAV = {
+    admin:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','galeria','inventario','incidencias','admin','admin-irpf','admin-nominas','admin-turnos'],
+    org_admin:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','galeria','inventario','incidencias','admin','admin-irpf','admin-nominas','admin-turnos'],
+    manager:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','galeria','inventario','incidencias'],
+    rrhh:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','inventario','incidencias','admin','admin-irpf','admin-nominas','admin-turnos'],
+    empleado:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','inventario','incidencias'],
+    superadmin:['dashboard','perfil','mensajes','nominas','retribuciones','calendario','ausencias','eventos','galeria','inventario','incidencias','admin','admin-irpf','admin-nominas','admin-turnos'],
+  };
+  const ICONS = {dashboard:'⚡',perfil:'👤',mensajes:'💬',nominas:'💶',retribuciones:'📊',calendario:'📅',ausencias:'🏖️',eventos:'🎪',galeria:'🖼️',inventario:'📦',incidencias:'🚨',admin:'👥','admin-irpf':'🔧','admin-nominas':'📋','admin-turnos':'🗓'};
+  const LABELS = {dashboard:'Inicio',perfil:'Mi perfil',mensajes:'Mensajes',nominas:'Nóminas',retribuciones:'Retribuciones',calendario:'Calendario',ausencias:'Ausencias',eventos:'Eventos',galeria:'Galería',inventario:'Inventario',incidencias:'Incidencias',admin:'Empleados','admin-irpf':'Cambiar IRPF','admin-nominas':'Nóminas equipo','admin-turnos':'Gestión turnos'};
+  const PAGE_URL = {dashboard:'/index.html#dashboard',perfil:'/pages/perfil.html',mensajes:'/pages/mensajes.html',nominas:'/pages/nominas.html',retribuciones:'/pages/retribuciones.html',calendario:'/pages/calendario.html',ausencias:'/pages/ausencias.html',eventos:'/pages/eventos.html',galeria:'/pages/galeria.html',inventario:'/pages/inventario.html',incidencias:'/pages/incidencias.html',admin:'/pages/admin.html','admin-irpf':'/pages/admin-irpf.html','admin-nominas':'/pages/admin-nominas.html','admin-turnos':'/pages/admin-turnos.html'};
+  const keys = NAV[role] || NAV.empleado;
+  document.getElementById('nav-items').innerHTML = keys.map(k =>
+    `<div class="nav-item ${k===active?'active':''}" onclick="window.location.href='${PAGE_URL[k]}'"><span class="nav-icon">${ICONS[k]}</span><span>${LABELS[k]}</span></div>`
+  ).join('');
+}
+
+function renderPerfil() {
+  const p = userProfile;
+  const ret = Math.round((p.salarioBase||0)*p.irpf/100), ss = p.salarioBase>0?160:0, neto=(p.salarioBase||0)-ret-ss;
+  document.getElementById('page-content').innerHTML = `
+    <div class="page-hd"><div class="page-title">Mi Perfil</div><button class="btn btn-p" onclick="editarPerfil()">✏️ Editar</button></div>
+    <div class="g2">
+      <div>
+        <div class="card mb16">
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap">
+            <div class="avatar ${avatarColor(p.role)}" style="width:64px;height:64px;font-size:20px">${initials(p.nombre)}</div>
+            <div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;margin-bottom:5px">${p.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(p.role)}</div></div>
+          </div>
+          <div class="info-row"><span class="info-lbl">📧 Email</span><span>${p.email}</span></div>
+          <div class="info-row"><span class="info-lbl">🏢 Departamento</span><span>${p.dept}</span></div>
+          <div class="info-row"><span class="info-lbl">📊 IRPF</span><span style="color:var(--a1);font-weight:600">${p.irpf}%</span></div>
+          ${p.salarioBase>0?`<div class="info-row"><span class="info-lbl">💶 Salario base</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€/mes</span></div>`:''}
+        </div>
+        <div class="card">
+          <div class="card-title">Acciones rápidas</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-g btn-full" onclick="window.location.href='/pages/nominas.html'">💶 Ver mis nóminas</button>
+            <button class="btn btn-g btn-full" onclick="window.location.href='/pages/retribuciones.html'">📊 Cambiar IRPF</button>
+            <button class="btn btn-g btn-full" onclick="cambiarPassword()">🔑 Cambiar contraseña</button>
+            <button class="btn btn-g btn-full" onclick="cambiarPIN()">🔢 PIN de fichaje</button>
+            ${['admin','manager','superadmin','org_admin'].includes(p.role)?`<button class="btn btn-g btn-full" onclick="cambiarPINDesbloqueo()">🔐 PIN de desbloqueo</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resumen económico</div>
+        ${p.salarioBase>0?`
+          <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€</span></div>
+          <div class="nom-row"><span>IRPF (${p.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
+          <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
+          <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Neto mensual</span><span class="nom-total">${neto.toLocaleString()}€</span></div>
+        `:`<div style="color:var(--muted);font-size:13px">Retribución por caché / proyecto</div>`}
+      </div>
+    </div>`;
+}
+
+function editarPerfil() {
+  const p = userProfile;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar mi perfil</div>
+    <label class="form-lbl">Nombre</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
+    <label class="form-lbl">Email</label><input class="form-input" id="ep-email" type="email" value="${p.email}"/>
+    <label class="form-lbl">Teléfono</label><input class="form-input" id="ep-tlf" value="${p.tlf||''}"/>
+    <button class="btn btn-p btn-full" onclick="guardarPerfil()">Guardar</button>`);
+}
+async function guardarPerfil() {
+  const nombre = document.getElementById('ep-nombre').value.trim()||userProfile.nombre;
+  const email  = document.getElementById('ep-email').value.trim()||userProfile.email;
+  const tlf    = document.getElementById('ep-tlf').value||userProfile.tlf;
+  await supabase.from('empleados').update({nombre,email,telefono:tlf}).eq('id',userProfile._id);
+  userProfile.nombre=nombre; userProfile.email=email; userProfile.tlf=tlf;
+  toast('Perfil actualizado ✓'); closeModal(); renderPerfil();
+}
+
+function cambiarPassword() {
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Cambiar contraseña</div>
+    <label class="form-lbl">Nueva contraseña</label><input class="form-input" id="cp-new" type="password"/>
+    <label class="form-lbl">Confirmar</label><input class="form-input" id="cp-confirm" type="password"/>
+    <button class="btn btn-p btn-full" onclick="doChangePassword()">Actualizar</button>`);
+}
+async function doChangePassword() {
+  const np=document.getElementById('cp-new').value, cp=document.getElementById('cp-confirm').value;
+  if(np!==cp){toast('⚠️ Las contraseñas no coinciden');return;}
+  if(np.length<6){toast('⚠️ Mínimo 6 caracteres');return;}
+  const{error}=await supabase.auth.updateUser({password:np});
+  if(error){toast('Error: '+error.message);return;}
+  toast('Contraseña actualizada ✓'); closeModal();
+}
+
+function cambiarPIN() {
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🔢 PIN de fichaje</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">PIN actual: <strong style="color:var(--a1)">${userProfile.staff_pin||'No configurado'}</strong></div>
+    <div id="pin-dots" style="display:flex;gap:14px;justify-content:center;margin:12px 0">
+      ${[0,1,2,3].map(i=>`<div id="pd${i}" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?`<div></div>`:`<div onclick="pinKey('${k}')" style="padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border);font-family:Syne,sans-serif;font-size:22px;font-weight:700;text-align:center;cursor:pointer">${k}</div>`).join('')}
+    </div>
+    <button class="btn btn-g btn-full" onclick="closeModal()">Cancelar</button>`);
+  window._pinBuf='';
+}
+function pinKey(k) {
+  if(!window._pinBuf) window._pinBuf='';
+  if(k==='⌫') window._pinBuf=window._pinBuf.slice(0,-1);
+  else if(window._pinBuf.length<4) window._pinBuf+=k;
+  for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d){d.style.background=i<window._pinBuf.length?'var(--a1)':'transparent';d.style.borderColor=i<window._pinBuf.length?'var(--a1)':'var(--border)';}}
+  if(window._pinBuf.length===4) setTimeout(()=>guardarPIN(window._pinBuf),150);
+}
+async function guardarPIN(pin) {
+  await supabase.from('empleados').update({staff_pin:pin}).eq('id',userProfile._id);
+  userProfile.staff_pin=pin; toast('PIN actualizado ✓'); closeModal();
+}
+
+function cambiarPINDesbloqueo() {
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">🔐 PIN de desbloqueo</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">PIN actual: <strong style="color:var(--a1)">${userProfile.pin_desbloqueo||'No configurado'}</strong></div>
+    <div id="pin-dots-d" style="display:flex;gap:14px;justify-content:center;margin:12px 0">
+      ${[0,1,2,3].map(i=>`<div id="dpd${i}" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?`<div></div>`:`<div onclick="pinKeyD('${k}')" style="padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border);font-family:Syne,sans-serif;font-size:22px;font-weight:700;text-align:center;cursor:pointer">${k}</div>`).join('')}
+    </div>
+    <button class="btn btn-g btn-full" onclick="closeModal()">Cancelar</button>`);
+  window._pinBufD='';
+}
+function pinKeyD(k) {
+  if(!window._pinBufD) window._pinBufD='';
+  if(k==='⌫') window._pinBufD=window._pinBufD.slice(0,-1);
+  else if(window._pinBufD.length<4) window._pinBufD+=k;
+  for(let i=0;i<4;i++){const d=document.getElementById('dpd'+i);if(d){d.style.background=i<window._pinBufD.length?'var(--a2)':'transparent';d.style.borderColor=i<window._pinBufD.length?'var(--a2)':'var(--border)';}}
+  if(window._pinBufD.length===4) setTimeout(()=>guardarPINDesbloqueo(window._pinBufD),150);
+}
+async function guardarPINDesbloqueo(pin) {
+  await supabase.from('empleados').update({pin_desbloqueo:pin}).eq('id',userProfile._id);
+  userProfile.pin_desbloqueo=pin; toast('PIN de desbloqueo actualizado ✓'); closeModal();
+}
+
+initModal();
+</script>
+</body>
+</html>

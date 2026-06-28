@@ -7,409 +7,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    :root {
-      --bg:#07070f; --surf:#0d0d1a; --card:#111120; --border:#1c1c2e;
-      --a1:#c8ff00; --a2:#ff3cac; --a3:#00d4ff;
-      --txt:#e6e6f0; --muted:#60607a; --r:13px; --sidebar:240px;
-    }
-    html,body { height:100%; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--txt); background:var(--bg); overflow-x:hidden; }
-    ::-webkit-scrollbar { width:4px; height:4px; }
-    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
-    #app { display:flex; min-height:100vh; }
-    .sidebar { width:var(--sidebar); height:100vh; background:var(--surf); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; z-index:200; transition:transform .25s cubic-bezier(.4,0,.2,1); overflow:hidden; }
-    .main-area { margin-left:var(--sidebar); flex:1; display:flex; flex-direction:column; min-height:100vh; }
-    .topbar { height:56px; background:var(--surf); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 16px; gap:12px; position:sticky; top:0; z-index:100; }
-    @media(max-width:480px){ .topbar{height:52px;padding:0 12px;} }
-    .main-content { flex:1; padding:28px 24px; max-width:1100px; width:100%; margin:0 auto; }
-    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:150; }
-    .overlay.show { display:block; }
-    .s-logo { padding:20px 20px 16px; border-bottom:1px solid var(--border); font-family:'Syne',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.5px; display:flex; align-items:center; justify-content:space-between; }
-    .s-logo-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px; line-height:1; }
-    .s-logo-close:hover { color:var(--txt); }
-    .logo-dot { color:var(--a1); }
-    .s-user { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; cursor:pointer; transition:background .15s; }
-    .s-user:hover { background:rgba(255,255,255,.04); }
-    .s-user-arrow { margin-left:auto; color:var(--muted); font-size:14px; transition:all .2s; }
-    .s-user:hover .s-user-arrow { color:var(--a1); transform:translateX(2px); }
-    .avatar { width:36px; height:36px; border-radius:50%; background:var(--a1); color:#000; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; flex-shrink:0; }
-    .av-pink{background:var(--a2);color:#fff;} .av-blue{background:var(--a3);color:#000;} .av-gray{background:var(--muted);color:#fff;}
-    .u-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .u-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
-    .nav { flex:1; padding:8px 0; overflow-y:auto; min-height:0; }
-    .nav-sec { padding:10px 20px 4px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
-    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 20px; cursor:pointer; color:var(--muted); transition:all .15s; font-size:13px; border-left:2px solid transparent; user-select:none; }
-    .nav-item:hover { color:var(--txt); background:rgba(255,255,255,.03); }
-    .nav-item.active { color:var(--a1); border-left-color:var(--a1); background:rgba(200,255,0,.05); }
-    .nav-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
-    .nav-badge { background:var(--a2); color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:auto; line-height:1.4; }
-    .s-bottom { padding:14px 20px; border-top:1px solid var(--border); flex-shrink:0; }
-    .btn-logout { width:100%; padding:9px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; transition:all .15s; }
-    .btn-logout:hover { border-color:var(--a2); color:var(--a2); }
-    .burger { background:none; border:none; color:var(--txt); font-size:20px; cursor:pointer; padding:4px; display:none; }
-    .topbar-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; }
-    .topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-    .notif-btn { width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; transition:border-color .15s; }
-    .notif-btn:hover { border-color:var(--a1); }
-    .page-hd { margin-bottom:24px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
-    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:700; letter-spacing:-.5px; }
-    .page-sub { color:var(--muted); font-size:13px; margin-top:3px; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; }
-    .card-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:14px; }
-    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;} .g-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
-    .mb16{margin-bottom:16px;} .mb24{margin-bottom:24px;} .flex{display:flex;} .items-c{align-items:center;} .j-between{justify-content:space-between;}
-    .stat { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:18px 20px; }
-    .stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
-    .stat-val { font-family:'Syne',sans-serif; font-size:26px; font-weight:700; letter-spacing:-1px; }
-    .stat-note { font-size:12px; color:var(--muted); margin-top:4px; }
-    .c-a1{color:var(--a1);} .c-a2{color:var(--a2);} .c-a3{color:var(--a3);}
-    .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
-    .b-green{background:rgba(200,255,0,.12);color:var(--a1);} .b-pink{background:rgba(255,60,172,.12);color:var(--a2);} .b-blue{background:rgba(0,212,255,.12);color:var(--a3);} .b-gray{background:rgba(107,107,136,.15);color:var(--muted);} .b-orange{background:rgba(255,165,0,.12);color:#ffa500;}
-    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;}
-    .tbl-wrap::-webkit-scrollbar{height:3px;}
-    .tbl-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-    table{width:100%;border-collapse:collapse;}
-    thead th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
-    tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
-    tbody tr:last-child td{border-bottom:none;}
-    tbody tr:hover td{background:rgba(255,255,255,.02);}
-    .nom-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;}
-    .nom-row:last-child{border-bottom:none;}
-    .nom-total{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--a1);}
-    .irpf-big{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;color:var(--a1);text-align:center;line-height:1;}
-    input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer;height:4px;}
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap;}
-    .btn-p{background:var(--a1);color:#000;} .btn-p:hover{background:#d4ff20;}
-    .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);} .btn-g:hover{color:var(--txt);border-color:var(--muted);}
-    .btn-danger{background:rgba(255,60,172,.1);color:var(--a2);border:1px solid rgba(255,60,172,.2);}
-    .btn-full{width:100%;justify-content:center;}
-    .btn-paid{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.25);}
-    .btn-paid:hover{background:rgba(0,230,118,.2);}
-    .info-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;}
-    .info-row:last-child{border-bottom:none;}
-    .info-lbl{color:var(--muted);font-size:13px;}
-    .form-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
-    .form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;margin-bottom:14px;}
-    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--a1);}
-    .form-textarea{resize:vertical;min-height:80px;}
-    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;padding:16px;}
-    .modal-bg.show{display:flex;}
-    .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
-    .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px;}
-    .modal-close{float:right;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;margin-top:-4px;}
-    .modal-close:hover{color:var(--a2);}
-    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 50% -5%,rgba(200,255,0,.09) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 85% 85%,rgba(255,60,172,.07) 0%,transparent 55%);}
-    .login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;}
-    .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;}
-    .login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;}
-    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:1000;transition:transform .3s;white-space:nowrap;}
-    #toast.show{transform:translateX(-50%) translateY(0);}
-    @media(max-width:768px){
-      :root{--sidebar:100vw;}
-      .sidebar{width:100vw;transform:translateX(-100%);position:fixed;top:0;left:0;height:100vh;z-index:300;overflow-y:auto;display:flex;flex-direction:column;}
-      .sidebar.open{transform:translateX(0);box-shadow:none;}
-      .main-area{margin-left:0;}
-      .burger{display:flex!important;}
-      .main-content{padding:16px 12px;}
-      .g4{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr;} .g2{grid-template-columns:1fr;}
-      .g-auto{grid-template-columns:1fr;}
-      .page-title{font-size:20px;} .irpf-big{font-size:40px;} .nom-total{font-size:20px;}
-      .page-hd{margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-      .page-hd .btn{width:100%;justify-content:center;}
-      .card{padding:16px;}
-      .stat{padding:14px;}
-      .stat-val{font-size:22px;}
-      .btn{padding:10px 14px;font-size:14px;}
-      .modal{padding:20px;}
-      .tbl-wrap{border-radius:8px;}
-      thead th{font-size:10px;padding:6px 8px;}
-      tbody td{padding:10px 8px;font-size:12px;}
-    }
-    @media(max-width:480px){
-      .g4{grid-template-columns:1fr 1fr;}
-      .g3{grid-template-columns:1fr;}
-      .topbar-title{font-size:14px;}
-      .main-content{padding:12px 10px;}
-      .page-title{font-size:18px;}
-      .card{padding:14px;}
-      .stat-val{font-size:20px;}
-      .modal{max-height:92vh;padding:18px;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;}
-      .modal-bg.show{align-items:flex-end;padding:0;}
-      .page-hd{flex-direction:column;align-items:stretch;}
-      .page-hd .btn{width:100%;justify-content:center;padding:12px;font-size:14px;}
-    }
-    /* Estilos para el calendario */
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-}
-
-.cal-hd {
-  text-align: center;
-  padding: 6px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-
-.cal-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all .15s;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  user-select: none;
-  position: relative;
-}
-
-.cal-day:hover {
-  border-color: var(--a3);
-  background: rgba(0, 212, 255, .05);
-}
-
-.cal-day.empty {
-  background: transparent;
-  border-color: transparent;
-  cursor: default;
-  pointer-events: none;
-}
-
-.cal-day.today {
-  border-color: var(--a1);
-  color: var(--a1);
-  font-weight: 700;
-}
-
-.cal-day.selected {
-  background: rgba(200, 255, 0, .14);
-  border-color: var(--a1);
-  color: var(--a1);
-}
-
-.cal-day.has-event::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--a2);
-}
-
-.cal-day.has-turno::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--a3);
-}
-
-/* Indicadores de ausencia - línea superior según tipo */
-.cal-day.has-ausencia-vacaciones::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  border-radius: 2px;
-  background: #c8ff00;
-}
-
-.cal-day.has-ausencia-libre::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  border-radius: 2px;
-  background: #00d4ff;
-}
-
-.cal-day.has-ausencia-asunto_personal::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  border-radius: 2px;
-  background: #60607a;
-}
-
-.cal-day.has-ausencia-baja_medica::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  border-radius: 2px;
-  background: #ffa500;
-}
-
-.cal-day.has-ausencia-baja_maternidad::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 3px;
-  border-radius: 2px;
-  background: #ff3cac;
-}
-
-
-}
-/* Estilos para el chat */
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 500px;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.chat-date-sep {
-  text-align: center;
-  font-size: 11px;
-  color: var(--muted);
-  margin: 12px 0;
-}
-
-.chat-bubble-wrap {
-  display: flex;
-  margin-bottom: 4px;
-}
-
-.chat-bubble-wrap.mine {
-  justify-content: flex-end;
-}
-
-.chat-bubble {
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-}
-
-.chat-bubble.mine {
-  background: rgba(200, 255, 0, .1);
-  border-color: rgba(200, 255, 0, .2);
-}
-
-.chat-sender {
-  font-size: 11px;
-  color: var(--a3);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-
-.chat-meta {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 4px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.chat-dest {
-  color: var(--a1);
-}
-
-.chat-input-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.chat-input-bar select {
-  width: 140px;
-  padding: 8px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--txt);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  outline: none;
-}
-
-.chat-input-bar input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--txt);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  outline: none;
-}
-
-.chat-input-bar input:focus {
-  border-color: var(--a1);
-}
-
-.chat-input-bar button {
-  padding: 8px 16px;
-  background: var(--a1);
-  border: none;
-  border-radius: 8px;
-  color: #000;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-}
-
-.chat-input-bar button:hover {
-  background: #d4ff20;
-}
-  </style>
 </head>
 <body>
 <div id="toast"></div>
 
 <!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 50% -5%,rgba(200,255,0,.09) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 85% 85%,rgba(255,60,172,.07) 0%,transparent 55%);">
+  <div style="width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;">
     <div id="panel-login">
-      <div class="login-logo">InOut<span class="logo-dot">.</span></div>
-      <div class="login-sub">Portal del equipo · InOut Media</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;">InOut<span style="color:var(--a1)">.</span></div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.4;">Portal del equipo · InOut Media</div>
       <div id="login-error" style="display:none;background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);color:var(--a2);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
       <label class="form-lbl">Email</label>
       <input class="form-input" id="login-email" type="email" placeholder="tu@inoutmedia.es" autocomplete="email"/>
@@ -421,14 +28,14 @@
       </div>
     </div>
     <div id="panel-reset" style="display:none">
-      <div class="login-logo">InOut<span class="logo-dot">.</span></div>
-      <div class="login-sub" style="margin-bottom:20px">Recuperar contraseña</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;">InOut<span style="color:var(--a1)">.</span></div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Recuperar contraseña</div>
       <div id="reset-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
       <label class="form-lbl">Tu email</label>
       <input class="form-input" id="reset-email" type="email" placeholder="tu@inoutmedia.es"/>
       <button class="btn btn-p btn-full" onclick="enviarResetEmail()" style="font-size:15px;padding:12px">Enviar enlace</button>
       <div style="margin-top:10px;text-align:center">
-        <span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="mostrarPanelLogin()">← Volver al inicio de sesión</span>
+        <span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="mostrarPanelLogin()">← Volver al inicio</span>
       </div>
     </div>
   </div>
@@ -440,9 +47,9 @@
   <aside class="sidebar" id="sidebar">
     <div class="s-logo">
       <span>InOut<span class="logo-dot">.</span></span>
-      <button class="s-logo-close" onclick="closeSidebar()" title="Cerrar menú">✕</button>
+      <button class="s-logo-close" onclick="closeSidebar()">✕</button>
     </div>
-    <div class="s-user" onclick="navigate('perfil')" title="Ver mi perfil">
+    <div class="s-user" onclick="irA('perfil')" title="Ver mi perfil">
       <div class="avatar" id="s-avatar">--</div>
       <div style="flex:1;min-width:0">
         <div class="u-name" id="s-name">—</div>
@@ -460,9 +67,9 @@
       <button class="burger" id="burger-btn" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title" id="topbar-title">Portal</span>
       <div class="topbar-right">
-        <a href="https://inout-valid.vercel.app" target="_blank" rel="noopener" title="Abrir RFID System" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a3)'" onmouseout="this.style.borderColor='var(--border)'">📡 <span>Valid</span></a>
+        <a href="https://inout-valid.vercel.app" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--txt);font-size:12px;text-decoration:none;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a3)'" onmouseout="this.style.borderColor='var(--border)'">📡 <span>Valid</span></a>
         <div class="notif-btn" onclick="toast('Sin notificaciones nuevas')">🔔</div>
-        <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="navigate('perfil')">--</div>
+        <div class="avatar" id="tb-avatar" style="width:32px;height:32px;font-size:11px;cursor:pointer" onclick="irA('perfil')">--</div>
       </div>
     </div>
     <div class="main-content" id="page-content"></div>
@@ -474,2589 +81,413 @@
 </div>
 
 <script>
-const SUPABASE_URL = 'https://raoxkjnwrccoxjcipfpv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhb3hram53cmNjb3hqY2lwZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzMxNzgsImV4cCI6MjA5MTgwOTE3OH0.dlPG4hpA-ypmGkqrP0ohaiOfMtXq5dpVmV7QNOt7_Qs';
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  // ── MULTI-TENANT: slug de org ──
-const _orgSlug = location.pathname.replace(/^\//, '').split('/')[0] || null
-if (_orgSlug) localStorage.setItem('inout_org_slug', _orgSlug)
+// ── Init Supabase ──
+var supabase = window.supabase.createClient(
+  'https://raoxkjnwrccoxjcipfpv.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhb3hram53cmNjb3hqY2lwZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzMxNzgsImV4cCI6MjA5MTgwOTE3OH0.dlPG4hpA-ypmGkqrP0ohaiOfMtXq5dpVmV7QNOt7_Qs'
+);
+</script>
+<script src="/shared.js"></script>
+<script src="/auth.js"></script>
+<script>
+// ── MULTI-TENANT slug ──
+const _orgSlug = location.pathname.replace(/^\//, '').split('/')[0] || null;
+if (_orgSlug) localStorage.setItem('inout_org_slug', _orgSlug);
 
-let currentUser=null, userProfile=null, currentPage="dashboard";
-let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_EMPLEADOS=[], DEMO_TURNOS=[], TURNOS_EQUIPO=[], INVENTARIO=[], INCIDENCIAS=[];
-let unreadMsgCount=0;
-
+// ── NAV CONFIG ──
 const NAV_CONFIG = {
   admin: [
-    {sec: "Principal"},
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "eventos", icon: "🎪", label: "Eventos"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
-    {sec: "Administración"},
-    {key: "admin", icon: "👥", label: "Empleados"},
-    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
-    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
-    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
+    {sec:'Principal'},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'galeria',icon:'🖼️',label:'Galería'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
+    {sec:'Administración'},
+    {key:'admin',icon:'👥',label:'Empleados'},
+    {key:'admin-irpf',icon:'🔧',label:'Cambiar IRPF'},
+    {key:'admin-nominas',icon:'📋',label:'Nóminas equipo'},
+    {key:'admin-turnos',icon:'🗓',label:'Gestión turnos'},
+  ],
+  org_admin: [
+    {sec:'Principal'},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'galeria',icon:'🖼️',label:'Galería'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
+    {sec:'Administración'},
+    {key:'admin',icon:'👥',label:'Empleados'},
+    {key:'admin-irpf',icon:'🔧',label:'Cambiar IRPF'},
+    {key:'admin-nominas',icon:'📋',label:'Nóminas equipo'},
+    {key:'admin-turnos',icon:'🗓',label:'Gestión turnos'},
   ],
   rrhh: [
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "eventos", icon: "🎪", label: "Eventos"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
-    {sec: "Administración"},
-    {key: "admin", icon: "👥", label: "Empleados"},
-    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
-    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
-    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
+    {sec:'Administración'},
+    {key:'admin',icon:'👥',label:'Empleados'},
+    {key:'admin-irpf',icon:'🔧',label:'Cambiar IRPF'},
+    {key:'admin-nominas',icon:'📋',label:'Nóminas equipo'},
+    {key:'admin-turnos',icon:'🗓',label:'Gestión turnos'},
+  ],
+  manager: [
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'galeria',icon:'🖼️',label:'Galería'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
   ],
   empleado: [
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "eventos", icon: "🎪", label: "Eventos"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
   ],
-  manager: [ // ← NUEVO ROL
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "eventos", icon: "🎪", label: "Eventos"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
-  ],
-  tecnico: [ // ← NUEVO ROL
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+  tecnico: [
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
   ],
   freelance: [
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Mis cachés"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Empresa"},
-    {key: "eventos", icon: "🎪", label: "Eventos"},
-    {key: "inventario", icon: "📦", label: "Inventario"},
-    {key: "incidencias", icon: "🚨", label: "Incidencias"},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Mis cachés'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
   ],
   empresa_externa: [
-    {sec: "Principal"},
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
+    {sec:'Principal'},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
   ],
   superadmin: [
-    {sec: "Principal"},
-    {key: "dashboard", icon: "⚡", label: "Inicio"},
-    {key: "perfil", icon: "👤", label: "Mi perfil"},
-    {key: "mensajes", icon: "💬", label: "Mensajes"},
-    {sec: "Mi área"},
-    {key: "nominas", icon: "💶", label: "Nóminas"},
-    {key: "retribuciones", icon: "📊", label: "Retribuciones"},
-    {key: "calendario", icon: "📅", label: "Calendario"},
-    {key: "ausencias", icon: "🏖️", label: "Ausencias"}, // ← NUEVO
-    {sec: "Administración"},
-    {key: "admin", icon: "👥", label: "Empleados"},
-    {key: "admin-irpf", icon: "🔧", label: "Cambiar IRPF"},
-    {key: "admin-nominas", icon: "📋", label: "Nóminas equipo"},
-    {key: "admin-turnos", icon: "🗓", label: "Gestión turnos"},
+    {sec:'Principal'},
+    {key:'dashboard',icon:'⚡',label:'Inicio'},
+    {key:'perfil',icon:'👤',label:'Mi perfil'},
+    {key:'mensajes',icon:'💬',label:'Mensajes'},
+    {sec:'Mi área'},
+    {key:'nominas',icon:'💶',label:'Nóminas'},
+    {key:'retribuciones',icon:'📊',label:'Retribuciones'},
+    {key:'calendario',icon:'📅',label:'Calendario'},
+    {key:'ausencias',icon:'🏖️',label:'Ausencias'},
+    {sec:'Empresa'},
+    {key:'eventos',icon:'🎪',label:'Eventos'},
+    {key:'galeria',icon:'🖼️',label:'Galería'},
+    {key:'inventario',icon:'📦',label:'Inventario'},
+    {key:'incidencias',icon:'🚨',label:'Incidencias'},
+    {sec:'Administración'},
+    {key:'admin',icon:'👥',label:'Empleados'},
+    {key:'admin-irpf',icon:'🔧',label:'Cambiar IRPF'},
+    {key:'admin-nominas',icon:'📋',label:'Nóminas equipo'},
+    {key:'admin-turnos',icon:'🗓',label:'Gestión turnos'},
   ],
+};
+
+// Páginas que viven en pages/
+const PAGE_ROUTES = {
+  perfil:          '/pages/perfil.html',
+  nominas:         '/pages/nominas.html',
+  retribuciones:   '/pages/retribuciones.html',
+  calendario:      '/pages/calendario.html',
+  ausencias:       '/pages/ausencias.html',
+  eventos:         '/pages/eventos.html',
+  galeria:         '/pages/galeria.html',
+  inventario:      '/pages/inventario.html',
+  incidencias:     '/pages/incidencias.html',
+  mensajes:        '/pages/mensajes.html',
+  admin:           '/pages/admin.html',
+  'admin-irpf':    '/pages/admin-irpf.html',
+  'admin-nominas': '/pages/admin-nominas.html',
+  'admin-turnos':  '/pages/admin-turnos.html',
 };
 
 const PAGE_TITLE = {
-  dashboard: "Inicio",
-  perfil: "Mi perfil",
-  nominas: "Nóminas",
-  retribuciones: "Retribuciones",
-  calendario: "Calendario",
-  ausencias: "Ausencias",
-  eventos: "Eventos",
-  inventario: "Inventario",
-  incidencias: "Incidencias",
-  mensajes: "Mensajes",
-  admin: "Empleados",
-  "admin-irpf": "Cambiar IRPF",
-  "admin-nominas": "Nóminas del equipo",
-  "admin-turnos": "Gestión de turnos"
+  dashboard:'Inicio', perfil:'Mi perfil', nominas:'Nóminas',
+  retribuciones:'Retribuciones', calendario:'Calendario', ausencias:'Ausencias',
+  eventos:'Eventos', galeria:'Galería', inventario:'Inventario',
+  incidencias:'Incidencias', mensajes:'Mensajes', admin:'Empleados',
+  'admin-irpf':'Cambiar IRPF', 'admin-nominas':'Nóminas del equipo',
+  'admin-turnos':'Gestión de turnos',
 };
 
-function toast(msg,ms=2800){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),ms);}
-function canAdmin(){return["admin","rrhh","superadmin"].includes(userProfile?.role);}
-function canAdminRole(r){return["admin","rrhh","superadmin"].includes(r);}
-function initials(n){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
-function avatarColor(r){return r==="admin"?"av-blue":r==="rrhh"?"av-pink":r==="freelance"?"av-gray":r==="superadmin"?"av-pink":"";}
-function badge(e){
-  const m={
-    pagada:["b-green","Pagada"],
-    pendiente:["b-blue","Pendiente"],
-    aprobada:["b-green","Aprobada"],
-    rechazada:["b-pink","Rechazada"],
-    confirmado:["b-green","Confirmado"],
-    produccion:["b-blue","En producción"],
-    preproduccion:["b-gray","Preproducción"],
-    negociacion:["b-orange","Negociación"],
-    activo:["b-green","Activo"],
-    cerrado:["b-gray","Cerrado"],
-    baja:["b-pink","Baja"],
-    borrador:["b-gray","Borrador"],
-    publicado:["b-green","Publicado"],
-    agotado:["b-pink","Agotado"],
-    cancelado:["b-pink","Cancelado"],
-    finalizado:["b-gray","Finalizado"],
-    abierta:["b-pink","Abierta"],
-    en_proceso:["b-blue","En proceso"],
-    resuelta:["b-green","Resuelta"],
-    disponible:["b-green","Disponible"],
-    en_uso:["b-blue","En uso"],
-    mantenimiento:["b-orange","Mantenimiento"]
-  };
-  const[c,l]=m[e]||["b-gray",e];
-  return`<span class="badge ${c}">${l}</span>`;
-}
-function tipoBadge(t){return t==="fijo"?'<span class="badge b-blue">Fijo</span>':'<span class="badge b-orange">Freelance</span>';}
-function roleBadge(r){const m={admin:"b-pink Admin",rrhh:"b-blue RRHH",empleado:"b-gray Empleado",freelance:"b-orange Freelance",empresa_externa:"b-gray Empresa Externa",superadmin:"b-pink SuperAdmin"};const s=(m[r]||"b-gray "+r).split(" ");return`<span class="badge ${s[0]}">${s.slice(1).join(" ")}</span>`;}
-function showModal(h){document.getElementById("modal-body").innerHTML=h;document.getElementById("modal-bg").classList.add("show");}
-function closeModal(){document.getElementById("modal-bg").classList.remove("show");}
-document.getElementById("modal-bg").addEventListener("click",e=>{if(e.target===document.getElementById("modal-bg"))closeModal();});
+// ── ROUTER ──
+function irA(page) {
+  const adminPages = ['admin','admin-irpf','admin-nominas','admin-turnos'];
+  if (adminPages.includes(page) && !canAdmin()) { toast('⛔ Sin acceso'); return; }
+  const extPages = ['dashboard','perfil','mensajes'];
+  if (userProfile?.role === 'empresa_externa' && !extPages.includes(page)) { toast('⛔ Sin acceso'); return; }
 
-// ══════════════════════════════════════════════════════════════════════════
-// PARTE 1: AUTH + LOGIN + DATA LOADING
-// ══════════════════════════════════════════════════════════════════════════
-
-function setLoginError(msg){const el=document.getElementById("login-error");el.textContent=msg;el.style.display=msg?"block":"none";}
-function setLoginLoading(on){document.getElementById("login-btn").disabled=on;document.getElementById("login-btn").textContent=on?"Entrando…":"Entrar al portal";}
-
-async function doLogin(){
-  const email=document.getElementById("login-email").value.trim();
-  const pass=document.getElementById("login-pass").value;
-  setLoginError("");
-  if(!email||!pass){setLoginError("Introduce email y contraseña.");return;}
-  setLoginLoading(true);
-  try{
-    const{data,error}=await _sb.auth.signInWithPassword({email,password:pass});
-    if(error)throw error;
-    currentUser=data.user;
-    const{data:perfil,error:perfilErr}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    if(perfilErr||!perfil){setLoginError("Perfil no encontrado. Contacta con el administrador.");await _sb.auth.signOut();setLoginLoading(false);return;}
-   const slug = localStorage.getItem('inout_org_slug')
-if (slug) {
-  const { data: org } = await _sb.from('organizations').select('*').eq('slug', slug).maybeSingle()
-  if (!org) { setLoginError('Organización no encontrada'); await _sb.auth.signOut(); setLoginLoading(false); return; }
-  if (perfil.organization_id && perfil.organization_id !== org.id) { setLoginError('No tienes acceso a esta organización'); await _sb.auth.signOut(); setLoginLoading(false); return; }
-  localStorage.setItem('inout_org_id', org.id)
-  localStorage.setItem('inout_org_name', org.nombre)
-  if (org.color_primario) document.documentElement.style.setProperty('--a1', org.color_primario)
-  if (org.color_secundario) document.documentElement.style.setProperty('--a2', org.color_secundario)
-}
-userProfile={nombre:perfil.nombre,role:perfil.role,dept:perfil.departamento||"—",email:perfil.email,irpf:parseFloat(perfil.irpf)||15,salarioBase:parseFloat(perfil.salario_base)||0,tipo:perfil.tipo||"fijo",tlf:perfil.telefono||"—",fechaAlta:perfil.fecha_alta||"—",estado:perfil.estado||"activo",_supabase_id:perfil.id,organization_id:perfil.organization_id||null,pin_desbloqueo:perfil.pin_desbloqueo||"",staff_pin:perfil.staff_pin||"",staff_uid:perfil.staff_uid||""};
-enterApp();
-  }catch(e){
-    setLoginLoading(false);
-    const msgs={"Invalid login credentials":"Email o contraseña incorrectos.","Email not confirmed":"Confirma tu email primero."};
-    setLoginError(msgs[e.message]||"Error al iniciar sesión: "+e.message);
-  }
-}
-
-document.getElementById("login-pass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
-
-function mostrarPanelReset(){document.getElementById("panel-login").style.display="none";document.getElementById("panel-reset").style.display="block";document.getElementById("reset-msg").style.display="none";const emailLogin=document.getElementById("login-email").value;if(emailLogin)document.getElementById("reset-email").value=emailLogin;}
-function mostrarPanelLogin(){document.getElementById("panel-reset").style.display="none";document.getElementById("panel-login").style.display="block";}
-
-async function enviarResetEmail(){
-  const email=document.getElementById("reset-email").value.trim();
-  const msg=document.getElementById("reset-msg");
-  if(!email){msg.style.display="block";msg.style.background="rgba(255,60,172,.1)";msg.style.border="1px solid rgba(255,60,172,.2)";msg.style.color="var(--a2)";msg.textContent="⚠️ Introduce tu email";return;}
-  try{await _sb.auth.resetPasswordForEmail(email,{redirectTo:"https://connect.inout-media.es"});}catch(e){}
-  msg.style.display="block";msg.style.background="rgba(200,255,0,.08)";msg.style.border="1px solid rgba(200,255,0,.2)";msg.style.color="var(--a1)";msg.textContent="✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.";
-}
-
-async function doLogout(){
-  await _sb.auth.signOut();currentUser=null;userProfile=null;
-  document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";
-  document.getElementById("login-email").value="";document.getElementById("login-pass").value="";closeSidebar();
-}
-
-async function enterApp(){
-  document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
-  const ini=initials(userProfile.nombre),avc=avatarColor(userProfile.role);
-  ["s-avatar","tb-avatar"].forEach(id=>{const el=document.getElementById(id);el.textContent=ini;el.className=`avatar ${avc}`;});
-  document.getElementById("s-name").textContent=userProfile.nombre;document.getElementById("s-role").textContent=userProfile.role;
-  buildNav(userProfile.role);
-  await cargarEventos();await cargarMisNominas();await cargarMisTurnos();
-  if(canAdminRole(userProfile.role)){await cargarEmpleados();await cargarTodosLosTurnos();}
-  const hash=window.location.hash.replace('#','');navigate(hash||"dashboard");
-}
-
-async function cargarMisNominas(){try{const{data}=await _sb.from('nominas').select('*').eq('empleado_id',userProfile._supabase_id).order('created_at',{ascending:false});DEMO_NOMINAS=(data||[]).map(n=>({id:n.id,empleadoId:n.empleado_id,empleadoNombre:n.empleado_nombre,mes:n.mes,bruto:parseFloat(n.bruto),irpf:parseFloat(n.irpf),retencion:parseFloat(n.retencion),ss:parseFloat(n.ss),neto:parseFloat(n.neto),estado:n.estado,generadoPor:n.generado_por,fechaCreacion:n.created_at}));}catch(e){DEMO_NOMINAS=[];}}
-async function cargarMisTurnos(){try{const{data}=await _sb.from('turnos').select('*').eq('empleado_id',userProfile._supabase_id).order('fecha');DEMO_TURNOS=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));}catch(e){DEMO_TURNOS=[];}}
-async function cargarTodosLosTurnos(){try{const{data}=await _sb.from('turnos').select('*').order('fecha');TURNOS_EQUIPO=(data||[]).map(t=>({id:t.id,empleadoId:t.empleado_id,empleadoNombre:t.empleado_nombre,fecha:t.fecha,tipo:t.tipo||"oficina",entrada:t.hora_inicio||"—",salida:t.hora_fin||"—",lugar:t.notas||"—"}));}catch(e){TURNOS_EQUIPO=[];}}
-async function cargarEventos(){try{const{data}=await _sb.from('events').select('*').order('fecha_inicio',{ascending:false});DEMO_EVENTOS=(data||[]).map(e=>{const fi=e.fecha_inicio||"",ff=e.fecha_fin||"";return{id:e.id,nombre:e.nombre,fecha:fi.slice(0,10),hora_inicio:fi.slice(11,16),fecha_fin:ff?ff.slice(0,10):null,hora_fin:ff?ff.slice(11,16):"06:00",lugar:`${e.venue_nombre||""}${e.venue_ciudad?", "+e.venue_ciudad:""}`,tipo:e.tipo||"nocturno",estado:e.estado||"borrador",equipo:e.equipo||0,notas:e.notas||e.descripcion||"—",artistas:e.artistas||"",vestimenta:e.vestimenta||"",apertura:e.apertura_puertas||"",edadMinima:e.edad_minima||0,normas:e.normas||"",descripcionEvento:e.descripcion||"",mapsUrl:e.maps_url||"",webEvento:e.web_evento||""};})}catch(e){DEMO_EVENTOS=[];}}
-
-async function cargarEmpleados(){
-  try{
-    let query=_sb.from('empleados').select('*');
-    if(userProfile.role!=='superadmin' && userProfile.organization_id){
-      query=query.eq('organization_id',userProfile.organization_id);
-    }
-    const{data}=await query;
-    DEMO_EMPLEADOS=(data||[]).map(d=>({id:d.id,nombre:d.nombre||"—",email:d.email||"—",role:d.role||"empleado",dept:d.departamento||"—",tipo:d.tipo||"fijo",irpf:parseFloat(d.irpf)||15,salario:parseFloat(d.salario_base)||0,salarioBase:parseFloat(d.salario_base)||0,estado:d.estado||"activo",tlf:d.telefono||"—",fechaAlta:d.fecha_alta||"—",auth_user_id:d.auth_user_id,numero_empleado:d.numero_empleado||"—",staff_uid:d.staff_uid||"",staff_pin:d.staff_pin||"",horas_contrato:parseFloat(d.horas_contrato)||40}));
-  }catch(e){DEMO_EMPLEADOS=[];}
-}
-
-function buildNav(role){
-  const items=NAV_CONFIG[role]||NAV_CONFIG.empleado;
-  document.getElementById("nav-items").innerHTML=items.map(i=>{
-    if(i.sec)return`<div class="nav-sec">${i.sec}</div>`;
-    const badgeHtml=i.key==="mensajes"&&unreadMsgCount>0?`<span class="nav-badge" id="nav-badge-msg">${unreadMsgCount}</span>`:"";
-    return`<div class="nav-item" id="nav-${i.key}" onclick="navigate('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span>${badgeHtml}</div>`;
-  }).join("");
-}
-
-function navigate(page){
-  const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
-  if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
-  const extPages=["dashboard","perfil","mensajes"];
-  if(userProfile?.role==="empresa_externa"&&!extPages.includes(page)){toast("⛔ Sin acceso");page="dashboard";}
-  currentPage=page;window.location.hash=page;
-  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
-  document.getElementById(`nav-${page}`)?.classList.add("active");
-  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
+  // Marcar nav activo
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLE[page] || page;
   closeSidebar();
-  const pc=document.getElementById("page-content");pc.scrollTop=0;
-  
-  // Router
-  if(page==="dashboard") dashboard(pc);
-  else if(page==="perfil") renderPerfil(pc);
-  else if(page==="nominas") renderNominas(pc);
-  else if(page==="retribuciones") renderRetribuciones(pc);
-  // Las demás páginas se implementan en las siguientes partes
-  else pc.innerHTML=`<div class="card"><div style="text-align:center;padding:40px;color:var(--muted)">Página "${page}" en desarrollo</div></div>`;
+
+  if (page === 'dashboard') {
+    window.location.hash = 'dashboard';
+    renderDashboard();
+    return;
+  }
+
+  if (PAGE_ROUTES[page]) {
+    // Pasar sesión a la subpágina via sessionStorage
+    sessionStorage.setItem('connect_profile', JSON.stringify(userProfile));
+    sessionStorage.setItem('connect_org', JSON.stringify(orgData));
+    window.location.href = PAGE_ROUTES[page];
+    return;
+  }
+
+  document.getElementById('page-content').innerHTML =
+    `<div class="card"><div style="text-align:center;padding:40px;color:var(--muted)">Página "${page}" próximamente</div></div>`;
 }
 
-window.addEventListener("hashchange",()=>{const hash=window.location.hash.replace("#","");if(hash&&hash!==currentPage&&userProfile)navigate(hash);});
-function toggleSidebar(){document.getElementById("sidebar").classList.toggle("open");document.getElementById("overlay").classList.toggle("show");}
-function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
+// ── BUILD NAV ──
+function buildNav(role) {
+  const items = NAV_CONFIG[role] || NAV_CONFIG.empleado;
+  document.getElementById('nav-items').innerHTML = items.map(i => {
+    if (i.sec) return `<div class="nav-sec">${i.sec}</div>`;
+    return `<div class="nav-item" id="nav-${i.key}" onclick="irA('${i.key}')"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></div>`;
+  }).join('');
+}
 
-// ══════════════════════════════════════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════════════════════════════════════
-function dashboard(pc){
-  const p=userProfile;const hoy=new Date().toISOString().slice(0,10);
-  const prox=DEMO_TURNOS.length>0?(DEMO_TURNOS.find(t=>t.fecha>=hoy&&t.tipo!=="libre")||DEMO_TURNOS[0]):null;
-  const ultimaNomina=DEMO_NOMINAS[0]||{neto:0,estado:"pendiente"};
-  pc.innerHTML=`
-    <div class="page-hd"><div><div class="page-title">Hola, ${p.nombre.split(" ")[0]} 👋</div><div class="page-sub">Resumen de actividad</div></div></div>
+// ── ENTER APP ──
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initSidebar();
+  buildNav(userProfile.role);
+  const hash = window.location.hash.replace('#','');
+  irA(hash || 'dashboard');
+}
+
+function initSidebar() {
+  const ini = initials(userProfile.nombre);
+  const avc = avatarColor(userProfile.role);
+  ['s-avatar','tb-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = ini;
+    el.className = `avatar ${avc}`;
+  });
+  document.getElementById('s-name').textContent = userProfile.nombre;
+  document.getElementById('s-role').textContent = userProfile.role;
+}
+
+// ── DASHBOARD (único módulo que queda en index.html) ──
+let DEMO_NOMINAS=[], DEMO_EVENTOS=[], DEMO_TURNOS=[];
+
+async function renderDashboard() {
+  const pc = document.getElementById('page-content');
+  pc.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px">Cargando…</div>`;
+
+  try {
+    const [rNom, rEv, rTurn] = await Promise.all([
+      supabase.from('nominas').select('*').eq('empleado_id', userProfile._id).order('created_at',{ascending:false}).limit(5),
+      supabase.from('events').select('*').order('fecha_inicio',{ascending:false}).limit(10),
+      supabase.from('turnos').select('*').eq('empleado_id', userProfile._id).order('fecha').limit(10),
+    ]);
+    DEMO_NOMINAS = rNom.data || [];
+    DEMO_EVENTOS = (rEv.data || []).map(e => ({
+      ...e,
+      fecha: (e.fecha_inicio||'').slice(0,10),
+      hora_inicio: (e.fecha_inicio||'').slice(11,16),
+      lugar: `${e.venue_nombre||''}${e.venue_ciudad?', '+e.venue_ciudad:''}`,
+    }));
+    DEMO_TURNOS = (rTurn.data || []).map(t => ({
+      ...t, entrada:t.hora_inicio||'—', salida:t.hora_fin||'—', lugar:t.notas||'—'
+    }));
+  } catch(e) {}
+
+  const p = userProfile;
+  const hoy = new Date().toISOString().slice(0,10);
+  const prox = DEMO_TURNOS.find(t => t.fecha >= hoy && t.tipo !== 'libre') || DEMO_TURNOS[0];
+  const ultimaNomina = DEMO_NOMINAS[0] || { neto:0, estado:'pendiente' };
+
+  pc.innerHTML = `
+    <div class="page-hd"><div><div class="page-title">Hola, ${p.nombre.split(' ')[0]} 👋</div><div class="page-sub">Resumen de actividad</div></div></div>
     <div class="g4 mb24">
-      <div class="stat"><div class="stat-lbl">Próximo turno</div><div class="stat-val c-a1" style="font-size:15px">${prox?new Date((prox.fecha||"2025-01-01")+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"}):"Sin turnos"}</div><div class="stat-note">${prox?(prox.lugar||"—")+" · "+(prox.tipo==="libre"?"Libre":(prox.entrada||"")+"–"+(prox.salida||"")):"Contacta con RRHH"}</div></div>
-      <div class="stat"><div class="stat-lbl">Nómina este mes</div><div class="stat-val" style="font-size:18px">${ultimaNomina.neto.toLocaleString()}€</div><div class="stat-note">${badge(ultimaNomina.estado)}</div></div>
-      <div class="stat"><div class="stat-lbl">Eventos próximos</div><div class="stat-val c-a3">${DEMO_EVENTOS.filter(e=>["confirmado","produccion","publicado"].includes(e.estado)).length}</div><div class="stat-note">Confirmados o en producción</div></div>
-      <div class="stat"><div class="stat-lbl">IRPF aplicado</div><div class="stat-val c-a2">${p.irpf}%</div><div class="stat-note" style="cursor:pointer;color:var(--a3);text-decoration:underline" onclick="navigate('retribuciones')">Modificar</div></div>
+      <div class="stat"><div class="stat-lbl">Próximo turno</div>
+        <div class="stat-val c-a1" style="font-size:15px">${prox ? new Date((prox.fecha||'2025-01-01')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'}) : 'Sin turnos'}</div>
+        <div class="stat-note">${prox ? (prox.lugar||'—')+' · '+(prox.tipo==='libre'?'Libre':(prox.entrada||'')+'-'+(prox.salida||'')) : 'Contacta con RRHH'}</div>
+      </div>
+      <div class="stat"><div class="stat-lbl">Nómina</div>
+        <div class="stat-val" style="font-size:18px">${(ultimaNomina.neto||0).toLocaleString()}€</div>
+        <div class="stat-note">${badge(ultimaNomina.estado||'pendiente')}</div>
+      </div>
+      <div class="stat"><div class="stat-lbl">Eventos activos</div>
+        <div class="stat-val c-a3">${DEMO_EVENTOS.filter(e=>['confirmado','produccion','publicado'].includes(e.estado)).length}</div>
+        <div class="stat-note">Confirmados o en producción</div>
+      </div>
+      <div class="stat"><div class="stat-lbl">IRPF aplicado</div>
+        <div class="stat-val c-a2">${p.irpf}%</div>
+        <div class="stat-note" style="cursor:pointer;color:var(--a3);text-decoration:underline" onclick="irA('retribuciones')">Modificar</div>
+      </div>
     </div>
     <div class="g2 mb16">
       <div class="card">
         <div class="card-title">Tus próximos turnos</div>
-        ${DEMO_TURNOS.length===0?`<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`:DEMO_TURNOS.slice(0,5).map(t=>{const d=new Date((t.fecha||"2025-01-01")+"T12:00:00");const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];return`<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="width:85px;font-size:13px;font-weight:500">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span><span style="width:7px;height:7px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"}"></span><span style="font-size:12px;color:var(--muted);width:115px">${t.tipo==="libre"?"Libre":`${t.entrada}–${t.salida}`}</span><span style="font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.lugar||"—"}</span></div>`;}).join("")}
+        ${DEMO_TURNOS.length === 0
+          ? `<div style="color:var(--muted);font-size:13px;padding:10px 0;text-align:center">Sin turnos asignados</div>`
+          : DEMO_TURNOS.slice(0,5).map(t => {
+              const d = new Date((t.fecha||'2025-01-01')+'T12:00:00');
+              const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+              const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+              return `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+                <span style="width:85px;font-size:13px;font-weight:500">${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}</span>
+                <span style="width:7px;height:7px;border-radius:50%;background:${t.tipo==='evento'?'var(--a2)':t.tipo==='rodaje'?'var(--a1)':t.tipo==='libre'?'var(--muted)':'var(--a3)'}"></span>
+                <span style="font-size:12px;color:var(--muted);width:115px">${t.tipo==='libre'?'Libre':`${t.entrada}–${t.salida}`}</span>
+                <span style="font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.lugar||'—'}</span>
+              </div>`;
+            }).join('')}
       </div>
       <div class="card">
         <div class="card-title">Próximos eventos</div>
-        ${DEMO_EVENTOS.slice(0,3).map(ev=>`<div style="padding:11px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${ev.nombre}</span>${badge(ev.estado)}</div><div style="font-size:12px;color:var(--muted)">📅 ${ev.fecha} &nbsp;·&nbsp; 📍 ${ev.lugar}</div></div>`).join("")}
+        ${DEMO_EVENTOS.slice(0,3).map(ev => `
+          <div style="padding:11px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="irA('eventos')">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${ev.nombre}</span>${badge(ev.estado)}
+            </div>
+            <div style="font-size:12px;color:var(--muted)">📅 ${ev.fecha} &nbsp;·&nbsp; 📍 ${ev.lugar}</div>
+          </div>`).join('')}
+        ${DEMO_EVENTOS.length === 0 ? `<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Sin eventos</div>` : ''}
       </div>
     </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// PERFIL
-// ══════════════════════════════════════════════════════════════════════════
-function renderPerfil(pc){
-  const p=userProfile,ini=initials(p.nombre),avc=avatarColor(p.role);
-  const ret=Math.round((p.salarioBase||0)*p.irpf/100),ss=p.salarioBase>0?160:0,neto=(p.salarioBase||0)-ret-ss;
-  pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Mi Perfil</div><button class="btn btn-p" onclick="editarPerfil()">✏️ Editar</button></div>
-    <div class="g2">
-      <div>
-        <div class="card mb16">
-          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap">
-            <div class="avatar ${avc}" style="width:64px;height:64px;font-size:20px">${ini}</div>
-            <div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;margin-bottom:5px">${p.nombre}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${roleBadge(p.role)}&nbsp;${tipoBadge(p.role==="freelance"?"freelance":"fijo")}</div></div>
-          </div>
-          <div class="info-row"><span class="info-lbl">📧 Email</span><span>${p.email}</span></div>
-          <div class="info-row"><span class="info-lbl">🏢 Departamento</span><span>${p.dept}</span></div>
-          <div class="info-row"><span class="info-lbl">📊 IRPF</span><span style="color:var(--a1);font-weight:600">${p.irpf}%</span></div>
-          ${p.salarioBase>0?`<div class="info-row"><span class="info-lbl">💶 Salario base</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€/mes</span></div>`:""}
-        </div>
-        <div class="card">
-          <div class="card-title">Acciones rápidas</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button class="btn btn-g btn-full" onclick="navigate('nominas')">💶 Ver mis nóminas</button>
-            <button class="btn btn-g btn-full" onclick="navigate('retribuciones')">📊 Cambiar IRPF</button>
-            <button class="btn btn-g btn-full" onclick="cambiarPassword()">🔑 Cambiar contraseña</button>
-            <button class="btn btn-g btn-full" onclick="cambiarPIN()">🔢 PIN de fichaje</button>
-            ${["admin","manager","superadmin"].includes(p.role)?`<button class="btn btn-g btn-full" onclick="cambiarPINDesbloqueo()">🔐 PIN de desbloqueo</button>`:""}
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="card mb16">
-          <div class="card-title">Resumen económico</div>
-          ${p.salarioBase>0?`
-            <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${p.salarioBase.toLocaleString()}€</span></div>
-            <div class="nom-row"><span>IRPF (${p.irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
-            <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
-            <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Neto mensual</span><span class="nom-total">${neto.toLocaleString()}€</span></div>
-          `:`<div style="color:var(--muted);font-size:13px">Retribución por caché / proyecto</div>`}
-        </div>
-      </div>
-    </div>`;
+// ── LOGIN ──
+function setLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+function setLoginLoading(on) {
+  document.getElementById('login-btn').disabled = on;
+  document.getElementById('login-btn').textContent = on ? 'Entrando…' : 'Entrar al portal';
 }
 
-function editarPerfil(){
-  const p=userProfile;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Editar mi perfil</div>
-    <label class="form-lbl">Nombre completo</label><input class="form-input" id="ep-nombre" value="${p.nombre}"/>
-    <label class="form-lbl">Email</label><input class="form-input" id="ep-email" type="email" value="${p.email}"/>
-    <label class="form-lbl">Teléfono</label><input class="form-input" id="ep-tlf" type="tel" value="${p.tlf||""}" placeholder="600 000 000"/>
-    <button class="btn btn-p btn-full" onclick="guardarPerfil()">Guardar cambios</button>`);
-}
-
-async function guardarPerfil(){
-  const nombre=document.getElementById("ep-nombre").value.trim()||userProfile.nombre;
-  const email=document.getElementById("ep-email").value.trim()||userProfile.email;
-  const tlf=document.getElementById("ep-tlf").value||userProfile.tlf;
-  await _sb.from('empleados').update({nombre,email,telefono:tlf}).eq('id',userProfile._supabase_id);
-  userProfile.nombre=nombre;userProfile.email=email;userProfile.tlf=tlf;
-  const ini=initials(userProfile.nombre);["s-avatar","tb-avatar"].forEach(id=>document.getElementById(id).textContent=ini);
-  document.getElementById("s-name").textContent=userProfile.nombre;
-  toast("Perfil actualizado ✓");closeModal();renderPerfil(document.getElementById("page-content"));
-}
-
-function cambiarPassword(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Cambiar contraseña</div>
-    <label class="form-lbl">Nueva contraseña</label><input class="form-input" id="cp-new" type="password" placeholder="••••••••"/>
-    <label class="form-lbl">Confirmar nueva contraseña</label><input class="form-input" id="cp-confirm" type="password" placeholder="••••••••"/>
-    <button class="btn btn-p btn-full" onclick="doChangePassword()">Actualizar</button>`);
-}
-
-async function doChangePassword(){
-  const np=document.getElementById("cp-new").value,cp=document.getElementById("cp-confirm").value;
-  if(np!==cp){toast("⚠️ Las contraseñas no coinciden");return;}
-  if(np.length<6){toast("⚠️ Mínimo 6 caracteres");return;}
-  const{error}=await _sb.auth.updateUser({password:np});
-  if(error){toast("Error: "+error.message);return;}
-  toast("Contraseña actualizada ✓");closeModal();
-}
-
-function cambiarPIN(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">🔢 PIN de fichaje</div>
-    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">Tu PIN de 4 dígitos para InOut Staff</div>
-    <div id="pin-dots-ch" style="display:flex;gap:14px;justify-content:center;margin:12px 0">
-      ${[0,1,2,3].map(i=>`<div id="cpd${i}" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>`).join('')}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?`<div></div>`:`<div onclick="pinKeyChange('${k}')" style="padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border);font-family:Syne,sans-serif;font-size:22px;font-weight:700;text-align:center;cursor:pointer;user-select:none">${k}</div>`).join('')}
-    </div>
-    <div style="font-size:12px;color:var(--muted);text-align:center">PIN actual: <strong style="color:var(--a1)">${userProfile.staff_pin||'No configurado'}</strong></div>
-    <button class="btn btn-g btn-full" style="margin-top:14px" onclick="closeModal()">Cancelar</button>`);
-  window._pinChangeBuf='';
-}
-
-function pinKeyChange(k){
-  if(!window._pinChangeBuf) window._pinChangeBuf='';
-  if(k==='⌫'){ window._pinChangeBuf=window._pinChangeBuf.slice(0,-1); }
-  else if(window._pinChangeBuf.length<4){ window._pinChangeBuf+=k; }
-  for(let i=0;i<4;i++){
-    const d=document.getElementById('cpd'+i);
-    if(d){ d.style.background=i<window._pinChangeBuf.length?'var(--a1)':'transparent'; d.style.borderColor=i<window._pinChangeBuf.length?'var(--a1)':'var(--border)'; }
-  }
-  if(window._pinChangeBuf.length===4){
-    setTimeout(()=>guardarNuevoPIN(window._pinChangeBuf),150);
-    window._pinChangeBuf='';
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  setLoginError('');
+  if (!email || !pass) { setLoginError('Introduce email y contraseña.'); return; }
+  setLoginLoading(true);
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    currentUser = data.user;
+    await checkSession(enterApp, () => {
+      setLoginLoading(false);
+      setLoginError('Perfil no encontrado. Contacta con el administrador.');
+    });
+  } catch(e) {
+    setLoginLoading(false);
+    const msgs = { 'Invalid login credentials': 'Email o contraseña incorrectos.', 'Email not confirmed': 'Confirma tu email primero.' };
+    setLoginError(msgs[e.message] || 'Error: ' + e.message);
   }
 }
 
-async function guardarNuevoPIN(pin){
-  const{error}=await _sb.from('empleados').update({staff_pin:pin}).eq('id',userProfile._supabase_id);
-  if(error){toast("Error: "+error.message);return;}
-  userProfile.staff_pin=pin;
-  toast("PIN de fichaje actualizado ✓");closeModal();
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function mostrarPanelReset() {
+  document.getElementById('panel-login').style.display = 'none';
+  document.getElementById('panel-reset').style.display = 'block';
+  const em = document.getElementById('login-email').value;
+  if (em) document.getElementById('reset-email').value = em;
+}
+function mostrarPanelLogin() {
+  document.getElementById('panel-reset').style.display = 'none';
+  document.getElementById('panel-login').style.display = 'block';
+}
+async function enviarResetEmail() {
+  const email = document.getElementById('reset-email').value.trim();
+  const msg   = document.getElementById('reset-msg');
+  if (!email) { msg.style.cssText='display:block;background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);color:var(--a2);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;'; msg.textContent='⚠️ Introduce tu email'; return; }
+  try { await supabase.auth.resetPasswordForEmail(email, { redirectTo:'https://connect.inout-media.es' }); } catch(e) {}
+  msg.style.cssText='display:block;background:rgba(200,255,0,.08);border:1px solid rgba(200,255,0,.2);color:var(--a1);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;';
+  msg.textContent='✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.';
 }
 
-function cambiarPINDesbloqueo(){
-  if(!["admin","manager","superadmin"].includes(userProfile.role)){toast("⚠️ Solo admin/manager");return;}
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">🔐 PIN de desbloqueo</div>
-    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">PIN de 4 dígitos para InOut Control</div>
-    <div id="pin-dots-desbloq" style="display:flex;gap:14px;justify-content:center;margin:12px 0">
-      ${[0,1,2,3].map(i=>`<div id="dpd${i}" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s"></div>`).join('')}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?`<div></div>`:`<div onclick="pinKeyDesbloq('${k}')" style="padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border);font-family:Syne,sans-serif;font-size:22px;font-weight:700;text-align:center;cursor:pointer;user-select:none">${k}</div>`).join('')}
-    </div>
-    <div style="font-size:12px;color:var(--muted);text-align:center">PIN actual: <strong style="color:var(--a1)">${userProfile.pin_desbloqueo||'No configurado'}</strong></div>
-    <button class="btn btn-g btn-full" style="margin-top:14px" onclick="closeModal()">Cancelar</button>`);
-  window._pinDesbloqBuf='';
-}
-
-function pinKeyDesbloq(k){
-  if(!window._pinDesbloqBuf) window._pinDesbloqBuf='';
-  if(k==='⌫'){ window._pinDesbloqBuf=window._pinDesbloqBuf.slice(0,-1); }
-  else if(window._pinDesbloqBuf.length<4){ window._pinDesbloqBuf+=k; }
-  for(let i=0;i<4;i++){
-    const d=document.getElementById('dpd'+i);
-    if(d){ d.style.background=i<window._pinDesbloqBuf.length?'var(--a2)':'transparent'; d.style.borderColor=i<window._pinDesbloqBuf.length?'var(--a2)':'var(--border)'; }
+// ── AUTO-LOGIN ──
+;(async function() {
+  // Detectar recovery token (iOS Safari fix)
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery') && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.replace('#',''));
+    const token  = params.get('access_token');
+    const refresh = params.get('refresh_token');
+    if (token && refresh) {
+      await supabase.auth.setSession({ access_token: token, refresh_token: refresh });
+      window.location.hash = '';
+    }
+    return;
   }
-  if(window._pinDesbloqBuf.length===4){
-    setTimeout(()=>guardarPINDesbloqueo(window._pinDesbloqBuf),150);
-    window._pinDesbloqBuf='';
-  }
-}
-
-async function guardarPINDesbloqueo(pin){
-  const{error}=await _sb.from('empleados').update({pin_desbloqueo:pin}).eq('id',userProfile._supabase_id);
-  if(error){toast("Error: "+error.message);return;}
-  userProfile.pin_desbloqueo=pin;
-  toast("PIN de desbloqueo actualizado ✓");closeModal();
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// NÓMINAS
-// ══════════════════════════════════════════════════════════════════════════
-async function renderNominas(pc){
-  await cargarMisNominas();
-  pc.innerHTML=`
-    <div class="page-hd"><div><div class="page-title">${userProfile.role==="freelance"?"Mis Cachés":"Mis Nóminas"}</div></div></div>
-    <div class="g2">
-      <div class="card">
-        <div class="card-title">Historial</div>
-        ${DEMO_NOMINAS.length===0?`<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">No hay nóminas generadas aún.</div>`:`
-        <div class="tbl-wrap"><table><thead><tr><th>Mes</th><th>Bruto</th><th>Neto</th><th>Estado</th><th></th></tr></thead><tbody>
-          ${DEMO_NOMINAS.map(n=>`<tr style="cursor:pointer" onclick="verNomina('${n.id}')"><td style="font-weight:500">${n.mes}</td><td>${(n.bruto||0).toLocaleString()}€</td><td style="color:var(--a1);font-weight:600">${(n.neto||0).toLocaleString()}€</td><td>${badge(n.estado||"pendiente")}</td><td><button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button></td></tr>`).join("")}
-        </tbody></table></div>`}
-      </div>
-      <div class="card" id="nomina-detail"><div class="card-title">Detalle</div><div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona una nómina para ver el detalle.</div></div>
-    </div>`;
-}
-
-function verNomina(id){
-  const n=DEMO_NOMINAS.find(x=>x.id===id);if(!n)return;
-  const bruto=n.bruto||0,irpf=n.irpf||15,ss=n.ss||160,ret=Math.round(bruto*irpf/100),neto=n.neto||(bruto-ret-ss);
-  const esPagada=n.estado==="pagada";
-  document.getElementById("nomina-detail").innerHTML=`
-    <div class="card-title">${n.mes||"—"}</div>
-    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
-    <div class="nom-row"><span>IRPF (${irpf}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
-    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
-    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
-      <span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto</span>
-      <span class="nom-total">${neto.toLocaleString()}€</span>
-    </div>
-    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      ${esPagada?`<span class="badge b-green" style="padding:8px 14px;font-size:12px">✓ Pagada</span>`:""}
-    </div>`;
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// RETRIBUCIONES
-// ══════════════════════════════════════════════════════════════════════════
-function renderRetribuciones(pc){
-  const bruto=userProfile.salarioBase||0;
-  pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Retribuciones & IRPF</div></div>
-    <div class="g2">
-      <div class="card">
-        <div class="card-title">Modificar IRPF</div>
-        <div style="text-align:center;padding:20px 0 24px">
-          <div class="irpf-big" id="irpf-display">${userProfile.irpf}%</div>
-          <div style="color:var(--muted);font-size:12px;margin:6px 0 20px">Tu retención actual</div>
-          <input type="range" min="2" max="45" value="${userProfile.irpf}" id="irpf-slider" oninput="updateIRPF(this.value)"/>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2% mín.</span><span>45% máx.</span></div>
-        </div>
-        <div style="padding:14px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">⚠️ El cambio requiere aprobación de RRHH y se aplica en la siguiente nómina.</div>
-          <button class="btn btn-p btn-full" onclick="solicitarIRPF()">Solicitar cambio de IRPF</button>
-        </div>
-      </div>
-      <div class="card"><div class="card-title">Simulación mensual</div><div id="sim-content"></div></div>
-    </div>`;
-  updateIRPF(userProfile.irpf);
-}
-
-function updateIRPF(val){
-  const v=parseInt(val);document.getElementById("irpf-display").textContent=v+"%";
-  const bruto=userProfile.salarioBase||0,ss=160,ret=Math.round(bruto*v/100),neto=bruto-ret-ss;
-  document.getElementById("sim-content").innerHTML=`
-    <div class="nom-row"><span>Salario bruto</span><span style="font-weight:600">${bruto.toLocaleString()}€</span></div>
-    <div class="nom-row"><span>IRPF (${v}%)</span><span style="color:var(--a2)">−${ret}€</span></div>
-    <div class="nom-row"><span>Seguridad Social</span><span style="color:var(--a2)">−${ss}€</span></div>
-    <div style="padding-top:14px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Neto mensual</span><span class="nom-total" style="font-size:24px">${neto.toLocaleString()}€</span></div>`;
-}
-
-async function solicitarIRPF(){
-  const v=parseInt(document.getElementById("irpf-slider").value);
-  await _sb.from('solicitudes_irpf').insert({empleado_id:userProfile._supabase_id,empleado_nombre:userProfile.nombre,email:userProfile.email,irpf_actual:userProfile.irpf,irpf_solicitado:v});
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><div class="modal-title">Solicitud enviada ✅</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.6">Tu solicitud de cambio de IRPF al <strong style="color:var(--a1)">${v}%</strong> ha sido enviada a RRHH.</p>
-    <div style="margin-top:20px"><button class="btn btn-p btn-full" onclick="closeModal()">Entendido</button></div>`);
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// AUTO-LOGIN
-// ══════════════════════════════════════════════════════════════════════════
-(async function checkSession(){
-  const{data:{session}}=await _sb.auth.getSession();
-  if(session?.user){
-    currentUser=session.user;
-    const{data:perfil}=await _sb.from('empleados').select('*').eq('auth_user_id',currentUser.id).single();
-    const slug = localStorage.getItem('inout_org_slug')
-if (slug) {
-  const { data: org } = await _sb.from('organizations').select('*').eq('slug', slug).maybeSingle()
-  if (org) {
-    localStorage.setItem('inout_org_id', org.id)
-    localStorage.setItem('inout_org_name', org.nombre)
-    if (org.color_primario) document.documentElement.style.setProperty('--a1', org.color_primario)
-    if (org.color_secundario) document.documentElement.style.setProperty('--a2', org.color_secundario)
-  }
-}
-  }
+  await checkSession(enterApp, () => {
+    // Sin sesión — mostrar login
+    document.getElementById('login-screen').style.display = 'flex';
+  });
 })();
 
-// ══════════════════════════════════════════════════════════════════════════
-// CALENDARIO
-// ══════════════════════════════════════════════════════════════════════════
-
-let selectedDate=null, selectedMonth=new Date().getMonth(), selectedYear=new Date().getFullYear();
-
-async function renderCalendario(pc){
-  const hoy=new Date();
-  selectedMonth=hoy.getMonth();
-  selectedYear=hoy.getFullYear();
-  selectedDate=null;
-  await cargarMisAusencias();
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Calendario</div><div class="page-sub">Tus turnos y eventos del mes</div></div>
-    </div>
-    <div class="g2">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <button class="btn btn-g" style="padding:6px 12px;font-size:12px" onclick="cambiarMes(-1)">◀ Anterior</button>
-          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px" id="cal-mes-label">—</div>
-          <button class="btn btn-g" style="padding:6px 12px;font-size:12px" onclick="cambiarMes(1)">Siguiente ▶</button>
-        </div>
-        <div id="calendario-grid"></div>
-      </div>
-      <div class="card" id="day-detail-container">
-        <div class="card-title">Detalle del día</div>
-        <div style="color:var(--muted);font-size:13px;padding-top:10px">Selecciona un día para ver eventos y turnos.</div>
-      </div>
-    </div>`;
-  renderCalendarioGrid();
-}
-
-function cambiarMes(delta){
-  selectedMonth+=delta;
-  if(selectedMonth<0){selectedMonth=11;selectedYear--;}
-  if(selectedMonth>11){selectedMonth=0;selectedYear++;}
-  renderCalendarioGrid();
-}
-
-function renderCalendarioGrid(){
-  const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  document.getElementById("cal-mes-label").textContent=`${meses[selectedMonth]} ${selectedYear}`;
-  
-  const primerDia=new Date(selectedYear,selectedMonth,1).getDay();
-  const diasMes=new Date(selectedYear,selectedMonth+1,0).getDate();
-  const hoy = new Date(); 
-  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
-
-  
-  let html='<div class="cal-grid">';
-  ["L","M","X","J","V","S","D"].forEach(d=>html+=`<div class="cal-hd">${d}</div>`);
-  
-  const offset=(primerDia===0?6:primerDia-1);
-  for(let i=0;i<offset;i++)html+='<div class="cal-day empty"></div>';
-  
-  for(let d=1;d<=diasMes;d++){
-    const fecha=`${selectedYear}-${String(selectedMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isHoy=fecha===hoyStr;
-    const isSelected=fecha===selectedDate;
-    const turno=DEMO_TURNOS.find(t=>t.fecha===fecha);
-    const hasEvento=DEMO_EVENTOS.some(e=>e.fecha===fecha);
-
-// Verificar si la fecha está en una ausencia aprobada y obtener el tipo
-const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
-const ausenciaDelDia = ausenciasAprobadas.find(a => {
-  const inicio = new Date(a.fecha_inicio + 'T00:00:00');
-  const fin = new Date(a.fecha_fin + 'T23:59:59');
-  const actual = new Date(fecha + 'T12:00:00');
-  return actual >= inicio && actual <= fin;
+initModal();
+window.addEventListener('hashchange', () => {
+  const h = window.location.hash.replace('#','');
+  if (h && h !== 'dashboard' && userProfile) irA(h);
 });
-
-let cls='cal-day';
-if(isHoy)cls+=' today';
-if(isSelected)cls+=' selected';
-if(ausenciaDelDia)cls+=` has-ausencia-${ausenciaDelDia.tipo}`; // ← NUEVA LÍNEA
-if(turno)cls+=' has-turno';
-if(hasEvento)cls+=' has-event';
-
-
-    
-    html+=`<div class="${cls}" onclick="selectDay('${fecha}')">${d}</div>`;
-  }
-  html+='</div>';
-  document.getElementById("calendario-grid").innerHTML=html;
-}
-
-function selectDay(fecha){
-  selectedDate=fecha;
-  renderCalendarioGrid();
-  
-  const turnos=DEMO_TURNOS.filter(t=>t.fecha===fecha);
-  const eventos=DEMO_EVENTOS.filter(e=>e.fecha===fecha);
-  const ausenciasAprobadas = MIS_AUSENCIAS.filter(a => a.estado === 'aprobada');
-  const ausenciaDelDia = ausenciasAprobadas.find(a => {
-    const inicio = new Date(a.fecha_inicio + 'T00:00:00');
-    const fin = new Date(a.fecha_fin + 'T23:59:59');
-    const actual = new Date(fecha + 'T12:00:00');
-    return actual >= inicio && actual <= fin;
-  });
-  
-  if(turnos.length===0 && eventos.length===0 && !ausenciaDelDia){
-    document.getElementById("day-detail-container").innerHTML=`
-      <div class="card-title">${new Date(fecha+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div>
-      <div style="color:var(--muted);font-size:13px;padding-top:10px">Sin actividad programada.</div>`;
-    return;
-  }
-  
-  let html=`<div class="card-title">${new Date(fecha+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div>`;
-  
-  // Mostrar ausencia si existe
-  if(ausenciaDelDia){
-    html+=`<div style="margin-bottom:16px">
-      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--a1)">🏖️ Ausencia Aprobada</div>
-      <div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid rgba(200,255,0,.2)">
-        <div style="font-weight:600;margin-bottom:6px">${tipoAusenciaBadge(ausenciaDelDia.tipo)}</div>
-        <div style="font-size:12px;color:var(--muted)">
-          Del ${ausenciaDelDia.fecha_inicio} al ${ausenciaDelDia.fecha_fin}
-          <span style="color:var(--a3);font-weight:600;margin-left:8px">(${ausenciaDelDia.dias_totales} días)</span>
-        </div>
-        ${ausenciaDelDia.observaciones ? `
-          <div style="margin-top:8px;padding:8px;background:rgba(200,255,0,.05);border-radius:6px;font-size:12px">
-            💬 ${ausenciaDelDia.observaciones}
-          </div>
-        ` : ''}
-      </div>
-    </div>`;
-  }
-  
-  if(turnos.length>0){
-    html+=`<div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--a3)">Tu turno</div>`;
-    turnos.forEach(t=>{
-      html+=`<div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"}"></span>
-          <span style="font-weight:600">${t.tipo==="libre"?"Día libre":t.tipo}</span>
-        </div>
-        ${t.tipo!=="libre"?`<div style="font-size:12px;color:var(--muted)">${t.entrada}–${t.salida} · ${t.lugar||"—"}</div>`:""}
-      </div>`;
-    });
-  }
-  
-  if(eventos.length>0){
-    html+=`<div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--a2)">Eventos</div>`;
-    eventos.forEach(e=>{
-      html+=`<div style="padding:12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="verEvento('${e.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-family:Syne,sans-serif;font-weight:600;font-size:13px">${e.nombre}</span>
-          ${badge(e.estado)}
-        </div>
-        <div style="font-size:12px;color:var(--muted)">${e.lugar}</div>
-      </div>`;
-    });
-  }
-  
-  document.getElementById("day-detail-container").innerHTML=html;
-}
-
-// Estilos adicionales para calendario (añadir al CSS si no está)
-const calStyles=`
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.cal-hd{text-align:center;padding:6px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;font-size:13px;cursor:pointer;transition:all .15s;background:var(--bg);border:1px solid var(--border);user-select:none;position:relative;}
-.cal-day:hover{border-color:var(--a3);background:rgba(0,212,255,.05);}
-.cal-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
-.cal-day.today{border-color:var(--a1);color:var(--a1);font-weight:700;}
-.cal-day.selected{background:rgba(200,255,0,.14);border-color:var(--a1);color:var(--a1);}
-.cal-day.has-event::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a2);}
-.cal-day.has-turno::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a3);}`;
-
-// ══════════════════════════════════════════════════════════════════════════
-// EVENTOS (con sistema de tickets completo)
-// ══════════════════════════════════════════════════════════════════════════
-
-let selectedEvent=null;
-
-async function renderEventos(pc){
-  await cargarEventos();
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Eventos</div><div class="page-sub">${DEMO_EVENTOS.length} eventos en total</div></div>
-      ${canAdmin()?`<button class="btn btn-p" onclick="nuevoEvento()">+ Nuevo evento</button>`:""}
-    </div>
-    <div class="g-auto">
-      ${DEMO_EVENTOS.map(e=>`
-        <div class="card" style="cursor:pointer;transition:all .2s" onclick="verEvento('${e.id}')" onmouseover="this.style.borderColor='rgba(200,255,0,.25)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-            ${badge(e.estado)}
-            <span style="font-size:11px;color:var(--muted)">👥 ${e.equipo||0}</span>
-          </div>
-          <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:600;margin-bottom:8px">${e.nombre}</div>
-          <div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">
-            <div>📅 ${e.fecha} ${e.hora_inicio||""}</div>
-            <div>📍 ${e.lugar||"—"}</div>
-          </div>
-        </div>
-      `).join("")}
-      ${DEMO_EVENTOS.length===0?`<div class="card" style="text-align:center;padding:40px;color:var(--muted)">No hay eventos registrados aún.</div>`:""}
-    </div>`;
-}
-
-function nuevoEvento(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Nuevo Evento</div>
-    <label class="form-lbl">Nombre del evento *</label>
-    <input class="form-input" id="ne-nombre" placeholder="Ej: Festival Primavera Sound 2025"/>
-    
-    <label class="form-lbl">Fecha inicio *</label>
-    <input class="form-input" id="ne-fecha" type="text" placeholder="2025-06-15"/>
-    
-    <label class="form-lbl">Hora inicio</label>
-    <input class="form-input" id="ne-hora" type="text" placeholder="20:00"/>
-    
-    <label class="form-lbl">Fecha fin</label>
-    <input class="form-input" id="ne-fecha-fin" type="text" placeholder="2025-06-17"/>
-    
-    <label class="form-lbl">Hora fin</label>
-    <input class="form-input" id="ne-hora-fin" type="text" placeholder="06:00"/>
-    
-    <label class="form-lbl">Lugar / Venue</label>
-    <input class="form-input" id="ne-lugar" placeholder="Parc del Fòrum, Barcelona"/>
-    
-    <label class="form-lbl">Descripción</label>
-    <textarea class="form-textarea" id="ne-desc" placeholder="Descripción del evento..."></textarea>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="ne-estado">
-      <option value="borrador">Borrador</option>
-      <option value="negociacion">Negociación</option>
-      <option value="preproduccion">Preproducción</option>
-      <option value="confirmado">Confirmado</option>
-      <option value="produccion">En Producción</option>
-      <option value="finalizado">Finalizado</option>
-      <option value="cancelado">Cancelado</option>
-    </select>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevoEvento()">Crear evento</button>`);
-}
-
-async function guardarNuevoEvento(){
-  const nombre=document.getElementById("ne-nombre").value.trim();
-  const fecha=document.getElementById("ne-fecha").value.trim();
-  const hora=document.getElementById("ne-hora").value.trim()||"00:00";
-  const fechaFin=document.getElementById("ne-fecha-fin").value.trim()||fecha;
-  const horaFin=document.getElementById("ne-hora-fin").value.trim()||"06:00";
-  const lugar=document.getElementById("ne-lugar").value.trim();
-  const desc=document.getElementById("ne-desc").value.trim();
-  const estado=document.getElementById("ne-estado").value;
-  
-  if(!nombre||!fecha){toast("⚠️ Nombre y fecha son obligatorios");return;}
-  
-  const fechaInicio=`${fecha}T${hora}:00`;
-  const fechaFinCompleta=`${fechaFin}T${horaFin}:00`;
-  
-  const parts=lugar.split(",").map(s=>s.trim());
-  const venueNombre=parts[0]||"";
-  const venueCiudad=parts[1]||"";
-  
-  const{error}=await _sb.from('events').insert({
-    nombre,
-    fecha_inicio:fechaInicio,
-    fecha_fin:fechaFinCompleta,
-    venue_nombre:venueNombre,
-    venue_ciudad:venueCiudad,
-    descripcion:desc,
-    estado,
-    equipo:0
-  });
-  
-  if(error){toast("Error: "+error.message);return;}
-  toast("Evento creado ✓");
-  closeModal();
-  await cargarEventos();
-  renderEventos(document.getElementById("page-content"));
-}
-
-async function verEvento(id){
-  const evento=DEMO_EVENTOS.find(e=>e.id===id);
-  if(!evento)return;
-  
-  // Cargar tickets del evento
-  const{data:tickets}=await _sb.from('tickets').select('*').eq('event_id',id);
-  const ticketTypes=tickets||[];
-  
-  selectedEvent={...evento,ticketTypes};
-  
-  const editable=canAdmin()&&["borrador","negociacion","preproduccion","confirmado","produccion"].includes(evento.estado);
-  
-  showModal(`
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-      <div class="modal-title" style="margin-bottom:0">${evento.nombre}</div>
-      ${badge(evento.estado)}
-    </div>
-    
-    <div style="margin-bottom:20px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">FECHA INICIO</div><div style="font-weight:500">${evento.fecha} ${evento.hora_inicio||""}</div></div>
-        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">FECHA FIN</div><div style="font-weight:500">${evento.fecha_fin||evento.fecha} ${evento.hora_fin||""}</div></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">LUGAR</div>
-      <div style="font-weight:500;margin-bottom:12px">${evento.lugar||"—"}</div>
-      
-      ${evento.notas&&evento.notas!=="—"?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px">DESCRIPCIÓN</div><div style="color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:12px">${evento.notas}</div>`:""}
-    </div>
-    
-    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700">🎟️ Entradas</div>
-        ${editable?`<button class="btn btn-g" style="padding:5px 10px;font-size:11px" onclick="nuevoTicket()">+ Añadir</button>`:""}
-      </div>
-      <div id="tickets-list">
-        ${ticketTypes.length===0?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Sin tipos de entrada configurados</div>`:ticketTypes.map(t=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:6px">
-            <div>
-              <div style="font-weight:600;font-size:13px">${t.name}</div>
-              <div style="font-size:11px;color:var(--muted)">${t.price}€ · Stock: ${t.stock||0}</div>
-            </div>
-            ${editable?`<button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTicket('${t.id}')">✕</button>`:""}
-          </div>
-        `).join("")}
-      </div>
-    </div>
-    
-    <div style="display:flex;gap:8px;margin-top:20px">
-      ${editable?`<button class="btn btn-p btn-full" onclick="editarEvento('${evento.id}')">✏️ Editar</button>`:""}
-      <button class="btn btn-g btn-full" onclick="closeModal()">Cerrar</button>
-    </div>
-  `);
-}
-
-function nuevoTicket(){
-  if(!selectedEvent){toast("⚠️ Selecciona un evento primero");return;}
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Nueva entrada</div>
-    <div style="color:var(--muted);font-size:12px;margin-bottom:16px">Evento: <strong style="color:var(--txt)">${selectedEvent.nombre}</strong></div>
-    
-    <label class="form-lbl">Nombre de la entrada *</label>
-    <input class="form-input" id="nt-name" placeholder="Ej: Entrada General"/>
-    
-    <label class="form-lbl">Precio (€) *</label>
-    <input class="form-input" id="nt-price" type="number" step="0.01" placeholder="45.00"/>
-    
-    <label class="form-lbl">Stock disponible</label>
-    <input class="form-input" id="nt-stock" type="number" placeholder="1000"/>
-    
-    <label class="form-lbl">Descripción</label>
-    <textarea class="form-textarea" id="nt-desc" placeholder="Incluye acceso general al recinto..."></textarea>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevoTicket()">Crear entrada</button>`);
-}
-
-async function guardarNuevoTicket(){
-  const name=document.getElementById("nt-name").value.trim();
-  const price=parseFloat(document.getElementById("nt-price").value)||0;
-  const stock=parseInt(document.getElementById("nt-stock").value)||0;
-  const desc=document.getElementById("nt-desc").value.trim();
-  
-  if(!name||price<=0){toast("⚠️ Nombre y precio son obligatorios");return;}
-  
-  const{error}=await _sb.from('tickets').insert({
-    event_id:selectedEvent.id,
-    name,
-    price,
-    stock,
-    description:desc
-  });
-  
-  if(error){toast("Error: "+error.message);return;}
-  toast("Entrada creada ✓");
-  closeModal();
-  await new Promise(r=>setTimeout(r,200));
-  verEvento(selectedEvent.id);
-}
-
-async function eliminarTicket(ticketId){
-  if(!confirm("¿Eliminar este tipo de entrada?"))return;
-  const{error}=await _sb.from('tickets').delete().eq('id',ticketId);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Entrada eliminada ✓");
-  verEvento(selectedEvent.id);
-}
-
-function editarEvento(id){
-  const e=DEMO_EVENTOS.find(x=>x.id===id);if(!e)return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Editar Evento</div>
-    
-    <label class="form-lbl">Nombre del evento *</label>
-    <input class="form-input" id="ee-nombre" value="${e.nombre}"/>
-    
-    <label class="form-lbl">Fecha inicio *</label>
-    <input class="form-input" id="ee-fecha" type="text" value="${e.fecha}"/>
-    
-    <label class="form-lbl">Hora inicio</label>
-    <input class="form-input" id="ee-hora" type="text" value="${e.hora_inicio||""}"/>
-    
-    <label class="form-lbl">Fecha fin</label>
-    <input class="form-input" id="ee-fecha-fin" type="text" value="${e.fecha_fin||e.fecha}"/>
-    
-    <label class="form-lbl">Hora fin</label>
-    <input class="form-input" id="ee-hora-fin" type="text" value="${e.hora_fin||""}"/>
-    
-    <label class="form-lbl">Lugar / Venue</label>
-    <input class="form-input" id="ee-lugar" value="${e.lugar||""}"/>
-    
-    <label class="form-lbl">Descripción</label>
-    <textarea class="form-textarea" id="ee-desc">${e.notas||""}</textarea>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="ee-estado">
-      <option value="borrador" ${e.estado==="borrador"?"selected":""}>Borrador</option>
-      <option value="negociacion" ${e.estado==="negociacion"?"selected":""}>Negociación</option>
-      <option value="preproduccion" ${e.estado==="preproduccion"?"selected":""}>Preproducción</option>
-      <option value="confirmado" ${e.estado==="confirmado"?"selected":""}>Confirmado</option>
-      <option value="produccion" ${e.estado==="produccion"?"selected":""}>En Producción</option>
-      <option value="finalizado" ${e.estado==="finalizado"?"selected":""}>Finalizado</option>
-      <option value="cancelado" ${e.estado==="cancelado"?"selected":""}>Cancelado</option>
-    </select>
-    
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-p btn-full" onclick="actualizarEvento('${e.id}')">Guardar cambios</button>
-      <button class="btn btn-g" onclick="verEvento('${e.id}')">Cancelar</button>
-    </div>`);
-}
-
-async function actualizarEvento(id){
-  const nombre=document.getElementById("ee-nombre").value.trim();
-  const fecha=document.getElementById("ee-fecha").value.trim();
-  const hora=document.getElementById("ee-hora").value.trim()||"00:00";
-  const fechaFin=document.getElementById("ee-fecha-fin").value.trim()||fecha;
-  const horaFin=document.getElementById("ee-hora-fin").value.trim()||"06:00";
-  const lugar=document.getElementById("ee-lugar").value.trim();
-  const desc=document.getElementById("ee-desc").value.trim();
-  const estado=document.getElementById("ee-estado").value;
-  
-  if(!nombre||!fecha){toast("⚠️ Nombre y fecha son obligatorios");return;}
-  
-  const fechaInicio=`${fecha}T${hora}:00`;
-  const fechaFinCompleta=`${fechaFin}T${horaFin}:00`;
-  
-  const parts=lugar.split(",").map(s=>s.trim());
-  const venueNombre=parts[0]||"";
-  const venueCiudad=parts[1]||"";
-  
-  const{error}=await _sb.from('events').update({
-    nombre,
-    fecha_inicio:fechaInicio,
-    fecha_fin:fechaFinCompleta,
-    venue_nombre:venueNombre,
-    venue_ciudad:venueCiudad,
-    descripcion:desc,
-    estado
-  }).eq('id',id);
-  
-  if(error){toast("Error: "+error.message);return;}
-  toast("Evento actualizado ✓");
-  await cargarEventos();
-  closeModal();
-  setTimeout(()=>verEvento(id),200);
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// INVENTARIO (con filtro por organization_id)
-// ══════════════════════════════════════════════════════════════════════════
-
-async function renderInventario(pc){
-  await cargarInventario();
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Inventario</div><div class="page-sub">${INVENTARIO.length} artículos registrados</div></div>
-      ${canAdmin()?`<button class="btn btn-p" onclick="nuevoInventario()">+ Nuevo artículo</button>`:""}
-    </div>
-    <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>Nombre</th><th>Categoría</th><th>Estado</th><th>Ubicación</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${INVENTARIO.length===0?`<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Sin artículos en inventario</td></tr>`:INVENTARIO.map(i=>`
-              <tr>
-                <td style="font-weight:500">${i.nombre}</td>
-                <td>${i.categoria||"—"}</td>
-                <td>${badge(i.estado||"disponible")}</td>
-                <td style="color:var(--muted)">${i.ubicacion||"—"}</td>
-                <td style="text-align:right">
-                  ${canAdmin()?`<button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="editarInventario('${i.id}')">✏️</button>`:""}
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-async function cargarInventario(){
-  try{
-    let query=_sb.from('inventario').select('*').order('nombre');
-    if(userProfile.organization_id){
-      query=query.eq('organization_id',userProfile.organization_id);
-    }
-    const{data}=await query;
-    INVENTARIO=(data||[]).map(i=>({
-      id:i.id,
-      nombre:i.nombre,
-      categoria:i.categoria,
-      estado:i.estado||"disponible",
-      ubicacion:i.ubicacion,
-      notas:i.notas,
-      organization_id:i.organization_id
-    }));
-  }catch(e){INVENTARIO=[];}
-}
-
-function nuevoInventario(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Nuevo Artículo</div>
-    
-    <label class="form-lbl">Nombre *</label>
-    <input class="form-input" id="ni-nombre" placeholder="Ej: Mesa plegable 180x80cm"/>
-    
-    <label class="form-lbl">Categoría</label>
-    <input class="form-input" id="ni-categoria" placeholder="Mobiliario"/>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="ni-estado">
-      <option value="disponible">Disponible</option>
-      <option value="en_uso">En uso</option>
-      <option value="mantenimiento">Mantenimiento</option>
-    </select>
-    
-    <label class="form-lbl">Ubicación</label>
-    <input class="form-input" id="ni-ubicacion" placeholder="Almacén A / Estantería 3"/>
-    
-    <label class="form-lbl">Notas</label>
-    <textarea class="form-textarea" id="ni-notas" placeholder="Observaciones..."></textarea>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevoInventario()">Crear artículo</button>`);
-}
-
-async function guardarNuevoInventario(){
-  const nombre=document.getElementById("ni-nombre").value.trim();
-  const categoria=document.getElementById("ni-categoria").value.trim();
-  const estado=document.getElementById("ni-estado").value;
-  const ubicacion=document.getElementById("ni-ubicacion").value.trim();
-  const notas=document.getElementById("ni-notas").value.trim();
-  
-  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
-  
-  const payload={nombre,categoria,estado,ubicacion,notas};
-  if(userProfile.organization_id){
-    payload.organization_id=userProfile.organization_id;
-  }
-  
-  const{error}=await _sb.from('inventario').insert(payload);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Artículo creado ✓");
-  closeModal();
-  await cargarInventario();
-  renderInventario(document.getElementById("page-content"));
-}
-
-function editarInventario(id){
-  const i=INVENTARIO.find(x=>x.id===id);if(!i)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Editar Artículo</div>
-    
-    <label class="form-lbl">Nombre *</label>
-    <input class="form-input" id="ei-nombre" value="${i.nombre}"/>
-    
-    <label class="form-lbl">Categoría</label>
-    <input class="form-input" id="ei-categoria" value="${i.categoria||""}"/>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="ei-estado">
-      <option value="disponible" ${i.estado==="disponible"?"selected":""}>Disponible</option>
-      <option value="en_uso" ${i.estado==="en_uso"?"selected":""}>En uso</option>
-      <option value="mantenimiento" ${i.estado==="mantenimiento"?"selected":""}>Mantenimiento</option>
-    </select>
-    
-    <label class="form-lbl">Ubicación</label>
-    <input class="form-input" id="ei-ubicacion" value="${i.ubicacion||""}"/>
-    
-    <label class="form-lbl">Notas</label>
-    <textarea class="form-textarea" id="ei-notas">${i.notas||""}</textarea>
-    
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-p btn-full" onclick="actualizarInventario('${i.id}')">Guardar</button>
-      <button class="btn btn-danger" onclick="eliminarInventario('${i.id}')">Eliminar</button>
-    </div>`);
-}
-
-async function actualizarInventario(id){
-  const nombre=document.getElementById("ei-nombre").value.trim();
-  const categoria=document.getElementById("ei-categoria").value.trim();
-  const estado=document.getElementById("ei-estado").value;
-  const ubicacion=document.getElementById("ei-ubicacion").value.trim();
-  const notas=document.getElementById("ei-notas").value.trim();
-  
-  if(!nombre){toast("⚠️ El nombre es obligatorio");return;}
-  
-  const{error}=await _sb.from('inventario').update({nombre,categoria,estado,ubicacion,notas}).eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Artículo actualizado ✓");
-  closeModal();
-  await cargarInventario();
-  renderInventario(document.getElementById("page-content"));
-}
-
-async function eliminarInventario(id){
-  if(!confirm("¿Eliminar este artículo del inventario?"))return;
-  const{error}=await _sb.from('inventario').delete().eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Artículo eliminado ✓");
-  closeModal();
-  await cargarInventario();
-  renderInventario(document.getElementById("page-content"));
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// INCIDENCIAS (con filtro por organization_id)
-// ══════════════════════════════════════════════════════════════════════════
-
-async function renderIncidencias(pc){
-  await cargarIncidencias();
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Incidencias</div><div class="page-sub">${INCIDENCIAS.length} incidencias registradas</div></div>
-      <button class="btn btn-p" onclick="nuevaIncidencia()">+ Nueva incidencia</button>
-    </div>
-    <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>Código</th><th>Material</th><th>Estado</th><th>Fecha</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${INCIDENCIAS.length===0?`<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Sin incidencias registradas</td></tr>`:INCIDENCIAS.map(inc=>`
-              <tr style="cursor:pointer" onclick="verIncidencia('${inc.id}')">
-                <td style="font-family:monospace;color:var(--a3)">${inc.codigo||"—"}</td>
-                <td style="font-weight:500">${inc.material_afectado||"—"}</td>
-                <td>${badge(inc.estado||"abierta")}</td>
-                <td style="color:var(--muted)">${inc.fecha_reporte?new Date(inc.fecha_reporte).toLocaleDateString():"—"}</td>
-                <td style="text-align:right">
-                  <button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-async function cargarIncidencias(){
-  try{
-    let query=_sb.from('incidencias').select('*').order('fecha_reporte',{ascending:false});
-    if(userProfile.organization_id){
-      query=query.eq('organization_id',userProfile.organization_id);
-    }
-    const{data}=await query;
-    INCIDENCIAS=(data||[]).map(i=>({
-      id:i.id,
-      codigo:i.codigo,
-      material_afectado:i.material_afectado,
-      descripcion:i.descripcion,
-      estado:i.estado||"abierta",
-      prioridad:i.prioridad||"media",
-      fecha_reporte:i.fecha_reporte,
-      reportado_por:i.reportado_por,
-      organization_id:i.organization_id
-    }));
-  }catch(e){INCIDENCIAS=[];}
-}
-
-function nuevaIncidencia(){
-  // Cargar inventario para selector
-  cargarInventario().then(()=>{
-    showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-      <div class="modal-title">Nueva Incidencia</div>
-      
-      <label class="form-lbl">Material afectado *</label>
-      <select class="form-select" id="ninc-material">
-        <option value="">-- Selecciona un artículo --</option>
-        ${INVENTARIO.map(i=>`<option value="${i.nombre}">${i.nombre}</option>`).join("")}
-        <option value="OTRO">Otro (generar código genérico)</option>
-      </select>
-      
-      <label class="form-lbl">Descripción *</label>
-      <textarea class="form-textarea" id="ninc-desc" placeholder="Describe el problema..."></textarea>
-      
-      <label class="form-lbl">Prioridad</label>
-      <select class="form-select" id="ninc-prioridad">
-        <option value="baja">Baja</option>
-        <option value="media" selected>Media</option>
-        <option value="alta">Alta</option>
-      </select>
-      
-      <button class="btn btn-p btn-full" onclick="guardarNuevaIncidencia()">Crear incidencia</button>`);
-  });
-}
-
-async function guardarNuevaIncidencia(){
-  const material=document.getElementById("ninc-material").value;
-  const desc=document.getElementById("ninc-desc").value.trim();
-  const prioridad=document.getElementById("ninc-prioridad").value;
-  
-  if(!material||!desc){toast("⚠️ Material y descripción son obligatorios");return;}
-  
-  let codigo="";
-  if(material==="OTRO"){
-    const{data:lastGeneric}=await _sb.from('incidencias').select('codigo').like('codigo','GEN-%').order('codigo',{ascending:false}).limit(1).single();
-    if(lastGeneric){
-      const num=parseInt(lastGeneric.codigo.split("-")[1])||0;
-      codigo=`GEN-${String(num+1).padStart(3,'0')}`;
-    }else{
-      codigo="GEN-001";
-    }
-  }else{
-    const itemInv=INVENTARIO.find(i=>i.nombre===material);
-    codigo=itemInv?itemInv.id.slice(0,8).toUpperCase():"GEN-000";
-  }
-  
-  const payload={
-    codigo,
-    material_afectado:material==="OTRO"?"Material genérico":material,
-    descripcion:desc,
-    estado:"abierta",
-    prioridad,
-    fecha_reporte:new Date().toISOString(),
-    reportado_por:userProfile.nombre
-  };
-  
-  if(userProfile.organization_id){
-    payload.organization_id=userProfile.organization_id;
-  }
-  
-  const{error}=await _sb.from('incidencias').insert(payload);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Incidencia creada ✓");
-  closeModal();
-  await cargarIncidencias();
-  renderIncidencias(document.getElementById("page-content"));
-}
-
-function verIncidencia(id){
-  const inc=INCIDENCIAS.find(x=>x.id===id);if(!inc)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-      <div class="modal-title" style="margin-bottom:0">Incidencia ${inc.codigo}</div>
-      ${badge(inc.estado||"abierta")}
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Material</span>
-      <span style="font-weight:500">${inc.material_afectado||"—"}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Prioridad</span>
-      <span>${inc.prioridad||"media"}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Reportado por</span>
-      <span>${inc.reportado_por||"—"}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Fecha</span>
-      <span>${inc.fecha_reporte?new Date(inc.fecha_reporte).toLocaleDateString():"—"}</span>
-    </div>
-    
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">DESCRIPCIÓN</div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.5">${inc.descripcion||"—"}</div>
-    </div>
-    
-    ${canAdmin()&&inc.estado!=="resuelta"?`
-    <div style="margin-top:20px">
-      <button class="btn btn-p btn-full" onclick="marcarResuelta('${inc.id}')">✓ Marcar como resuelta</button>
-    </div>`:""}
-    
-    <div style="margin-top:12px">
-      <button class="btn btn-g btn-full" onclick="closeModal()">Cerrar</button>
-    </div>
-  `);
-}
-
-async function marcarResuelta(id){
-  const{error}=await _sb.from('incidencias').update({estado:"resuelta"}).eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Incidencia resuelta ✓");
-  closeModal();
-  await cargarIncidencias();
-  renderIncidencias(document.getElementById("page-content"));
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// MENSAJES (sistema simple de mensajería interna)
-// ══════════════════════════════════════════════════════════════════════════
-
-let MENSAJES=[];
-
-async function renderMensajes(pc){
-  await cargarMensajes();
-  
-  const destinatarios=DEMO_EMPLEADOS.filter(e=>e.id!==userProfile._supabase_id);
-  
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Mensajes</div><div class="page-sub">${unreadMsgCount} sin leer</div></div>
-    </div>
-    <div class="card">
-      <div class="chat-container">
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input-bar">
-          <select id="chat-dest">
-            <option value="">Para...</option>
-            ${destinatarios.map(e=>`<option value="${e.id}">${e.nombre}</option>`).join("")}
-          </select>
-          <input id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')enviarMensaje()"/>
-          <button onclick="enviarMensaje()">Enviar</button>
-        </div>
-      </div>
-    </div>`;
-  
-  renderChatMessages();
-}
-
-async function cargarMensajes(){
-  try{
-    const{data}=await _sb.from('mensajes').select('*')
-      .or(`de.eq.${userProfile._supabase_id},para.eq.${userProfile._supabase_id}`)
-      .order('created_at',{ascending:false});
-    MENSAJES=data||[];
-    unreadMsgCount=MENSAJES.filter(m=>m.para===userProfile._supabase_id&&!m.leido).length;
-    actualizarBadgeMensajes();
-  }catch(e){MENSAJES=[];}
-}
-
-function renderChatMessages(){
-  const container=document.getElementById("chat-messages");
-  if(!container)return;
-  
-  const msgs=MENSAJES.slice(0,50).reverse();
-  let lastDate="";
-  let html="";
-  
-  msgs.forEach(m=>{
-    const d=new Date(m.created_at);
-    const dateStr=d.toLocaleDateString();
-    
-    if(dateStr!==lastDate){
-      html+=`<div class="chat-date-sep">${dateStr}</div>`;
-      lastDate=dateStr;
-    }
-    
-    const isMine=m.de===userProfile._supabase_id;
-    const sender=isMine?"Tú":DEMO_EMPLEADOS.find(e=>e.id===m.de)?.nombre||"?";
-    const receiver=isMine?(DEMO_EMPLEADOS.find(e=>e.id===m.para)?.nombre||"?"):"Tú";
-    
-    html+=`
-      <div class="chat-bubble-wrap ${isMine?'mine':'theirs'}">
-        <div class="chat-bubble ${isMine?'mine':'theirs'}">
-          ${!isMine?`<div class="chat-sender">${sender}</div>`:""}
-          <div>${m.contenido}</div>
-          <div class="chat-meta">
-            <span>${d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span>
-            ${isMine?`<span class="chat-dest">→ ${receiver}</span>`:""}
-          </div>
-        </div>
-      </div>`;
-  });
-  
-  container.innerHTML=html||`<div style="text-align:center;color:var(--muted);padding:40px">Sin mensajes aún</div>`;
-  container.scrollTop=container.scrollHeight;
-}
-
-async function enviarMensaje(){
-  const dest=document.getElementById("chat-dest").value;
-  const texto=document.getElementById("chat-input").value.trim();
-  
-  if(!dest||!texto){toast("⚠️ Selecciona destinatario y escribe un mensaje");return;}
-  
-  await _sb.from('mensajes').insert({
-    de:userProfile._supabase_id,
-    para:dest,
-    contenido:texto,
-    leido:false
-  });
-  
-  document.getElementById("chat-input").value="";
-  await cargarMensajes();
-  renderChatMessages();
-}
-
-function actualizarBadgeMensajes(){
-  const badge=document.getElementById("nav-badge-msg");
-  if(badge){
-    if(unreadMsgCount>0){
-      badge.textContent=unreadMsgCount;
-      badge.style.display="block";
-    }else{
-      badge.style.display="none";
-    }
-  }
-}
-
-function activarRealtime(){
-  _sb.channel('mensajes-changes')
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'mensajes'},()=>{
-      if(currentPage==="mensajes"){cargarMensajes().then(renderChatMessages);}
-      else{cargarMensajes();}
-    })
-    .subscribe();
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// AUSENCIAS (Sistema de solicitudes de ausencias)
-// ══════════════════════════════════════════════════════════════════════════
-
-let MIS_AUSENCIAS = [];
-
-async function renderAusencias(pc){
-  await cargarMisAusencias();
-  
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div>
-        <div class="page-title">Mis Ausencias</div>
-        <div class="page-sub">${MIS_AUSENCIAS.length} solicitudes registradas</div>
-      </div>
-      <button class="btn btn-p" onclick="nuevaAusencia()">+ Nueva solicitud</button>
-    </div>
-    
-    <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${MIS_AUSENCIAS.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No tienes solicitudes de ausencia</td></tr>`:MIS_AUSENCIAS.map(a=>`
-              <tr style="cursor:pointer" onclick="verAusencia('${a.id}')">
-                <td>${tipoAusenciaBadge(a.tipo)}</td>
-                <td>${a.fecha_inicio}</td>
-                <td>${a.fecha_fin}</td>
-                <td style="font-weight:600;color:var(--a3)">${a.dias_totales}</td>
-                <td>${badge(a.estado)}</td>
-                <td style="text-align:right">
-                  <button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-async function cargarMisAusencias(){
-  try{
-    const {data} = await _sb.from('ausencias')
-      .select('*')
-      .eq('empleado_id', userProfile._supabase_id)
-      .order('created_at', {ascending: false});
-    
-    MIS_AUSENCIAS = (data || []).map(a => ({
-      id: a.id,
-      tipo: a.tipo,
-      fecha_inicio: a.fecha_inicio,
-      fecha_fin: a.fecha_fin,
-      dias_totales: a.dias_totales || 0,
-      motivo: a.motivo || "",
-      estado: a.estado || "pendiente",
-      observaciones: a.observaciones || ""
-    }));
-  } catch(e){
-    MIS_AUSENCIAS = [];
-  }
-}
-
-function nuevaAusencia(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Nueva Solicitud de Ausencia</div>
-    
-    <label class="form-lbl">Tipo de ausencia *</label>
-    <select class="form-select" id="na-tipo">
-      <option value="vacaciones">🏖️ Vacaciones</option>
-      <option value="libre">📅 Día libre</option>
-      <option value="asunto_personal">📋 Asunto personal</option>
-      <option value="baja_medica">🏥 Baja médica</option>
-      <option value="baja_maternidad">👶 Baja maternidad/paternidad</option>
-    </select>
-    
-    <label class="form-lbl">Fecha inicio *</label>
-    <input class="form-input" id="na-inicio" type="date"/>
-    
-    <label class="form-lbl">Fecha fin *</label>
-    <input class="form-input" id="na-fin" type="date"/>
-    
-    <label class="form-lbl">Motivo</label>
-    <textarea class="form-textarea" id="na-motivo" placeholder="Descripción opcional..."></textarea>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevaAusencia()">Enviar solicitud</button>`);
-}
-
-async function guardarNuevaAusencia(){
-  const tipo = document.getElementById("na-tipo").value;
-  const inicio = document.getElementById("na-inicio").value;
-  const fin = document.getElementById("na-fin").value;
-  const motivo = document.getElementById("na-motivo").value.trim();
-  
-  if(!inicio || !fin){
-    toast("⚠️ Las fechas son obligatorias");
-    return;
-  }
-  
-  // Calcular días entre fechas
-  const d1 = new Date(inicio);
-  const d2 = new Date(fin);
-  const dias = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-  
-  if(dias <= 0){
-    toast("⚠️ La fecha fin debe ser posterior a la de inicio");
-    return;
-  }
-  
-  const payload = {
-    empleado_id: userProfile._supabase_id,
-    empleado_nombre: userProfile.nombre,
-    tipo,
-    fecha_inicio: inicio,
-    fecha_fin: fin,
-    dias_totales: dias,
-    motivo,
-    estado: "pendiente"
-  };
-  
-  if(userProfile.organization_id){
-    payload.organization_id = userProfile.organization_id;
-  }
-  
-  const {error} = await _sb.from('ausencias').insert(payload);
-  if(error){
-    toast("Error: " + error.message);
-    return;
-  }
-  
-  toast("Solicitud enviada ✓");
-  closeModal();
-  await cargarMisAusencias();
-  renderAusencias(document.getElementById("page-content"));
-}
-
-function verAusencia(id){
-  const a = MIS_AUSENCIAS.find(x => x.id === id);
-  if(!a) return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-      <div class="modal-title" style="margin-bottom:0">Solicitud de Ausencia</div>
-      ${badge(a.estado)}
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Tipo</span>
-      <span>${tipoAusenciaBadge(a.tipo)}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Desde</span>
-      <span style="font-weight:600">${a.fecha_inicio}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Hasta</span>
-      <span style="font-weight:600">${a.fecha_fin}</span>
-    </div>
-    
-    <div class="info-row">
-      <span class="info-lbl">Total días</span>
-      <span style="color:var(--a3);font-weight:600">${a.dias_totales}</span>
-    </div>
-    
-    ${a.motivo?`
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">MOTIVO</div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.5">${a.motivo}</div>
-    </div>`:""}
-    
-    ${a.observaciones?`
-    <div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">OBSERVACIONES DE RRHH</div>
-      <div style="font-size:13px">${a.observaciones}</div>
-    </div>`:""}
-    
-    <div style="margin-top:20px">
-      <button class="btn btn-g btn-full" onclick="closeModal()">Cerrar</button>
-    </div>
-  `);
-}
-
-function tipoAusenciaBadge(tipo){
-  const tipos = {
-    vacaciones: '<span class="badge b-green">🏖️ Vacaciones</span>',
-    libre: '<span class="badge b-blue">📅 Día libre</span>',
-    asunto_personal: '<span class="badge b-gray">📋 Asunto personal</span>',
-    baja_medica: '<span class="badge b-orange">🏥 Baja médica</span>',
-    baja_maternidad: '<span class="badge b-pink">👶 Maternidad/Paternidad</span>'
-  };
-  return tipos[tipo] || `<span class="badge b-gray">${tipo}</span>`;
-}
-  
-// ══════════════════════════════════════════════════════════════════════════
-// ADMIN: EMPLEADOS
-// ══════════════════════════════════════════════════════════════════════════
-
-function renderAdmin(pc){
-  if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
-  
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Empleados</div><div class="page-sub">${DEMO_EMPLEADOS.length} personas en el equipo</div></div>
-      <button class="btn btn-p" onclick="nuevoEmpleado()">+ Nuevo empleado</button>
-    </div>
-    <div class="card">
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>Nombre</th><th>Email</th><th>Role</th><th>Dept.</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${DEMO_EMPLEADOS.map(e=>`
-              <tr style="cursor:pointer" onclick="verEmpleado('${e.id}')">
-                <td style="font-weight:500">${e.nombre}</td>
-                <td style="color:var(--muted)">${e.email}</td>
-                <td>${roleBadge(e.role)}</td>
-                <td>${e.dept}</td>
-                <td>${badge(e.estado)}</td>
-                <td style="text-align:right">
-                  <button class="btn btn-g" style="padding:4px 8px;font-size:11px">Ver</button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-function nuevoEmpleado(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Nuevo Empleado</div>
-    
-    <label class="form-lbl">Nombre completo *</label>
-    <input class="form-input" id="nemp-nombre" placeholder="Juan Pérez García"/>
-    
-    <label class="form-lbl">Email *</label>
-    <input class="form-input" id="nemp-email" type="email" placeholder="juan@inoutmedia.es"/>
-    
-    <label class="form-lbl">Departamento</label>
-    <input class="form-input" id="nemp-dept" placeholder="Producción"/>
-    
-    <label class="form-lbl">Role</label>
-    <select class="form-select" id="nemp-role">
-      <option value="empleado">Empleado</option>
-      <option value="manager">Manager</option>
-      <option value="tecnico">Técnico</option>
-      <option value="rrhh">RRHH</option>
-      <option value="admin">Admin</option>
-    </select>
-    
-    <label class="form-lbl">Tipo de contrato</label>
-    <select class="form-select" id="nemp-tipo">
-      <option value="fijo">Fijo</option>
-      <option value="temporal">Temporal</option>
-      <option value="freelance">Freelance</option>
-    </select>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="nemp-estado">
-      <option value="activo">Activo</option>
-      <option value="baja_temporal">Baja temporal</option>
-      <option value="inactivo">Inactivo</option>
-    </select>
-    
-    <label class="form-lbl">Salario base (€/mes)</label>
-    <input class="form-input" id="nemp-salario" type="number" placeholder="2000"/>
-    
-    <label class="form-lbl">IRPF (%)</label>
-    <input class="form-input" id="nemp-irpf" type="number" value="15"/>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevoEmpleado()">Crear empleado</button>`);
-}
-
-async function guardarNuevoEmpleado(){
-  const nombre = document.getElementById("nemp-nombre").value.trim();
-  const email = document.getElementById("nemp-email").value.trim();
-  const dept = document.getElementById("nemp-dept").value.trim();
-  const role = document.getElementById("nemp-role").value;
-  const tipo = document.getElementById("nemp-tipo").value;
-  const estado = document.getElementById("nemp-estado").value;
-  const salario = parseFloat(document.getElementById("nemp-salario").value) || 0;
-  const irpf = parseFloat(document.getElementById("nemp-irpf").value) || 15;
-  
-  if(!nombre || !email){
-    toast("⚠️ Nombre y email son obligatorios");
-    return;
-  }
-  
-  const payload = {
-    nombre,
-    email,
-    departamento: dept,
-    role,
-    tipo,
-    estado,
-    salario_base: salario,
-    irpf,
-    fecha_alta: new Date().toISOString().slice(0, 10)
-  };
-  
-  if(userProfile.organization_id){
-    payload.organization_id = userProfile.organization_id;
-  }
-  
-  const {error} = await _sb.from('empleados').insert(payload);
-  if(error){
-    toast("Error: " + error.message);
-    return;
-  }
-  
-  toast("Empleado creado ✓");
-  closeModal();
-  await cargarEmpleados();
-  renderAdmin(document.getElementById("page-content"));
-}
-
-function verEmpleado(id){
-  const e=DEMO_EMPLEADOS.find(x=>x.id===id);if(!e)return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-      <div class="modal-title" style="margin-bottom:0">${e.nombre}</div>
-      ${badge(e.estado)}
-    </div>
-    
-    <div class="info-row"><span class="info-lbl">Email</span><span>${e.email}</span></div>
-    <div class="info-row"><span class="info-lbl">Departamento</span><span>${e.dept}</span></div>
-    <div class="info-row"><span class="info-lbl">Role</span><span>${roleBadge(e.role)}</span></div>
-    <div class="info-row"><span class="info-lbl">Tipo</span><span>${tipoBadge(e.tipo)}</span></div>
-    <div class="info-row"><span class="info-lbl">Salario base</span><span style="font-weight:600">${e.salario.toLocaleString()}€/mes</span></div>
-    <div class="info-row"><span class="info-lbl">IRPF</span><span style="color:var(--a1)">${e.irpf}%</span></div>
-    <div class="info-row"><span class="info-lbl">Teléfono</span><span>${e.tlf||"—"}</span></div>
-    <div class="info-row"><span class="info-lbl">Fecha alta</span><span>${e.fechaAlta||"—"}</span></div>
-    
-    <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-p btn-full" onclick="editarEmpleado('${e.id}')">✏️ Editar</button>
-      <button class="btn btn-g" onclick="closeModal()">Cerrar</button>
-    </div>`);
-}
-
-function editarEmpleado(id){
-  const e = DEMO_EMPLEADOS.find(x => x.id === id);
-  if(!e) return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Editar Empleado</div>
-    
-    <label class="form-lbl">Nombre completo</label>
-    <input class="form-input" id="eemp-nombre" value="${e.nombre}"/>
-    
-    <label class="form-lbl">Email</label>
-    <input class="form-input" id="eemp-email" value="${e.email}"/>
-    
-    <label class="form-lbl">Departamento</label>
-    <input class="form-input" id="eemp-dept" value="${e.dept}"/>
-    
-    <label class="form-lbl">Role</label>
-    <select class="form-select" id="eemp-role">
-      <option value="empleado" ${e.role==="empleado"?"selected":""}>Empleado</option>
-      <option value="manager" ${e.role==="manager"?"selected":""}>Manager</option>
-      <option value="tecnico" ${e.role==="tecnico"?"selected":""}>Técnico</option>
-      <option value="rrhh" ${e.role==="rrhh"?"selected":""}>RRHH</option>
-      <option value="admin" ${e.role==="admin"?"selected":""}>Admin</option>
-    </select>
-    
-    <label class="form-lbl">Tipo de contrato</label>
-    <select class="form-select" id="eemp-tipo">
-      <option value="fijo" ${e.tipo==="fijo"?"selected":""}>Fijo</option>
-      <option value="temporal" ${e.tipo==="temporal"?"selected":""}>Temporal</option>
-      <option value="freelance" ${e.tipo==="freelance"?"selected":""}>Freelance</option>
-    </select>
-    
-    <label class="form-lbl">Estado</label>
-    <select class="form-select" id="eemp-estado">
-      <option value="activo" ${e.estado==="activo"?"selected":""}>Activo</option>
-      <option value="baja_temporal" ${e.estado==="baja_temporal"?"selected":""}>Baja temporal</option>
-      <option value="inactivo" ${e.estado==="inactivo"?"selected":""}>Inactivo</option>
-    </select>
-    
-    <label class="form-lbl">Salario base (€/mes)</label>
-    <input class="form-input" id="eemp-salario" type="number" value="${e.salario}"/>
-    
-    <label class="form-lbl">IRPF (%)</label>
-    <input class="form-input" id="eemp-irpf" type="number" value="${e.irpf}"/>
-    
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-p btn-full" onclick="actualizarEmpleado('${e.id}')">Guardar</button>
-      <button class="btn btn-g" onclick="verEmpleado('${e.id}')">Cancelar</button>
-    </div>`);
-}
-
-async function actualizarEmpleado(id){
-  const nombre = document.getElementById("eemp-nombre").value.trim();
-  const email = document.getElementById("eemp-email").value.trim();
-  const dept = document.getElementById("eemp-dept").value.trim();
-  const role = document.getElementById("eemp-role").value;
-  const tipo = document.getElementById("eemp-tipo").value;
-  const estado = document.getElementById("eemp-estado").value;
-  const salario = parseFloat(document.getElementById("eemp-salario").value) || 0;
-  const irpf = parseFloat(document.getElementById("eemp-irpf").value) || 15;
-  
-  const {error} = await _sb.from('empleados').update({
-    nombre,
-    email,
-    departamento: dept,
-    role,
-    tipo,
-    estado,
-    salario_base: salario,
-    irpf
-  }).eq('id', id);
-  
-  if(error){
-    toast("Error: " + error.message);
-    return;
-  }
-  
-  toast("Empleado actualizado ✓");
-  closeModal();
-  await cargarEmpleados();
-  setTimeout(() => verEmpleado(id), 200);
-}
-// ══════════════════════════════════════════════════════════════════════════
-// ADMIN: CAMBIAR IRPF (para un empleado)
-// ══════════════════════════════════════════════════════════════════════════
-
-function renderAdminIRPF(pc){
-  if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
-  
-  pc.innerHTML=`
-    <div class="page-hd"><div class="page-title">Cambiar IRPF</div></div>
-    <div class="card">
-      <div class="card-title">Selecciona empleado</div>
-      <select class="form-select" id="irpf-empleado" onchange="mostrarIRPFEmpleado()">
-        <option value="">-- Selecciona --</option>
-        ${DEMO_EMPLEADOS.map(e=>`<option value="${e.id}">${e.nombre} (${e.irpf}%)</option>`).join("")}
-      </select>
-      <div id="irpf-editor"></div>
-    </div>`;
-}
-
-function mostrarIRPFEmpleado(){
-  const id=document.getElementById("irpf-empleado").value;
-  if(!id){document.getElementById("irpf-editor").innerHTML="";return;}
-  
-  const e=DEMO_EMPLEADOS.find(x=>x.id===id);
-  if(!e)return;
-  
-  document.getElementById("irpf-editor").innerHTML=`
-    <div style="text-align:center;padding:30px 0">
-      <div class="irpf-big" id="irpf-emp-display">${e.irpf}%</div>
-      <div style="color:var(--muted);font-size:12px;margin:6px 0 20px">Retención actual</div>
-      <input type="range" min="2" max="45" value="${e.irpf}" id="irpf-emp-slider" oninput="document.getElementById('irpf-emp-display').textContent=this.value+'%'"/>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>2%</span><span>45%</span></div>
-    </div>
-    <button class="btn btn-p btn-full" onclick="guardarIRPFEmpleado('${e.id}')">Actualizar IRPF</button>`;
-}
-
-async function guardarIRPFEmpleado(id){
-  const nuevoIRPF=parseInt(document.getElementById("irpf-emp-slider").value);
-  const{error}=await _sb.from('empleados').update({irpf:nuevoIRPF}).eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("IRPF actualizado ✓");
-  await cargarEmpleados();
-  renderAdminIRPF(document.getElementById("page-content"));
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// ADMIN: NÓMINAS DEL EQUIPO
-// ══════════════════════════════════════════════════════════════════════════
-
-function renderAdminNominas(pc){
-  if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
-  
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div><div class="page-title">Nóminas del Equipo</div></div>
-      <button class="btn btn-p" onclick="generarNominaEquipo()">+ Generar nóminas</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Historial de nóminas generadas</div>
-      <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">
-        Funcionalidad de generación masiva de nóminas disponible próximamente.
-      </div>
-    </div>`;
-}
-
-function generarNominaEquipo(){
-  const mesActual=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long'});
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Generar Nóminas</div>
-    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">Esto generará nóminas para todos los empleados activos del mes actual.</div>
-    
-    <label class="form-lbl">Mes</label>
-    <input class="form-input" id="gn-mes" value="${mesActual}" placeholder="Enero 2025"/>
-    
-    <div style="padding:14px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:16px">
-      <div style="font-size:12px;color:var(--muted)">Se generarán nóminas para <strong style="color:var(--a1)">${DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.tipo==="fijo").length} empleados</strong> con contrato fijo.</div>
-    </div>
-    
-    <button class="btn btn-p btn-full" onclick="ejecutarGeneracionNominas()">Generar nóminas</button>`);
-}
-
-async function ejecutarGeneracionNominas(){
-  const mes=document.getElementById("gn-mes").value.trim();
-  if(!mes){toast("⚠️ Indica el mes");return;}
-  
-  const empleadosFijos=DEMO_EMPLEADOS.filter(e=>e.estado==="activo"&&e.tipo==="fijo");
-  
-  for(const emp of empleadosFijos){
-    const bruto=emp.salario||0;
-    const irpf=emp.irpf||15;
-    const ret=Math.round(bruto*irpf/100);
-    const ss=160;
-    const neto=bruto-ret-ss;
-    
-    await _sb.from('nominas').insert({
-      empleado_id:emp.id,
-      empleado_nombre:emp.nombre,
-      mes,
-      bruto,
-      irpf,
-      retencion:ret,
-      ss,
-      neto,
-      estado:"pendiente",
-      generado_por:userProfile.nombre
-    });
-  }
-  
-  toast(`${empleadosFijos.length} nóminas generadas ✓`);
-  closeModal();
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// ADMIN: GESTIÓN DE TURNOS + APROBACIÓN DE AUSENCIAS (3 PESTAÑAS)
-// ══════════════════════════════════════════════════════════════════════════
-
-let AUSENCIAS_PENDIENTES = [];
-let AUSENCIAS_APROBADAS = [];
-let vistaAdminTurnos = "turnos"; // "turnos" | "ausencias-pendientes" | "ausencias-aprobadas"
-
-async function renderAdminTurnos(pc){
-  if(!canAdmin()){toast("⛔ Sin acceso");navigate("dashboard");return;}
-  
-  await cargarTodosLosTurnos();
-  await cargarAusenciasPendientes();
-  await cargarAusenciasAprobadas();
-  
-  pc.innerHTML=`
-    <div class="page-hd">
-      <div>
-        <div class="page-title">Gestión de Turnos</div>
-        <div class="page-sub">${TURNOS_EQUIPO.length} turnos · ${AUSENCIAS_PENDIENTES.length} pendientes · ${AUSENCIAS_APROBADAS.length} aprobadas</div>
-      </div>
-      <button class="btn btn-p" onclick="nuevoTurno()">+ Asignar turno</button>
-    </div>
-    
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn ${vistaAdminTurnos==="turnos"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('turnos')" style="flex:1">
-        📅 Turnos (${TURNOS_EQUIPO.length})
-      </button>
-      <button class="btn ${vistaAdminTurnos==="ausencias-pendientes"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-pendientes')" style="flex:1">
-        ⏳ Pendientes (${AUSENCIAS_PENDIENTES.length})
-      </button>
-      <button class="btn ${vistaAdminTurnos==="ausencias-aprobadas"?"btn-p":"btn-g"}" onclick="cambiarVistaAdminTurnos('ausencias-aprobadas')" style="flex:1">
-        ✓ Aprobadas (${AUSENCIAS_APROBADAS.length})
-      </button>
-    </div>
-    
-    <div id="admin-turnos-content"></div>`;
-  
-  renderVistaAdminTurnos();
-}
-
-function cambiarVistaAdminTurnos(vista){
-  vistaAdminTurnos = vista;
-  renderVistaAdminTurnos();
-}
-
-function renderVistaAdminTurnos(){
-  const container = document.getElementById("admin-turnos-content");
-  if(!container) return;
-  
-  if(vistaAdminTurnos === "turnos"){
-    container.innerHTML = `
-      <div class="card">
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Empleado</th><th>Fecha</th><th>Tipo</th><th>Horario</th><th>Lugar</th><th></th></tr>
-            </thead>
-            <tbody>
-              ${TURNOS_EQUIPO.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">Sin turnos asignados</td></tr>`:TURNOS_EQUIPO.slice(0,50).map(t=>`
-                <tr>
-                  <td style="font-weight:500">${t.empleadoNombre}</td>
-                  <td>${t.fecha}</td>
-                  <td><span style="width:8px;height:8px;border-radius:50%;background:${t.tipo==="evento"?"var(--a2)":t.tipo==="rodaje"?"var(--a1)":t.tipo==="libre"?"var(--muted)":"var(--a3)"};display:inline-block;margin-right:6px"></span>${t.tipo}</td>
-                  <td style="color:var(--muted)">${t.tipo==="libre"?"—":`${t.entrada}–${t.salida}`}</td>
-                  <td style="color:var(--muted)">${t.lugar||"—"}</td>
-                  <td style="text-align:right">
-                    <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="eliminarTurno('${t.id}')">✕</button>
-                  </td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
-  } else if(vistaAdminTurnos === "ausencias-pendientes") {
-    container.innerHTML = `
-      <div class="card">
-        <div class="card-title">Solicitudes pendientes de aprobación</div>
-        ${AUSENCIAS_PENDIENTES.length===0?`<div style="text-align:center;color:var(--muted);padding:30px">Sin solicitudes pendientes</div>`:`
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Motivo</th><th></th></tr>
-            </thead>
-            <tbody>
-              ${AUSENCIAS_PENDIENTES.map(a=>`
-                <tr>
-                  <td style="font-weight:500">${a.empleado_nombre}</td>
-                  <td>${tipoAusenciaBadge(a.tipo)}</td>
-                  <td>${a.fecha_inicio}</td>
-                  <td>${a.fecha_fin}</td>
-                  <td style="font-weight:600;color:var(--a3)">${a.dias_totales}</td>
-                  <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.motivo||"—"}</td>
-                  <td style="text-align:right">
-                    <div style="display:flex;gap:4px;justify-content:flex-end">
-                      <button class="btn btn-p" style="padding:4px 8px;font-size:11px" onclick="aprobarAusencia('${a.id}')">✓</button>
-                      <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="rechazarAusencia('${a.id}')">✕</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>`}
-      </div>`;
-  } else {
-    container.innerHTML = `
-      <div class="card">
-        <div class="card-title">Ausencias aprobadas</div>
-        ${AUSENCIAS_APROBADAS.length===0?`<div style="text-align:center;color:var(--muted);padding:30px">Sin ausencias aprobadas</div>`:`
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Observaciones</th></tr>
-            </thead>
-            <tbody>
-              ${AUSENCIAS_APROBADAS.map(a=>`
-                <tr>
-                  <td style="font-weight:500">${a.empleado_nombre}</td>
-                  <td>${tipoAusenciaBadge(a.tipo)}</td>
-                  <td>${a.fecha_inicio}</td>
-                  <td>${a.fecha_fin}</td>
-                  <td style="font-weight:600;color:var(--a1)">${a.dias_totales}</td>
-                  <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${a.observaciones||"—"}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>`}
-      </div>`;
-  }
-}
-
-async function cargarAusenciasPendientes(){
-  try{
-    let query = _sb.from('ausencias')
-      .select('*')
-      .eq('estado', 'pendiente')
-      .order('created_at', {ascending: false});
-    
-    if(userProfile.organization_id){
-      query = query.eq('organization_id', userProfile.organization_id);
-    }
-    
-    const {data} = await query;
-    AUSENCIAS_PENDIENTES = data || [];
-  } catch(e){
-    AUSENCIAS_PENDIENTES = [];
-  }
-}
-
-async function cargarAusenciasAprobadas(){
-  try{
-    let query = _sb.from('ausencias')
-      .select('*')
-      .eq('estado', 'aprobada')
-      .order('fecha_inicio', {ascending: false});
-    
-    if(userProfile.organization_id){
-      query = query.eq('organization_id', userProfile.organization_id);
-    }
-    
-    const {data} = await query;
-    AUSENCIAS_APROBADAS = data || [];
-  } catch(e){
-    AUSENCIAS_APROBADAS = [];
-  }
-}
-
-async function aprobarAusencia(id){
-  const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
-  if(!ausencia) return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Aprobar Ausencia</div>
-    
-    <div style="padding:14px;background:var(--bg);border-radius:9px;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">EMPLEADO</div>
-      <div style="font-weight:600">${ausencia.empleado_nombre}</div>
-      
-      <div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">TIPO</div>
-      <div>${tipoAusenciaBadge(ausencia.tipo)}</div>
-      
-      <div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">PERÍODO</div>
-      <div>${ausencia.fecha_inicio} → ${ausencia.fecha_fin} <span style="color:var(--a3);font-weight:600">(${ausencia.dias_totales} días)</span></div>
-      
-      ${ausencia.motivo?`<div style="font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:8px">MOTIVO</div><div style="color:var(--muted)">${ausencia.motivo}</div>`:""}
-    </div>
-    
-    <label class="form-lbl">Observaciones (opcional)</label>
-    <textarea class="form-textarea" id="obs-aprobar" placeholder="Notas para el empleado..."></textarea>
-    
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-p btn-full" onclick="confirmarAprobarAusencia('${id}')">✓ Aprobar</button>
-      <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
-    </div>`);
-}
-
-async function confirmarAprobarAusencia(id){
-  const observaciones = document.getElementById("obs-aprobar").value.trim();
-  
-  const {error} = await _sb.from('ausencias').update({
-    estado: "aprobada",
-    aprobado_por: userProfile._supabase_id,
-    observaciones: observaciones || null
-  }).eq('id', id);
-  
-  if(error){
-    toast("Error: " + error.message);
-    return;
-  }
-  
-  toast("Ausencia aprobada ✓");
-  closeModal();
-  await cargarAusenciasPendientes();
-  await cargarAusenciasAprobadas();
-  renderVistaAdminTurnos();
-}
-
-async function rechazarAusencia(id){
-  const ausencia = AUSENCIAS_PENDIENTES.find(a => a.id === id);
-  if(!ausencia) return;
-  
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Rechazar Ausencia</div>
-    
-    <div style="padding:14px;background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);border-radius:9px;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--a2);margin-bottom:8px">⚠️ VAS A RECHAZAR ESTA SOLICITUD</div>
-      <div style="font-weight:600">${ausencia.empleado_nombre}</div>
-      <div style="font-size:13px;margin-top:4px">${ausencia.fecha_inicio} → ${ausencia.fecha_fin} (${ausencia.dias_totales} días)</div>
-    </div>
-    
-    <label class="form-lbl">Motivo del rechazo *</label>
-    <textarea class="form-textarea" id="obs-rechazar" placeholder="Explica el motivo del rechazo..."></textarea>
-    
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-danger btn-full" onclick="confirmarRechazarAusencia('${id}')">✕ Rechazar</button>
-      <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
-    </div>`);
-}
-
-async function confirmarRechazarAusencia(id){
-  const observaciones = document.getElementById("obs-rechazar").value.trim();
-  
-  if(!observaciones){
-    toast("⚠️ Debes explicar el motivo del rechazo");
-    return;
-  }
-  
-  const {error} = await _sb.from('ausencias').update({
-    estado: "rechazada",
-    aprobado_por: userProfile._supabase_id,
-    observaciones
-  }).eq('id', id);
-  
-  if(error){
-    toast("Error: " + error.message);
-    return;
-  }
-  
-  toast("Ausencia rechazada");
-  closeModal();
-  await cargarAusenciasPendientes();
-  renderVistaAdminTurnos();
-}
-
-function nuevoTurno(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Asignar Turno</div>
-    
-    <label class="form-lbl">Empleado *</label>
-    <select class="form-select" id="nt-empleado">
-      <option value="">-- Selecciona --</option>
-      ${DEMO_EMPLEADOS.filter(e=>e.estado==="activo").map(e=>`<option value="${e.id}">${e.nombre}</option>`).join("")}
-    </select>
-    
-    <label class="form-lbl">Fecha *</label>
-    <input class="form-input" id="nt-fecha" type="text" placeholder="2025-06-15"/>
-    
-    <label class="form-lbl">Tipo de turno</label>
-    <select class="form-select" id="nt-tipo">
-      <option value="oficina">Oficina</option>
-      <option value="evento">Evento</option>
-      <option value="rodaje">Rodaje</option>
-      <option value="libre">Día libre</option>
-    </select>
-    
-    <label class="form-lbl">Hora entrada</label>
-    <input class="form-input" id="nt-entrada" type="text" placeholder="09:00"/>
-    
-    <label class="form-lbl">Hora salida</label>
-    <input class="form-input" id="nt-salida" type="text" placeholder="18:00"/>
-    
-    <label class="form-lbl">Lugar / Notas</label>
-    <input class="form-input" id="nt-lugar" placeholder="Oficina central / Nombre del evento"/>
-    
-    <button class="btn btn-p btn-full" onclick="guardarNuevoTurno()">Asignar turno</button>`);
-}
-
-async function guardarNuevoTurno(){
-  const empId=document.getElementById("nt-empleado").value;
-  const fecha=document.getElementById("nt-fecha").value.trim();
-  const tipo=document.getElementById("nt-tipo").value;
-  const entrada=document.getElementById("nt-entrada").value.trim();
-  const salida=document.getElementById("nt-salida").value.trim();
-  const lugar=document.getElementById("nt-lugar").value.trim();
-  
-  if(!empId||!fecha){toast("⚠️ Empleado y fecha son obligatorios");return;}
-  
-  const emp=DEMO_EMPLEADOS.find(e=>e.id===empId);
-  if(!emp)return;
-  
-  const{error}=await _sb.from('turnos').insert({
-    empleado_id:empId,
-    empleado_nombre:emp.nombre,
-    fecha,
-    tipo,
-    hora_inicio:entrada,
-    hora_fin:salida,
-    notas:lugar
-  });
-  
-  if(error){toast("Error: "+error.message);return;}
-  toast("Turno asignado ✓");
-  closeModal();
-  await cargarTodosLosTurnos();
-  renderAdminTurnos(document.getElementById("page-content"));
-}
-
-async function eliminarTurno(id){
-  if(!confirm("¿Eliminar este turno?"))return;
-  const{error}=await _sb.from('turnos').delete().eq('id',id);
-  if(error){toast("Error: "+error.message);return;}
-  toast("Turno eliminado ✓");
-  await cargarTodosLosTurnos();
-  renderAdminTurnos(document.getElementById("page-content"));
-}
-// ══════════════════════════════════════════════════════════════════════════
-// GENERACIÓN DE PDFs
-// ══════════════════════════════════════════════════════════════════════════
-
-function generarPDFNomina(nominaId){
-  const n=DEMO_NOMINAS.find(x=>x.id===nominaId);
-  if(!n)return;
-  
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  
-  // Encabezado
-  doc.setFontSize(20);
-  doc.setTextColor(200,255,0);
-  doc.text("InOut Media",20,20);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(100,100,100);
-  doc.text("Portal Noctua",20,27);
-  
-  // Título
-  doc.setFontSize(16);
-  doc.setTextColor(0,0,0);
-  doc.text("NÓMINA",20,45);
-  
-  // Info empleado
-  doc.setFontSize(11);
-  doc.text(`Empleado: ${n.empleadoNombre||userProfile.nombre}`,20,60);
-  doc.text(`Mes: ${n.mes}`,20,67);
-  doc.text(`Fecha emisión: ${new Date().toLocaleDateString()}`,20,74);
-  
-  // Línea divisoria
-  doc.setDrawColor(200);
-  doc.line(20,80,190,80);
-  
-  // Conceptos
-  let y=90;
-  doc.setFontSize(10);
-  doc.setTextColor(100,100,100);
-  doc.text("CONCEPTO",20,y);
-  doc.text("IMPORTE",160,y);
-  
-  y+=10;
-  doc.setTextColor(0,0,0);
-  doc.text("Salario bruto",20,y);
-  doc.text(`${(n.bruto||0).toLocaleString()} €`,160,y);
-  
-  y+=8;
-  doc.setTextColor(255,60,172);
-  doc.text(`IRPF (${n.irpf||15}%)`,20,y);
-  doc.text(`-${Math.round((n.bruto||0)*(n.irpf||15)/100)} €`,160,y);
-  
-  y+=8;
-  doc.text("Seguridad Social",20,y);
-  doc.text(`-${n.ss||160} €`,160,y);
-  
-  // Total
-  doc.setDrawColor(200);
-  doc.line(20,y+5,190,y+5);
-  
-  y+=15;
-  doc.setFontSize(12);
-  doc.setTextColor(0,0,0);
-  doc.text("NETO A PERCIBIR",20,y);
-  doc.setTextColor(200,255,0);
-  doc.setFontSize(14);
-  doc.text(`${(n.neto||0).toLocaleString()} €`,160,y);
-  
-  // Pie
-  doc.setFontSize(9);
-  doc.setTextColor(150,150,150);
-  doc.text("Documento generado automáticamente por el sistema InOut Media",20,280);
-  
-  doc.save(`nomina_${n.mes.replace(/\s+/g,'_')}.pdf`);
-  toast("PDF descargado ✓");
-}
-
-function generarCertificadoRetenciones(){
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  
-  const año=new Date().getFullYear()-1;
-  const totalBruto=DEMO_NOMINAS.reduce((sum,n)=>sum+(n.bruto||0),0);
-  const totalRetenido=DEMO_NOMINAS.reduce((sum,n)=>sum+(n.retencion||0),0);
-  
-  // Encabezado
-  doc.setFontSize(20);
-  doc.setTextColor(200,255,0);
-  doc.text("InOut Media",20,20);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(100,100,100);
-  doc.text("CIF: B-12345678",20,27);
-  doc.text("C/ Ejemplo, 123, 28001 Madrid",20,32);
-  
-  // Título
-  doc.setFontSize(16);
-  doc.setTextColor(0,0,0);
-  doc.text(`CERTIFICADO DE RETENCIONES ${año}`,20,50);
-  
-  // Datos empleado
-  doc.setFontSize(11);
-  doc.text(`Empleado: ${userProfile.nombre}`,20,65);
-  doc.text(`NIF: —`,20,72);
-  doc.text(`Email: ${userProfile.email}`,20,79);
-  
-  // Línea
-  doc.setDrawColor(200);
-  doc.line(20,90,190,90);
-  
-  // Resumen
-  let y=105;
-  doc.setFontSize(10);
-  doc.setTextColor(100,100,100);
-  doc.text("CONCEPTO",20,y);
-  doc.text("IMPORTE",160,y);
-  
-  y+=10;
-  doc.setTextColor(0,0,0);
-  doc.text("Total retribuciones dinerarias",20,y);
-  doc.text(`${totalBruto.toLocaleString()} €`,160,y);
-  
-  y+=8;
-  doc.setTextColor(255,60,172);
-  doc.text("Total retenciones practicadas",20,y);
-  doc.text(`${totalRetenido.toLocaleString()} €`,160,y);
-  
-  // Detalle mensual
-  y+=15;
-  doc.setFontSize(9);
-  doc.setTextColor(100,100,100);
-  doc.text("DETALLE MENSUAL",20,y);
-  
-  y+=8;
-  DEMO_NOMINAS.slice(0,12).forEach(n=>{
-    doc.setTextColor(0,0,0);
-    doc.text(n.mes,20,y);
-    doc.text(`${(n.bruto||0).toLocaleString()} €`,120,y);
-    doc.text(`${(n.retencion||0).toLocaleString()} €`,160,y);
-    y+=6;
-  });
-  
-  // Firma
-  doc.setFontSize(10);
-  doc.setTextColor(0,0,0);
-  doc.text("El responsable de RRHH",20,260);
-  doc.text("_______________________",20,270);
-  
-  doc.setFontSize(9);
-  doc.setTextColor(150,150,150);
-  doc.text(`Madrid, ${new Date().toLocaleDateString()}`,20,280);
-  
-  doc.save(`certificado_retenciones_${año}.pdf`);
-  toast("Certificado descargado ✓");
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// ACTUALIZACIÓN DEL ROUTER (añadir las páginas que faltaban)
-// ══════════════════════════════════════════════════════════════════════════
-
-// Reemplazar la función navigate() original con esta versión completa:
-function navigate(page){
-  const adminPages=["admin","admin-irpf","admin-nominas","admin-turnos"];
-  if(adminPages.includes(page)&&!canAdmin()){toast("⛔ Sin acceso");page="dashboard";}
-  const extPages=["dashboard","perfil","mensajes"];
-  if(userProfile?.role==="empresa_externa"&&!extPages.includes(page)){toast("⛔ Sin acceso");page="dashboard";}
-  currentPage=page;window.location.hash=page;
-  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
-  document.getElementById(`nav-${page}`)?.classList.add("active");
-  document.getElementById("topbar-title").textContent=PAGE_TITLE[page]||page;
-  closeSidebar();
-  const pc=document.getElementById("page-content");pc.scrollTop=0;
-  
- const routes = {
-  dashboard,
-  perfil: renderPerfil,
-  nominas: renderNominas,
-  retribuciones: renderRetribuciones,
-  calendario: renderCalendario,
-  ausencias: renderAusencias, // ← NUEVO
-  eventos: renderEventos,
-  inventario: renderInventario,
-  incidencias: renderIncidencias,
-  mensajes: renderMensajes,
-  admin: renderAdmin,
-  "admin-irpf": renderAdminIRPF,
-  "admin-nominas": renderAdminNominas,
-  "admin-turnos": renderAdminTurnos
-};
-  
-  if(routes[page]){
-    routes[page](pc);
-  }else{
-    pc.innerHTML=`<div class="card"><div style="text-align:center;padding:40px;color:var(--muted)">Página "${page}" en desarrollo</div></div>`;
-  }
-}
-
 </script>
 </body>
 </html>

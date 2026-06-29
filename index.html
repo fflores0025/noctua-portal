@@ -38,6 +38,18 @@
         <span style="font-size:12px;color:var(--a3);cursor:pointer;text-decoration:underline" onclick="mostrarPanelLogin()">← Volver al inicio</span>
       </div>
     </div>
+
+    <!-- PANEL NUEVA CONTRASEÑA — se muestra al llegar desde el email de recovery -->
+    <div id="panel-nueva-pass" style="display:none">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;">InOut<span style="color:var(--a1)">.</span></div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Elige tu nueva contraseña</div>
+      <div id="nueva-pass-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+      <label class="form-lbl">Nueva contraseña</label>
+      <input class="form-input" id="nueva-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+      <label class="form-lbl">Confirmar contraseña</label>
+      <input class="form-input" id="nueva-pass-confirm" type="password" placeholder="Repite la contraseña" autocomplete="new-password"/>
+      <button class="btn btn-p btn-full" id="nueva-pass-btn" onclick="guardarNuevaPassword()" style="font-size:15px;padding:12px">Guardar contraseña</button>
+    </div>
   </div>
 </div>
 
@@ -463,22 +475,66 @@ async function enviarResetEmail() {
   msg.textContent='✅ Si el email está registrado, recibirás un enlace en tu bandeja de entrada.';
 }
 
-// ── AUTO-LOGIN ──
-;(async function() {
-  // Detectar recovery token (iOS Safari fix)
-  const hash = window.location.hash;
-  if (hash.includes('type=recovery') && hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.replace('#',''));
-    const token  = params.get('access_token');
-    const refresh = params.get('refresh_token');
-    if (token && refresh) {
-      await supabase.auth.setSession({ access_token: token, refresh_token: refresh });
-      window.location.hash = '';
-    }
+// ── GUARDAR NUEVA CONTRASEÑA (desde email de recovery) ──
+async function guardarNuevaPassword() {
+  const np  = document.getElementById('nueva-pass').value;
+  const npc = document.getElementById('nueva-pass-confirm').value;
+  const msg = document.getElementById('nueva-pass-msg');
+
+  const showMsg = (txt, ok) => {
+    msg.style.cssText = `display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;background:${ok?'rgba(200,255,0,.08)':'rgba(255,60,172,.1)'};border:1px solid ${ok?'rgba(200,255,0,.2)':'rgba(255,60,172,.2)'};color:${ok?'var(--a1)':'var(--a2)'};`;
+    msg.textContent = txt;
+  };
+
+  if (np !== npc)   { showMsg('⚠️ Las contraseñas no coinciden', false); return; }
+  if (np.length < 6){ showMsg('⚠️ Mínimo 6 caracteres', false); return; }
+
+  const btn = document.getElementById('nueva-pass-btn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  const { error } = await supabase.auth.updateUser({ password: np });
+  if (error) {
+    showMsg('Error: ' + error.message, false);
+    btn.disabled = false; btn.textContent = 'Guardar contraseña';
     return;
   }
+
+  showMsg('✅ Contraseña actualizada. Redirigiendo…', true);
+  setTimeout(async () => {
+    // Entrar a la app con la nueva sesión
+    await checkSession(enterApp, () => {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('panel-nueva-pass').style.display = 'none';
+      document.getElementById('panel-login').style.display = 'block';
+    });
+  }, 1500);
+}
+
+// ── AUTO-LOGIN ──
+;(async function() {
+  // Detectar recovery token en el hash (viene del email de Supabase)
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery') && hash.includes('access_token')) {
+    const params  = new URLSearchParams(hash.replace('#', ''));
+    const token   = params.get('access_token');
+    const refresh = params.get('refresh_token');
+
+    if (token && refresh) {
+      // Establecer sesión con el token del email
+      const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: refresh });
+      // Limpiar el hash para que no se vuelva a procesar
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    // Mostrar panel de nueva contraseña
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('panel-login').style.display = 'none';
+    document.getElementById('panel-reset').style.display = 'none';
+    document.getElementById('panel-nueva-pass').style.display = 'block';
+    return;
+  }
+
   await checkSession(enterApp, () => {
-    // Sin sesión — mostrar login
     document.getElementById('login-screen').style.display = 'flex';
   });
 })();

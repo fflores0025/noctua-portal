@@ -500,6 +500,7 @@ async function guardarNuevaPassword() {
   }
 
   showMsg('✅ Contraseña actualizada. Redirigiendo…', true);
+  window._recoveryMode = false;
   setTimeout(async () => {
     // Entrar a la app con la nueva sesión
     await checkSession(enterApp, () => {
@@ -512,19 +513,23 @@ async function guardarNuevaPassword() {
 
 // ── AUTO-LOGIN ──
 ;(async function() {
-  // Detectar recovery token en el hash (viene del email de Supabase)
+  // Detectar recovery token en el hash (viene del redirect de Supabase)
   const hash = window.location.hash;
-  if (hash.includes('type=recovery') && hash.includes('access_token')) {
+  const isRecovery = hash.includes('type=recovery') && hash.includes('access_token');
+
+  if (isRecovery) {
+    window._recoveryMode = true; // bloquear hashchange
+
     const params  = new URLSearchParams(hash.replace('#', ''));
     const token   = params.get('access_token');
     const refresh = params.get('refresh_token');
 
     if (token && refresh) {
-      // Establecer sesión con el token del email
-      const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: refresh });
-      // Limpiar el hash para que no se vuelva a procesar
-      history.replaceState(null, '', window.location.pathname);
+      await supabase.auth.setSession({ access_token: token, refresh_token: refresh });
     }
+
+    // Limpiar hash sin recargar ni disparar hashchange
+    history.replaceState(null, '', window.location.pathname);
 
     // Mostrar panel de nueva contraseña
     document.getElementById('login-screen').style.display = 'flex';
@@ -534,6 +539,18 @@ async function guardarNuevaPassword() {
     return;
   }
 
+  // También capturar via onAuthStateChange por si el token llega tarde
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      window._recoveryMode = true;
+      history.replaceState(null, '', window.location.pathname);
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('panel-login').style.display = 'none';
+      document.getElementById('panel-reset').style.display = 'none';
+      document.getElementById('panel-nueva-pass').style.display = 'block';
+    }
+  });
+
   await checkSession(enterApp, () => {
     document.getElementById('login-screen').style.display = 'flex';
   });
@@ -541,6 +558,7 @@ async function guardarNuevaPassword() {
 
 initModal();
 window.addEventListener('hashchange', () => {
+  if (window._recoveryMode) return; // bloquear durante recovery
   const h = window.location.hash.replace('#','');
   if (h && h !== 'dashboard' && userProfile) irA(h);
 });

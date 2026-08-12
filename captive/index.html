@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Wi-Fi Staff · InOut Media</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#07070f;--card:#111120;--border:#1c1c2e;--a1:#c8ff00;--a2:#ff3cac;--txt:#e6e6f0;--muted:#60607a;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--txt);background:var(--bg);}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background-image:radial-gradient(ellipse 60% 40% at 50% -5%,rgba(200,255,0,.09) 0%,transparent 65%),
+                    radial-gradient(ellipse 40% 30% at 85% 85%,rgba(255,60,172,.07) 0%,transparent 55%);}
+.box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:6px;}
+.logo span{color:var(--a1);}
+.sub{color:var(--muted);font-size:13px;margin-bottom:26px;line-height:1.4;}
+.lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
+.inp{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;
+  color:var(--txt);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;margin-bottom:14px;}
+.inp:focus{border-color:var(--a1);}
+.btn{width:100%;padding:12px;border-radius:9px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:500;background:var(--a1);color:#000;transition:background .15s;}
+.btn:hover{background:#d4ff20;}
+.btn:disabled{opacity:.6;cursor:default;}
+.msg{display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;line-height:1.4;}
+.msg-err{background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2);color:var(--a2);}
+.msg-ok{background:rgba(200,255,0,.08);border:1px solid rgba(200,255,0,.2);color:var(--a1);}
+.center{text-align:center;}
+.big{font-size:40px;margin-bottom:10px;}
+.title{font-family:'Syne',sans-serif;font-weight:700;font-size:19px;margin-bottom:8px;}
+.note{color:var(--muted);font-size:13px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="box">
+
+  <!-- FORMULARIO DE LOGIN -->
+  <div id="panel-login" style="display:none">
+    <div class="logo">InOut<span>.</span></div>
+    <div class="sub">Wi-Fi de Staff · Introduce tus credenciales de InOut Media para conectarte.</div>
+    <div id="err" class="msg msg-err"></div>
+    <label class="lbl">Email</label>
+    <input class="inp" id="email" type="email" placeholder="tu@inoutmedia.es" autocomplete="username"/>
+    <label class="lbl">Contraseña</label>
+    <input class="inp" id="password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    <button class="btn" id="btn-login">Conectar a Internet</button>
+  </div>
+
+  <!-- ACCESO CONCEDIDO (vuelta desde el router) -->
+  <div id="panel-landing" style="display:none" class="center">
+    <div class="big">✅</div>
+    <div class="title">Ya tienes acceso</div>
+    <div class="note">Tu dispositivo está autorizado en la red de staff. Puedes cerrar esta pestaña.</div>
+  </div>
+
+  <!-- SIN PARÁMETROS DEL ROUTER: acceso directo, fuera de contexto -->
+  <div id="panel-direct" style="display:none" class="center">
+    <div class="logo" style="margin-bottom:14px">InOut<span>.</span></div>
+    <div class="title">Acceso Wi-Fi de Staff</div>
+    <div class="note">Esta página se usa desde el portal cautivo del Wi-Fi de staff en los eventos. Conéctate a la red del evento e inténtalo de nuevo.</div>
+  </div>
+
+</div>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const fas = qs.get('fas');
+const landing = qs.get('landing');
+
+if (landing === '1') {
+  document.getElementById('panel-landing').style.display = 'block';
+} else if (fas) {
+  document.getElementById('panel-login').style.display = 'block';
+} else {
+  document.getElementById('panel-direct').style.display = 'block';
+}
+
+function setErr(msg) {
+  const el = document.getElementById('err');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  setErr('');
+  if (!email || !password) { setErr('Introduce email y contraseña.'); return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.textContent = 'Conectando…';
+
+  try {
+    const res = await fetch('/api/authorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fas, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo verificar el acceso.');
+    window.location.href = data.redirectUrl;
+  } catch (e) {
+    setErr(e.message || 'Error de conexión. Inténtalo de nuevo.');
+    btn.disabled = false;
+    btn.textContent = 'Conectar a Internet';
+  }
+}
+
+document.getElementById('btn-login')?.addEventListener('click', doLogin);
+document.getElementById('password')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>
